@@ -25,3 +25,8 @@ __pycache__/
 # Track the pinned SDL source archive, not extracted sources or local tools.
 /dependencies/*
 !/dependencies/SDL3-3.4.16.zip
+
+# Native Unix/macOS executables from src/Makefile.
+/src/pmars
+/src/pmars-sdl3
+/src/core

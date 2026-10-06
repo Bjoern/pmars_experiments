@@ -20,34 +20,55 @@ The repository is private, so authenticate with your GitHub account through
 a credential manager or GitHub CLI. Do not use your GitHub account password
 as a Git HTTPS password.
 
-## Try the macOS build
+## Build on macOS or Linux
 
-Requires Xcode command-line tools and CMake 3.21 or newer. The pinned SDL3
-source archive is included; CMake extracts it into the build directory.
+On macOS, install the Xcode command-line tools and CMake 3.21 or newer.
+On Linux, install GCC/G++, GNU make, CMake and the development dependencies
+for SDL's windowing backends. From the repository root, simply run:
 
 ```sh
-cmake -S . -B build-macos -DCMAKE_BUILD_TYPE=Release -DPMARS_STATIC=ON
-cmake --build build-macos --target pmars-sdl3 --parallel
-./build-macos/pmars-sdl3 -v 834 warriors/sunset.red warriors/excalibur.red
+make
+./src/pmars-sdl3 -v 834 warriors/sunset.red warriors/excalibur.red
 ```
 
-This links SDL3 statically, while retaining macOS system dependencies.
-The exact macOS build is not yet verified. A previous attempt reportedly
-worked after adding a missing include; that fix still needs to be identified
-and committed. Preserve the compiler diagnostic when reproducing it.
-The Unix/macOS makefile path uses an installed SDL3 via pkg-config; the
-CMake commands above use the included SDL3 source archive instead.
+Make configures a Release build with CMake, builds the included SDL3 source
+statically and copies the executable to `src/pmars-sdl3`. An installed SDL3
+or pkg-config is not needed. System libraries/frameworks remain dependencies.
+The exact macOS/Linux build remains unverified here; please retain any
+compiler diagnostic, including the previously reported missing-include error.
+
+## Choose a target or change the defaults
+
+```sh
+make sdl3                       # explicitly select SDL3
+make server                     # headless build
+make GRAPHICS=sdl3 JOBS=4        # override graphics choice / build parallelism
+make SDL_BUILD_TYPE=Debug        # SDL3 debug build
+make help                       # targets and settings
+```
+
+Edit the settings near the top of `src/Makefile` to persist your choices:
+`TARGET` (default `graphics`), `GRAPHICS` (GDI on Windows, SDL3 elsewhere),
+`JOBS`, `SDL_BUILD_TYPE`, compiler paths and `CMAKE_ARGS`. Command-line
+assignments override these defaults. `make TARGET=server` is equivalent to
+selecting the server target directly. `make -C src` works too; paths such as
+`SDL_DIR` and `SDL_BUILD_DIR` are always relative to `src`.
+
+The classic `default` (console/debugger), `server`, `curses` and `xwin`
+targets retain their shared object build. Run `make clean` when switching
+between those classic targets or changing their compiler flags.
+GDI and SDL3 have separate build paths and need no cleaning when switching.
 
 ## Windows builds
 
 With MinGW-w64 GCC and GNU make:
 
 ```powershell
-mingw32-make -C src graphics GRAPHICS=gdi
-mingw32-make -C src graphics GRAPHICS=sdl3
+mingw32-make                     # GDI: small, no SDL/CMake dependency
+mingw32-make sdl3                # SDL3: requires CMake and G++ too
 ```
 
-SDL3 additionally requires CMake and G++. GDI is the smaller, simpler default.
+`make` works instead if that is the name of your GNU make executable.
 See [BUILD-DISPLAYS.md](BUILD-DISPLAYS.md) for options and validation details.
 
 ## Working between computers

@@ -6,6 +6,8 @@
 
 .DEFAULT_GOAL := all
 
+#   make                build TARGET (graphics by default)
+#   make help           list targets and settings
 #   make default        default build (no display, with cdb debugger)
 #   make server         server build (disable cdb debugger)
 #   make curses         enable Curses display (UNIX)
@@ -26,58 +28,65 @@
 
 CFLAGS += -O2 -DEXT94 -DPERMUTATE
 
-CC = gcc                # required for Linux
+CC = gcc                # override with CC=clang, etc.
+CXX = g++
 #CC = cc                # if you don't have gcc
 
 MAINFILE = pmars
 
-# Graphics backend for `make graphics` and `make check-graphics`.
-# gdi: Windows only; smaller executable, GCC + make only, no SDL/CMake.
-# sdl3: Windows/Unix/macOS; SDL3 window/input support. Windows builds SDL3
-#       statically with CMake + C/C++ compilers, producing a larger standalone
-#       executable. Unix/macOS uses an installed SDL3 pkg-config package.
-# Edit this setting or pass GRAPHICS=sdl3 on the make command line.
-# Named GRAPHICS to avoid colliding with the X11 DISPLAY environment variable.
-# The historical `make default` remains the console/debugger build.
+# Default target for plain make. Edit here or pass TARGET=server, etc.
+TARGET ?= graphics
+
+# The compiler target also supports a user-supplied cross compiler.
+TARGET_TRIPLE := $(shell $(CC) -dumpmachine)
+SDL_WINDOWS := $(or $(findstring mingw,$(TARGET_TRIPLE)),$(findstring windows-gnu,$(TARGET_TRIPLE)))
+
+# Graphics backend: edit here or pass GRAPHICS=gdi / GRAPHICS=sdl3.
+# GDI: Windows only, small executable; needs GCC + make, no SDL/CMake.
+# SDL3: portable display; builds the bundled SDL3 statically via CMake.
+#       System libraries/frameworks remain dependencies on Unix/macOS.
+# GRAPHICS avoids colliding with the X11 DISPLAY environment variable.
+ifneq (,$(SDL_WINDOWS))
 GRAPHICS ?= gdi
+CMAKE_GENERATOR ?= MinGW Makefiles
+EXEEXT = .exe
+PYTHON ?= python
+else
+GRAPHICS ?= sdl3
+CMAKE_GENERATOR ?= Unix Makefiles
+EXEEXT =
+PYTHON ?= python3
+endif
 ifneq ($(GRAPHICS),gdi)
 ifneq ($(GRAPHICS),sdl3)
 $(error Unsupported GRAPHICS '$(GRAPHICS)'; choose gdi or sdl3)
 endif
 endif
+ifeq (,$(filter $(TARGET),graphics gdi sdl3 sdl default server curses xwin))
+$(error Unsupported TARGET '$(TARGET)'; run make help for targets)
+endif
+
 GDI_PROGRAM ?= pmars-gdi.exe
 GDI_EXTRA_CFLAGS ?= -std=c99 -fstack-protector-strong
 GDI_LDFLAGS ?= -static -Wl,--dynamicbase,--nxcompat
 GDI_LIBS ?= -lgdi32 -luser32
 CORE_SOURCES = pmars.c asm.c eval.c disasm.c cdb.c sim.c pos.c clparse.c global.c token.c str_eng.c
 
-
-# Windows: make owns the static CMake build; only tool/dependency locations
-# need overrides for nonstandard installations. Unix uses pkg-config SDL3.
-TARGET_TRIPLE := $(shell $(CC) -dumpmachine)
-SDL_WINDOWS := $(or $(findstring mingw,$(TARGET_TRIPLE)),$(findstring windows-gnu,$(TARGET_TRIPLE)))
-SDL_SOURCES = $(CORE_SOURCES) SDL_main.c
-SDL_EXTRA_CFLAGS ?= -std=c99 -fstack-protector-strong
-PKG_CONFIG ?= pkg-config
-SDL_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags sdl3)
-ifneq (,$(SDL_WINDOWS))
-CXX = g++
+# SDL3 build settings, used on Windows, Linux and macOS.
+# Paths are relative to src, even when make is run in the repository root.
+# No SDL installation/pkg-config is needed: CMake extracts the bundled source.
 CMAKE ?= cmake
 SDL_BUILD_DIR ?= ../build-sdl3
+SDL_BUILD_TYPE ?= Release
 SDL_DIR ?=
+SDL_PROGRAM ?= pmars-sdl3$(EXEEXT)
+SDL_EXTRA_CFLAGS ?= -std=c99 -fstack-protector-strong
 JOBS ?= 8
-# CMake locates the bundled SDL source/archive when SDL_DIR is empty.
-SDL_CONFIGURE = "$(CMAKE)" -S .. -B "$(SDL_BUILD_DIR)" -G "MinGW Makefiles" -DCMAKE_MAKE_PROGRAM="$(MAKE)" -DCMAKE_C_COMPILER="$(strip $(CC))" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_BUILD_TYPE=Release -DPMARS_STATIC=ON -DPMARS_BUILD_EVENT_TESTS=ON -DSDL3_SOURCE_DIR="$(if $(SDL_DIR),$(abspath $(SDL_DIR)))" -DCMAKE_C_FLAGS="$(CPPFLAGS) $(CFLAGS) $(SDL_EXTRA_CFLAGS)" -DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS)"
-SDL_PROGRAM ?= pmars-sdl3.exe
-PYTHON ?= python
-else
-SDL_LIBS ?= $(shell $(PKG_CONFIG) --libs sdl3)
-SDL_PROGRAM ?= pmars-sdl3
-SDL_LDFLAGS ?=
-PYTHON ?= python3
-endif
+# Extra CMake options, e.g. CMAKE_ARGS=-DCMAKE_OSX_ARCHITECTURES=arm64
+CMAKE_ARGS ?=
+SDL_CONFIGURE = "$(CMAKE)" -S .. -B "$(SDL_BUILD_DIR)" -G "$(CMAKE_GENERATOR)" -DCMAKE_MAKE_PROGRAM="$(MAKE)" -DCMAKE_C_COMPILER="$(strip $(CC))" -DCMAKE_CXX_COMPILER="$(strip $(CXX))" -DCMAKE_BUILD_TYPE="$(SDL_BUILD_TYPE)" -DPMARS_STATIC=ON -DPMARS_BUILD_EVENT_TESTS=ON -DSDL3_SOURCE_DIR="$(if $(SDL_DIR),$(abspath $(SDL_DIR)))" -DCMAKE_C_FLAGS="$(CPPFLAGS) $(CFLAGS) $(SDL_EXTRA_CFLAGS)" -DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS)" $(CMAKE_ARGS)
 
-.PHONY: graphics check-graphics gdi check-gdi sdl3 check-sdl3 all curses default sdl check-sdl check-sdl-native server xwin clean
+.PHONY: help check graphics check-graphics gdi check-gdi sdl3 check-sdl3 all curses default sdl check-sdl check-sdl-native server xwin clean
 
 graphics: $(GRAPHICS)
 check-graphics: check-$(GRAPHICS)
@@ -99,17 +108,26 @@ check-gdi: gdi
 	$(CC) -std=c99 -O2 -Wall -Wextra -Werror ../security/test_gdi_surface.c gdidisp.c $(GDI_LDFLAGS) $(GDI_LIBS) -o ../security/build/test-gdi-surface.exe
 	$(PYTHON) -c "import subprocess; subprocess.run(['../security/build/test-gdi-surface.exe'], check=True)"
 
-all:
+all: $(TARGET)
+
+check: check-graphics
+
+help:
 	@echo "-------------------------------"
 	@echo "portable makefile for pMARS"
 	@echo "-------------------------------"
 	@echo "Usage:"
+	@echo "  make                build TARGET=$(TARGET), GRAPHICS=$(GRAPHICS)"
+	@echo "  make help           show this help"
+	@echo "  make TARGET=server  override the default target"
+	@echo "  make GRAPHICS=sdl3  override the display backend"
+	@echo "  Settings: SDL_BUILD_TYPE=Release, JOBS=8, CC, CXX, CMAKE, CMAKE_ARGS"
 	@echo "  make default        default build (no display, with cdb debugger)"
 	@echo "  make server         server build (disable cdb debugger)"
 	@echo "  make curses         enable Curses display (UNIX)"
 	@echo "  make graphics       selected GRAPHICS=$(GRAPHICS) (gdi or sdl3)"
 	@echo "  make gdi            Windows GDI: small, GCC + make, no SDL"
-	@echo "  make sdl3           SDL3: portable; CMake/static SDL on Windows"
+	@echo "  make sdl3           SDL3: portable; bundled static SDL via CMake"
 	@echo "  make check-graphics test the selected display"
 	@echo "  make sdl            alias for sdl3"
 	@echo "  make check-sdl      build SDL and run its regression tests"
@@ -124,13 +142,12 @@ curses: $(MAINFILE)
 
 default: $(MAINFILE)
 
-ifneq (,$(SDL_WINDOWS))
-# SDL and compiler runtimes are linked statically by CMakeLists.txt.
-# Isolated build output prevents reuse of another display backend's objects.
+# Isolated CMake output prevents reuse of another display backend's objects.
+# SDL3 is embedded on every platform; MinGW runtimes are static on Windows.
 sdl:
 	$(SDL_CONFIGURE)
 	"$(CMAKE)" --build "$(SDL_BUILD_DIR)" --target pmars-sdl3 --parallel $(JOBS)
-	"$(CMAKE)" -E copy_if_different "$(SDL_BUILD_DIR)/pmars-sdl3.exe" "$(SDL_PROGRAM)"
+	"$(CMAKE)" -E copy_if_different "$(SDL_BUILD_DIR)/pmars-sdl3$(EXEEXT)" "$(SDL_PROGRAM)"
 
 check-sdl: sdl
 	"$(CMAKE)" --build "$(SDL_BUILD_DIR)" --target pmars-server pmars-sdl3-events --parallel $(JOBS)
@@ -138,15 +155,6 @@ check-sdl: sdl
 
 check-sdl-native: SDL_TEST_FLAGS = --native
 check-sdl-native: check-sdl
-else
-# Installed SDL3 development package on Unix/macOS.
-sdl:
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL_EXTRA_CFLAGS) -DSDLGRAPHX $(SDL_CFLAGS) $(SDL_SOURCES) $(LDFLAGS) $(SDL_LDFLAGS) $(SDL_LIBS) -o $(SDL_PROGRAM)
-
-check-sdl: sdl
-	$(PYTHON) ../security/test_sdl.py ./$(SDL_PROGRAM)
-	$(PYTHON) ../security/test_096.py ./$(SDL_PROGRAM)
-endif
 
 server: CFLAGS += -DSERVER
 server: LIBS =

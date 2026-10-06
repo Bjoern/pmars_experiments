@@ -1,25 +1,27 @@
 # Choosing the graphics display
 
 The current 0.9.6-dev source tree supports both native Windows GDI and SDL3.
-Choose a backend in `src/Makefile` by editing `GRAPHICS ?= gdi`, or override
-it on the command line. Selection is at compile time; the executables have
+Choose a backend in `src/Makefile` by editing the platform-specific
+`GRAPHICS` defaults, or override it on the command line. Selection is at compile time; the executables have
 separate names and can be kept side by side.
 
 | Setting | Output under `src/` | Requirements | Reasons to choose it |
 | --- | --- | --- | --- |
-| `GRAPHICS=gdi` (default graphics choice) | `pmars-gdi.exe` | Windows, MinGW-w64 GCC, GNU make | Small binary, simple build, no SDL or CMake dependency |
-| `GRAPHICS=sdl3` | `pmars-sdl3.exe` on Windows | 64-bit MinGW-w64 GCC/G++, CMake 3.21+, SDL3 source | SDL3 window/input support and a portable display backend; static Windows build is larger and takes longer |
+| `GRAPHICS=gdi` (Windows default) | `pmars-gdi.exe` | Windows, MinGW-w64 GCC, GNU make | Small binary, simple build, no SDL or CMake dependency |
+| `GRAPHICS=sdl3` (macOS/Linux default) | `pmars-sdl3` (`.exe` on Windows) | C/C++ compilers, GNU make, CMake 3.21+, included SDL3 source; MinGW-w64 on Windows | Portable display with embedded SDL3; larger binary and longer first build |
 
 Both Windows executables retain the command-line console and graphical
 core/debugger panels. They link compiler runtimes statically and require
 only Windows system DLLs. SDL3 is also linked statically in its Windows
 build; no separate SDL DLL is needed. GDI is Windows-only. SDL3 on Unix/macOS
-uses an installed SDL3 development package and `pkg-config`, with output
+also builds the included SDL3 source through CMake, with output
 `src/pmars-sdl3`; that path has not been tested here.
 
 ## Build
 
-From this directory, with tools on PATH:
+From this directory, with tools on PATH, plain `make` builds SDL3 on
+macOS/Linux, while `mingw32-make` builds GDI on Windows. `make -C src` also
+works. CMake configuration runs automatically for SDL3. To choose explicitly:
 
 ```powershell
 mingw32-make -C src graphics GRAPHICS=gdi
@@ -28,7 +30,8 @@ mingw32-make -C src graphics GRAPHICS=sdl3
 
 Explicit shortcuts `gdi` and `sdl3` ignore the configured GRAPHICS choice.
 The older `sdl` target is an alias for the SDL3 build. Running make with no
-target prints help; `make default` still builds the console/debugger version.
+target builds `TARGET` (defaults to `graphics`). Use `make help` for help;
+`make default` still builds the console/debugger version.
 The separate `Makefile.server` remains available for headless builds.
 
 GDI needs only GCC and make. SDL3's CMake build finds the supplied
@@ -40,7 +43,8 @@ location. Tool paths can also be overridden, for example:
 mingw32-make -C src graphics GRAPHICS=sdl3 CMAKE=../dependencies/build-tools/cmake/data/bin/cmake.exe
 ```
 
-Additional make settings: `CC`, `CXX`, `CMAKE`, `JOBS`, `SDL_BUILD_DIR`,
+Additional make settings: `TARGET`, `CC`, `CXX`, `CMAKE`, `JOBS`,
+`SDL_BUILD_TYPE` (Release by default), `CMAKE_ARGS`, `SDL_BUILD_DIR`,
 `GDI_PROGRAM`, `SDL_PROGRAM`, `CPPFLAGS`, `CFLAGS` and `LDFLAGS`.
 Backend-specific flags are described beside their definitions in the makefile.
 Paths are relative to `src` after `-C src`. Keep different executable names
@@ -76,12 +80,13 @@ See `BUILD-WINDOWS-GDI.md` for GDI controls.
 The simulator/debugger interface is shared; only the selected renderer is
 compiled. Defining both GDIGRAPHX and SDLGRAPHX is rejected by config.h.
 
-The current combined tree can be reconstructed using the new bundle in
+The initial combined tree can be reconstructed using the bundle in
 `patches/dual-display`: apply its two-patch series or its single combined
 patch to the preserved original 0.9.6-dev baseline. See that bundle's README
 for exact steps. Older SDL-only ZIP files, patch series and manifests remain
 historical snapshots; do not mix their alternative display patches with the
-new series. Build the reconstructed sources using the commands above.
+new series. That snapshot predates the plain-make convenience changes;
+its source instructions describe its own commands.
 
 ## Verified on Windows (2026-10-06)
 
@@ -94,3 +99,6 @@ GDI also passed its surface-operation tests. SDL3 passed dummy and native
 Windows event/rendering tests, static-import checks and clean-directory
 launch checks. Makefile selection, compatibility wrappers, invalid values
 and non-Windows GDI rejection were checked. Unix/macOS builds are unverified.
+
+Plain-make convenience support was added after the initial patch bundle.
+The existing bundle remains a snapshot of the earlier GDI/SDL3 state.
