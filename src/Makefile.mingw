@@ -1,0 +1,11 @@
+# Windows graphics entry point. Edit GRAPHICS in Makefile or pass it here.
+# Example: mingw32-make -C src -f Makefile.mingw GRAPHICS=sdl3
+.DEFAULT_GOAL := graphics
+include Makefile
+.DEFAULT_GOAL := graphics
+ifneq ($(PROGRAM),)
+GDI_PROGRAM = $(PROGRAM)
+SDL_PROGRAM = $(PROGRAM)
+endif
+.PHONY: check
+check: check-graphics

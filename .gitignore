@@ -1,0 +1,27 @@
+# Generated binaries, objects, caches and packages.
+*.exe
+*.dll
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.pyc
+__pycache__/
+.DS_Store
+/build*/
+/security/build/
+/sdl3-events.bmp
+/sdl3-events.png
+/*.zip
+/*.sha256
+
+# Keep only the current reproducible patch bundle.
+/patches/*
+!/patches/dual-display/
+/README-PATCHES-SDL.md
+
+# Track the pinned SDL source archive, not extracted sources or local tools.
+/dependencies/*
+!/dependencies/SDL3-3.4.16.zip

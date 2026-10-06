@@ -1,0 +1,12 @@
+mingw32-make: Entering directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/patches/work/dual-display-verify-hnsjy81l/series/src'
+gcc                  -O2 -DEXT94 -DPERMUTATE -std=c99 -fstack-protector-strong -DGDIGRAPHX pmars.c asm.c eval.c disasm.c cdb.c sim.c pos.c clparse.c global.c token.c str_eng.c gdidisp.c  -static -Wl,--dynamicbase,--nxcompat -lgdi32 -luser32 -o "pmars-gdi.exe"
+python ../security/test_gdi.py ./pmars-gdi.exe
+PASS: 261 security and compatibility checks
+PASS: 30 GDI mode and debugger checks
+python ../security/test_096.py ./pmars-gdi.exe
+PASS: 7 0.9.6 assembler regression checks
+python -c "from pathlib import Path; Path('../security/build').mkdir(parents=True, exist_ok=True)"
+gcc                 -std=c99 -O2 -Wall -Wextra -Werror ../security/test_gdi_surface.c gdidisp.c -static -Wl,--dynamicbase,--nxcompat -lgdi32 -luser32 -o ../security/build/test-gdi-surface.exe
+python -c "import subprocess; subprocess.run(['../security/build/test-gdi-surface.exe'], check=True)"
+PASS: GDI clipping, scrolling, color key, copy and allocation checks
+mingw32-make: Leaving directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/patches/work/dual-display-verify-hnsjy81l/series/src'

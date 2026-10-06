@@ -1,0 +1,8 @@
+# Consistent text files on Windows and macOS; keep source archives binary.
+* text=auto eol=lf
+*.zip -text
+*.png -text
+*.bmp -text
+
+# Published patch/checksum bundle must retain exact bytes.
+patches/dual-display/** -text

@@ -1,0 +1,168 @@
+
+2026-06-03	John Metcalf	<digital.wilderness@googlemail.com>
+
+	- Release 0.9.6 candidate
+	- Merged SDL display support from pMARS-SDL.
+	- Fixed issues with multi-line equ and comparison operators -
+	  patches by Bertram Felgenhauer.
+	- Fixed issue assembling lines longer than 255 characters -
+	  reported by anr on Discord.
+	- Read/write limits are now disabled by default.
+
+
+2026-01-03	John Metcalf	<digital.wilderness@googlemail.com>
+
+	- Release 0.9.5
+	- Updated the X Window display: dynamically sized core display,
+	  new 1280x960 display mode (-v 174), and pMARS icon.
+	- Updated the Curses display: added colour and variable speed.
+	- Optional Okabe-Ito CVD-safe X Window palette (only if compiled
+	  with -DSAFECOLORS).
+	- Fixed several overflow / bounds errors - patch by Joseph Espy.
+	- Fixed format warnings and sighandler FTBFS error - patches by
+	  Andrius Merkys.
+
+2022-07-08	John Metcalf	<digital.wilderness@googlemail.com>
+
+	- Release 0.9.4
+	- Added -R and -W options for read/write limits (only if compiled
+	  with -DRWLIMIT) - patch by Joonas Pihlaja.
+	- Added -A option to assemble warriors and emit a load file -
+	  patch by Joonas Pihlaja.
+	- Applied the pMARS patch set (pmars-0.9.2-patches_20040721) to
+	  fix several bugs - patches by Joonas Pihlaja.
+	- Fixed a precedence bug in eval.c - patch by Bjoern Guenzel.
+	- Fixed parsing of \ in comments in asm.c - patch by Terry Newton.
+
+2000-12-25	Ilmari Karonen	<iltzu@sci.fi>
+
+	- Release 0.9.2
+	- Added -P option to run all possible warrior placements in random
+	  order (only if compiled with -DPERMUTATE).
+	- Added warning if arithmetic overflow occurs during evaluation.
+	- Removed upper limit from -F option to prevent KotH abuse.
+	- Fixed curdisp.c so that it compiles - patch by Philip Kendall.
+
+2000-10-23	Anton Marsden	<anton@paradise.net.nz>
+
+	- Release 0.9.1
+	- Fixed a bug in the multi-warrior code, which was apparently
+	  introduced in pmars-0.8.5.
+	- Added support for a private colourmap if no colours can be
+	  allocated in X-Windows - patch by Philip Kendall.
+
+2000-08-20	Anton Marsden	<anton@paradise.net.nz>
+
+	- Release 0.9.0
+	- New GPL license
+
+2000-04-10
+
+	- Release 0.8.6
+        - Pentium optimized sim.c by Ken Espiritu (1998-10-23)
+
+1996-02-20
+
+	- Release 0.8.5
+	- Larger warriors (MAXINSTR 1000)
+	- P-space cdb support
+	- \ multi-line continuations
+
+1995-08-05
+
+	- Release 0.8.0
+	- LDP,STP,PIN; X Windows display
+
+1995-06-11
+
+	- Release 0.7.5
+	- Score formula option, linux/SVGA display, VMS port
+
+1995-04-17
+
+	- Release 0.7.1
+	- Minor compatibility fixes
+
+1995-04-15
+
+	- Release 0.7.0
+	- Multi-warrior capabilities, -@, stdin warrior/option input
+
+1994-08-09
+
+	- Release 0.6.3
+	- Minor ;assert bug fixed
+
+1994-07-16
+
+	- Release 0.6.2
+	- Fixed } mode bug, ignores text before ;redcode and after end
+
+1994-06-22
+
+	- Release 0.6.1
+	- Curses display status bar, minor speed improvement
+
+1994-06-08
+
+	- Release 0.6.0
+	- A-field indirect modes, merged FOR/ROF and EQU pass, ;assert
+	- Added primer.cdb and redcode.ref
+        - CURLINE predefined variable
+
+1994-05-01
+
+	- Release 0.5.1
+	- Graphics display for big core pmarsv.exe
+
+1994-04-10
+
+	- Release 0.5.0
+	- 2-panel cdb, pqueue, if, reset, SEQ, SNE, NOP
+	- Predefined variables: CORESIZE, MAXPROCESSES, MAXCYCLES, etc
+	- C-style comparison and boolean operators in Redcode expressions
+
+1994-01-19
+
+	- Release 0.4.0
+	- Curses display, macros, new cdb commands, scroll keys, registers
+
+1993-10-27
+
+	- Release 0.3.1
+	- Fixed small bug in pmarsv.exe
+
+1993-10-23
+
+	- Release 0.3.0
+	- DOS/Mac version simulator bug fixed, JMN/DJN fixed
+
+1993-09-29
+
+	- Release 0.2.2
+	- Text/Graphics display with cdb for DOS, -v, -K seeds RNG
+
+1993-09-19
+
+	- Release 0.2.1
+	- Fixed display bug in cdb.c; max. instr. increased to 500
+
+1993-09-12
+
+	- Release 0.2.0
+	- cdb command chains; ! repetitor
+
+1993-09-09
+
+	- Release 0.1.2
+	- Mac compiler define fixed, initial core instr. not displayed
+
+1993-09-01
+
+	- Release 0.1.1
+	- Post-mortem debugger avoidable, doc fixes
+
+1993-08-17
+
+	- Initial release 0.0.1
+

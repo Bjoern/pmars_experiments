@@ -1,0 +1,2671 @@
+Subject: [PATCH 1/2] Port applicable core hardening to the local 0.9.6 candidate
+
+diff --git a/security/REVIEW.md b/security/REVIEW.md
+new file mode 100644
+--- /dev/null
++++ b/security/REVIEW.md
+@@ -0,0 +1,35 @@
++# pMARS 0.9.6-dev security hardening
++
++Ported from the local 0.9.5 hardening on 2026-10-02. This targets untrusted
++warrior assembly and headless simulation. It is not a complete debugger,
++display, service or operating-system audit.
++
++The candidate widens its physical input-line reader and fixes comparison
++operators and multiline EQU, but leaves byte-sized token offsets, the numeric
++buffer terminator overwrite, unchecked signed arithmetic, unbounded assembly
++work/recursion, option-file overflows/includes, diagnostic overflows, allocation
++cleanup and PIN sharing issues. The relevant 0.9.5 protections are ported.
++Assertion processing and multiline EQU fixes from the candidate are retained.
++The checked evaluator subsumes the candidate's operator parsing repair.
++The positive FOR-count wraparound workaround is replaced by explicit rejection
++above 65,535 and a nonwrapping loop counter.
++
++Limits: 1 MiB of input per warrior; 65,535 logical source lines; 7,999 bytes per
++physical/continued logical line; 128 nested assembler calls; 1,000,000 assembly
++work steps; 65,535 FOR iterations; configured warrior instruction limit;
++128 expression call depth and 100,000 expression work steps; 7,999-byte option
++tokens and 16 nested option files. NUL input is rejected. Failed expressions
++restore register assignments; arithmetic overflow rejects the expression.
++These budgets are not a total CPU, memory or output sandbox.
++
++Build/check: `mingw32-make -C src -f Makefile.server CC=gcc check` on Windows,
++or `make -C src -f Makefile.server check` on Unix. SERVER/display combinations
++fail at compile time. The default follows the candidate and does not enable
++RWLIMIT. Enable simulated read/write limits with an explicit CFLAGS override;
++host input hardening is independent of that simulator feature.
++
++Windows x64 GCC and Clang undefined-behavior-trap verification are recorded in
++patches/VALIDATION.md. Linux/AddressSanitizer and production service integration
++were not tested. Keep untrusted workers isolated and enforce external time,
++memory and output limits. This source port does not update a deployed worker.
++PORT-REVIEW.md (with the display patch) details applicability and SDL differences.
+diff --git a/security/test_096.py b/security/test_096.py
+new file mode 100644
+--- /dev/null
++++ b/security/test_096.py
+@@ -0,0 +1,37 @@
++"""Regression coverage for behavior introduced in the 0.9.6 candidate.
++Usage: python security/test_096.py binary [upstream-binary]
++"""
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++
++ROOT = Path(__file__).resolve().parents[1]
++binary = str(Path(sys.argv[1]).resolve())
++baseline = str(Path(sys.argv[2]).resolve()) if len(sys.argv) > 2 else None
++checks = 0
++with tempfile.TemporaryDirectory(dir=ROOT / 'security') as tmp:
++    path = Path(tmp) / 'macro.red'
++    for body, expected in [
++        ('block equ dat 1,2\n equ dat 3,4\nblock\n', 0),
++        ('block equ dat 1,2\n;assert 1\n equ dat 3,4\nblock\n', 0),
++        ('block equ dat 1,2\n;assert 0\n equ dat 3,4\nblock\n', 3),
++        ('val equ 2\n;assert val == 2\ndat val,0\n', 0),
++        (';assert (a=3)==3 && a>=3 && a<=3 && a!=4\ndat a,0\n', 0),
++        ('dat 1<2,2>1\ndat 2<=2,2>=2\n', 0),
++        (' ' * 512 + 'dat 1,2\n', 0),
++    ]:
++        path.write_text(';redcode\n;assert 1\n' + body)
++        def run(exe):
++            return subprocess.run([exe, '-A', '-r', '0', str(path)],
++                                  input=b'', capture_output=True, timeout=5, cwd=ROOT)
++        result = run(binary)
++        assert result.returncode == expected, (body[:200], result.stderr)
++        # Upstream still hangs on token offsets past 255; never feed it this case.
++        if baseline and len(body) < 256:
++            before = run(baseline)
++            assert before.returncode == expected, (body[:200], before.stderr)
++            if expected == 0:
++                assert result.stdout == before.stdout, (body[:200], result.stdout, before.stdout)
++        checks += 1
++print(f'PASS: {checks} 0.9.6 assembler regression checks')
+diff --git a/security/test_eval.c b/security/test_eval.c
+new file mode 100644
+--- /dev/null
++++ b/security/test_eval.c
+@@ -0,0 +1,99 @@
++/* Compile with src/eval.c; no simulator or platform libraries required. */
++#include <stdio.h>
++#include <string.h>
++#include <limits.h>
++#include "../src/global.h"
++
++static int failures, checks;
++static void expect(char *expr, int code, long value)
++{
++  long actual = 123;
++  int result = eval_expr(expr, &actual);
++  ++checks;
++  if (result != code || (code == OK_EXPR && actual != value)) {
++    fprintf(stderr, "FAIL %s: code=%d value=%ld (wanted %d %ld)\n",
++            expr, result, actual, code, value);
++    ++failures;
++  }
++}
++
++int main(void)
++{
++  char buf[10000];
++  long x, y;
++  int i;
++  reset_regs();
++  expect("3--2", 0, 5);
++  expect("2+3*4-1", 0, 13);
++  expect("10-3-2", 0, 5);
++  expect("24/3/2", 0, 4);
++  expect("(2+3)*4", 0, 20);
++  expect("!0+!2", 0, 1);
++  expect("1 || 0 && 0", 0, 1);
++  expect("1+2==3 && 5>=4", 0, 1);
++  expect("1<2==1", 0, 1);
++  expect("a=2+3*4", 0, 14);
++  expect("a", 0, 14);
++  expect("b=c=9", 0, 9);
++  expect("b+c", 0, 18);
++  expect("0 && (a=8)", 0, 0); /* historical eager logic */
++  expect("a", 0, 8);
++  expect("(a=2)+(b=3)", 0, 5);
++  expect("a=99+", BAD_EXPR, 0);
++  expect("a", 0, 2); /* failed expressions roll registers back */
++  expect("", BAD_EXPR, 0);
++  expect("(", BAD_EXPR, 0);
++  expect("()", BAD_EXPR, 0);
++  expect("1+", BAD_EXPR, 0);
++  expect("1&", BAD_EXPR, 0);
++  expect("1|", BAD_EXPR, 0);
++  expect("1!", BAD_EXPR, 0);
++  expect("1=", BAD_EXPR, 0);
++  expect("1/0", DIV_ZERO, 0);
++  expect("1%0", DIV_ZERO, 0);
++  snprintf(buf, sizeof(buf), "%ld", LONG_MAX);
++  expect(buf, 0, LONG_MAX);
++  snprintf(buf, sizeof(buf), "%ld", LONG_MIN);
++  expect(buf, 0, LONG_MIN);
++  snprintf(buf, sizeof(buf), "%ld+1", LONG_MAX);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "%ld-1", LONG_MIN);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "(%ld)/-1", LONG_MIN);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "(%ld)%%-1", LONG_MIN);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "-(%ld)", LONG_MIN);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "%ld*2", LONG_MAX);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "%ld*-1", LONG_MIN);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "-1*(%ld)", LONG_MIN);
++  expect(buf, BAD_EXPR, 0);
++  snprintf(buf, sizeof(buf), "(%ld)*1", LONG_MIN);
++  expect(buf, 0, LONG_MIN);
++  snprintf(buf, sizeof(buf), "0*(%ld)", LONG_MIN);
++  expect(buf, 0, 0);
++  snprintf(buf, sizeof(buf), "(%ld)*0", LONG_MIN);
++  expect(buf, 0, 0);
++  memset(buf, '+', 1000); strcpy(buf + 1000, "1");
++  expect(buf, BAD_EXPR, 0);
++  strcpy(buf, "1");
++  for (i = 0; i < 1000; ++i) strcat(buf, "+1");
++  expect(buf, 0, 1001); /* long flat expressions need constant stack */
++  for (x = -51; x <= 51; ++x) for (y = -31; y <= 31; ++y) {
++    snprintf(buf, sizeof(buf), "(%ld)+(%ld)*3", x, y);
++    expect(buf, 0, x+y*3);
++    snprintf(buf, sizeof(buf), "(%ld)*(%ld)", x, y);
++    expect(buf, 0, x*y);
++    if (y) {
++      snprintf(buf, sizeof(buf), "(%ld)/(%ld)", x, y);
++      expect(buf, 0, x/y);
++      snprintf(buf, sizeof(buf), "(%ld)%%(%ld)", x, y);
++      expect(buf, 0, x%y);
++    }
++  }
++  printf("%s: %d expression checks\n", failures ? "FAIL" : "PASS", checks);
++  return failures != 0;
++}
+diff --git a/security/test_security.py b/security/test_security.py
+new file mode 100644
+--- /dev/null
++++ b/security/test_security.py
+@@ -0,0 +1,126 @@
++"""Contained regression tests. Usage: python test_security.py BINARY [BASELINE]."""
++from pathlib import Path
++import random
++import subprocess
++import sys
++import tempfile
++
++ROOT = Path(__file__).resolve().parents[1]
++BINARY = str(Path(sys.argv[1]).resolve())
++BASELINE = str(Path(sys.argv[2]).resolve()) if len(sys.argv) > 2 else None
++checks = 0
++
++
++def run(args, binary=BINARY, stdin=None, timeout=5):
++    return subprocess.run([binary, *map(str, args)], input=stdin,
++                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
++                          timeout=timeout, cwd=ROOT)
++
++
++def check(result, expected, label):
++    global checks
++    assert result.returncode == expected, (label, result.returncode, result.stderr[:1000])
++    checks += 1
++
++
++with tempfile.TemporaryDirectory(prefix='pmars-security-', dir=ROOT / 'security') as folder:
++    tmp = Path(folder)
++    source = tmp / 'input.red'
++
++    def warrior(body, expected=3, label='malformed'):
++        source.write_bytes(b';redcode\n;assert 1\n' + body)
++        check(run(['-r', '0', source]), expected, label)
++
++    # Byte counters previously wrapped, even for legal whitespace and labels.
++    warrior(b' ' * 512 + b'dat 0,0\n', 0, 'long whitespace')
++    warrior(b'X' * 300 + b' dat 0,0\n', 0, 'long label')
++    warrior(b'dat ' + b' ' * 512 + b'1,0\n', 0, 'long operand whitespace')
++    warrior(b';name ' + b'N' * 7900 + b'\ndat 0,0\n', 0, 'long metadata')
++    warrior(b';name ' + b'N' * 7900 + b'\n;author ' + b'A' * 7900 + b'\ndat 0,0\n', 0)
++    warrior(b'dat 12345678901234567890,0\n', label='20 digit numeral')
++    warrior(b'dat (' + b'\n', label='unclosed parenthesis')
++    for expr in (b'1+', b'1&', b'1|', b'1!', b'1=', b'()', b'1/0', b'1%0',
++                 b'2147483647+1', b'9223372036854775807+1',
++                 b'(-2147483647-1)/-1', b'(-9223372036854775807-1)/-1',
++                 b'999999999999999999999999999999999999'):
++        # 32-bit-long arithmetic tests use a width-neutral overflow product.
++        if expr in (b'2147483647+1', b'(-2147483647-1)/-1') and sys.platform != 'win32':
++            continue
++        warrior(b'dat ' + expr + b',0\n', label=repr(expr))
++    warrior(b'dat ' + b'+' * 1000 + b'1,0\n', label='unary nesting')
++    warrior(b'dat ' + b'(' * 1000 + b'1' + b')' * 1000 + b',0\n', label='parenthesis nesting')
++    warrior(b'X equ X\ndat X,0\n', label='recursive equate')
++    chain = b''.join(f'X{i} equ X{i+1}\n'.encode() for i in range(500))
++    warrior(chain + b'X500 equ 1\ndat X0,0\n', label='deep equate chain')
++    warrior(b'for 65536\nrof\ndat 0,0\n', label='FOR truncation')
++    warrior(b'for 65535\nrof\ndat 0,0\n', 0, 'maximum empty FOR')
++    warrior(b'for 65535\nfor 65535\nrof\nrof\ndat 0,0\n', label='macro work exhaustion')
++    warrior(b'for 101\ndat 0,0\nrof\n', label='expanded instruction limit')
++    warrior(b'for 0\n' + b'for 1\n' * 300 + b'dat 0,0\n' + b'rof\n' * 301 + b'dat 0,0\n', 0, 'skipped nesting')
++    warrior(b';' + b'X' * 8000 + b'\ndat 0,0\n', label='long physical line')
++    warrior(b'dat ' + b' ' * 7000 + b'\\\n' + b' ' * 1500 + b'0,0\n', label='long continuation')
++    warrior(b'dat 0,0\x00\n', label='NUL byte')
++    warrior(b';empty\n' * 65536 + b'dat 0,0\n', label='line number exhaustion')
++    warrior(b';' + b'x' * 7900 + b'\n' * 1 + (b';' + b'x' * 7900 + b'\n') * 140,
++            label='input byte exhaustion')
++    warrior(b'LABEL' + b'X' * 7970 + b'\n', 0, 'large diagnostic')
++
++    # Fixed bounds for argv/options, includes and stdin warrior counts.
++    check(run(['999999999999999999999999-']), 2, 'stdin warrior count')
++    check(run(['37-']), 2, 'stdin warrior array bound')
++    check(run(['-r', '99999999999999999999999', source]), 2, 'numeric CLI overflow')
++    check(run(['-F', '99999999999999999999999', source]), 2, 'fixed-position overflow')
++    check(run(['-c', '9223372036854775807', source, source]), 2, 'cycle counter overflow')
++    check(run(['-p', '2147483647', source, source, source]), 2, 'task queue counter overflow')
++    options = tmp / 'bad.opt'
++    options.write_text('"' + 'x' * 10000 + '"')
++    check(run(['-@', options]), 2, 'oversized quoted option')
++    options.write_text('x' * 10000)
++    check(run(['-@', options]), 2, 'oversized option')
++    options.write_text('-@ "' + str(options) + '"')
++    check(run(['-@', options]), 2, 'cyclic option include')
++    options.write_text('; ' + 'ignored' * 5000 + '\n-r 0\n')
++    source.write_text(';redcode\n;assert 1\ndat 0,0\n')
++    check(run(['-@', options, source]), 0, 'long option comment')
++    source.write_text(';redcode\n;assert 1\n;debug\ndat 0,0\n')
++    check(run(['-b', '-r', '1', source, source], stdin=b'\n'), 0, 'SERVER ignores submission debugger directives')
++    source.write_text(';redcode\n;assert 1\n' + 'dat 999999,999999\n' * 1000)
++    check(run(['-b', '-k', '-f', '-r', '1', '-s', '1000000', '-l', '1000', source, source]),
++          0, 'warrior checksum wraps safely')
++    other = tmp / 'other.red'
++    source.write_text(';redcode\n;assert 1\npin 0\ndat 0,0\n')
++    other.write_text(';redcode\n;assert 1\ndat 0,0\n')
++    check(run(['-b', '-r', '0', '-Q', '2000', source, other]), 1, 'PIN zero cannot share private P-space')
++    other.write_text(';redcode\n;assert 1\npin 0\ndat 0,0\n')
++    check(run(['-b', '-r', '0', '-Q', '2000', source, other]), 2, 'explicit matching PINs share P-space')
++
++    # Random bytes and truncated expressions: success or documented parse
++    # failure is allowed; a signal, exception or timeout is never allowed.
++    rng = random.Random(20261002)
++    for i in range(200):
++        body = bytes(rng.choice(b'0123456789()+-*/%!<>=&| ABCxyz\xff') for _ in range(rng.randrange(1, 300)))
++        source.write_bytes(b';redcode\n;assert 1\ndat ' + body + b',0\n')
++        result = run(['-r', '0', source])
++        assert result.returncode in (0, 3), (i, result.returncode, result.stderr[:500])
++        checks += 1
++
++    # Real warriors: compare emitted load code and deterministic battles.
++    warriors = sorted((ROOT / 'warriors').glob('*.red'))
++    for path in warriors:
++        args = ['-A', '-r', '0', path]
++        result = run(args)
++        check(result, 0, path.name)
++        if BASELINE:
++            before = run(args, BASELINE)
++            assert before.returncode == 0 and result.stdout == before.stdout, path.name
++            checks += 1
++    for path in warriors:
++        args = ['-b', '-k', '-r', '10', '-F', '1234', path, warriors[0]]
++        result = run(args)
++        check(result, 0, 'battle ' + path.name)
++        if BASELINE:
++            before = run(args, BASELINE)
++            assert before.returncode == 0 and result.stdout == before.stdout, ('battle mismatch', path.name)
++            checks += 1
++
++print(f'PASS: {checks} security and compatibility checks')
+diff --git a/src/Makefile.server b/src/Makefile.server
+new file mode 100644
+--- /dev/null
++++ b/src/Makefile.server
+@@ -0,0 +1,29 @@
++# Dedicated headless build for untrusted hill submissions.
++CC = cc
++TARGET_TRIPLE := $(shell $(CC) -dumpmachine)
++ifneq (,$(or $(findstring mingw,$(TARGET_TRIPLE)),$(findstring windows-gnu,$(TARGET_TRIPLE))))
++EXEEXT = .exe
++PYTHON = python
++HARDEN_CFLAGS =
++HARDEN_LDFLAGS = -Wl,--dynamicbase,--nxcompat
++else
++EXEEXT =
++PYTHON = python3
++HARDEN_CFLAGS = -D_FORTIFY_SOURCE=2 -fPIE
++HARDEN_LDFLAGS = -pie -Wl,-z,relro,-z,now
++endif
++CFLAGS = -O2 -std=c99 -DSERVER -DEXT94 -DPERMUTATE -fstack-protector-strong $(HARDEN_CFLAGS)
++LDFLAGS = $(HARDEN_LDFLAGS)
++PROGRAM = pmars-server$(EXEEXT)
++SOURCES = pmars.c asm.c eval.c disasm.c cdb.c sim.c pos.c clparse.c global.c token.c str_eng.c
++
++.PHONY: all check
++all: $(PROGRAM)
++$(PROGRAM): $(SOURCES) global.h config.h asm.h sim.h Makefile.server
++	$(CC) $(CFLAGS) $(SOURCES) $(LDFLAGS) -o $@
++check: $(PROGRAM)
++	$(PYTHON) ../security/test_security.py ./$(PROGRAM)
++	$(PYTHON) ../security/test_096.py ./$(PROGRAM)
++	$(PYTHON) -c "from pathlib import Path; Path('../security/build').mkdir(parents=True, exist_ok=True)"
++	$(CC) -std=c99 -O2 ../security/test_eval.c eval.c -o ../security/build/test-eval$(EXEEXT)
++	$(PYTHON) -c "import subprocess; subprocess.run(['../security/build/test-eval$(EXEEXT)'], check=True)"
+diff --git a/src/asm.c b/src/asm.c
+--- a/src/asm.c
++++ b/src/asm.c
+@@ -183,8 +183,25 @@
+ #define GRPMAX   7                /* max group */
+ #define LEXCMAX  50                /* max number of excess lines */
+ 
++/* Per-assembly limits include input, macro work and host call depth. */
++#define ASM_MAX_WORK 1000000UL
++#define ASM_MAX_INPUT (1024UL * 1024UL)
++#define ASM_MAX_DEPTH 128
++static unsigned long asm_work;
++static unsigned int asm_depth;
++static int assembling;
++static int asm_budget(void)
++{
++  if (++asm_work > ASM_MAX_WORK || asm_depth >= ASM_MAX_DEPTH) {
++    fprintf(stderr, "Assembly complexity limit exceeded\n");
++    Exit(PARSEERR);
++    return FALSE;
++  }
++  return TRUE;
++}
++
+ static char noassert;
+-static uChar errnum, warnum;        /* Number of error and warning */
++static unsigned int errnum, warnum; /* counters must not wrap on repeated macro errors */
+ static uChar symnum;
+ 
+ static ref_st *reftbl;
+@@ -222,6 +239,7 @@
+ static void lineswitch(char *, char *, uShrt, line_st *);
+ static int globalswitch(char *, uShrt, uShrt, uShrt);
+ static int trav2(char *, char *, int);
++static int trav2_impl(char *, char *, int);
+ static int normalize(long);
+ static int blkfor(char *, char *);
+ static int equtbl(char *, char *);
+@@ -239,11 +257,12 @@
+ static void cleanmem(void);
+ static void nocmnt(char *);
+ static void automaton(char *, stateCol, mem_struct *);
++static void automaton_impl(char *, stateCol, mem_struct *);
+ static void dfashell(char *, mem_struct *);
+ static void expand(uShrt), encode(uShrt);
+ #else
+ static void lineswitch();
+-static int globalswitch(), trav2(), normalize();
++static int globalswitch(), trav2(), trav2_impl(), normalize();
+ static int blkfor(), equtbl(), equsub();
+ static ref_st *lookup();
+ static grp_st *addsym();
+@@ -253,7 +272,7 @@
+ static void show_info(), show_lbl();
+ static void disposeline(), disposegrp(), disposetbl();
+ static void cleanmem(), nocmnt();
+-static void automaton(), dfashell(), expand(), encode();
++static void automaton(), automaton_impl(), dfashell(), expand(), encode();
+ #endif
+ 
+ /* ************************* Parse state **************************** */
+@@ -294,6 +313,7 @@
+   if ((curtbl = (ref_st *) MALLOC(sizeof(ref_st))) != NULL) {
+     curtbl->grpsym = NULL;
+     curtbl->sline = NULL;
++    curtbl->reftype = RLABEL;
+     curtbl->visit = FALSE;        /* needed to detect recursive reference */
+     curtbl->nextref = reftbl;
+     reftbl = curtbl;
+@@ -318,6 +338,7 @@
+       MEMORYERROR;
+     }
+ 
++  if (!symgrp) MEMORYERROR;
+   return symgrp;
+ }
+ 
+@@ -332,7 +353,7 @@
+   line_st *aline;
+ 
+   lsymtbl = addsym(symn, lsymtbl);
+-  sprintf(token, "%lu", (unsigned long) value);
++  snprintf(token, sizeof(token), "%lu", (unsigned long) value);
+   newtbl();
+   reftbl->grpsym = lsymtbl;
+   reftbl->reftype = RTEXT;
+@@ -391,6 +412,8 @@
+       FREE(temp);
+       MEMORYERROR;
+     }
++  else
++    MEMORYERROR;
+ }
+ 
+ /* ******************************************************************* */
+@@ -406,6 +429,7 @@
+     MEMORYERROR;
+   else {
+     alinesrc->src = pstrdup(src);
++    if (!alinesrc->src) MEMORYERROR;
+     alinesrc->loc = loc;
+     alinesrc->nextsrc = srctbl;
+     srctbl = alinesrc;
+@@ -453,6 +477,7 @@
+   ref_st *tmp;
+ 
+   while ((tmp = atbl) != btbl) {
++    if (tmp->reftype == RTEXT) disposeline(tmp->sline);
+     disposegrp(tmp->grpsym);
+     atbl = atbl->nextref;
+     FREE(tmp);
+@@ -513,12 +538,12 @@
+       break;
+     case RSTACK:
+       textout(stackMsg);
+-      sprintf(outs, "%5d\n\n", aref->value);
++      snprintf(outs, sizeof(outs), "%5d\n\n", aref->value);
+       textout(outs);
+       break;
+     case RLABEL:
+       textout(labelMsg);
+-      sprintf(outs, "%5d\n\n", aref->value);
++      snprintf(outs, sizeof(outs), "%5d\n\n", aref->value);
+       textout(outs);
+       break;
+     }
+@@ -536,13 +561,13 @@
+ {
+   line_st *aline;
+ 
+-  sprintf(outs, afterPass, pass);
++  snprintf(outs, sizeof(outs), afterPass, pass);
+   textout(outs);
+ 
+   textout(instrMsg);
+ 
+   for (aline = sline[sspnt]; aline; aline = aline->nextline) {
+-    sprintf(outs, "(%5d) %s\n", aline->linesrc->loc, aline->vline);
++    snprintf(outs, sizeof(outs), "(%5d) %s\n", aline->linesrc->loc, aline->vline);
+     textout(outs);
+   }
+   textout(endOfPass);
+@@ -567,8 +592,8 @@
+   char   *str;
+   uShrt   idx, loc, lspnt;
+ {
+-  uChar   i;
+-  i = (uChar) idx;
++  unsigned int i;
++  i = idx;
+ 
+   get_token(str, &i, token);
+   to_upper(token);
+@@ -576,7 +601,7 @@
+   if (!strcmp(token, "REDCODE") && i == idx + 7)        /* no leading spaces */
+     return -1;
+ 
+-  while (isspace(str[i]))
++  while (isspace((unsigned char)(str[i])))
+     i++;
+ 
+   if (strcmp(token, "NAME") == 0) {
+@@ -620,8 +645,8 @@
+   line_st *aline;
+ {
+   int     evalerr;
+-  uChar   i;
+-  i = (uChar) idx;
++  unsigned int i;
++  i = idx;
+   get_token(str, &i, token);
+   to_upper(token);
+ 
+@@ -632,7 +657,7 @@
+     trav2((char *) str + i, dest, SVAL);
+ 
+     if (SWITCH_V) {
+-      sprintf(outs, currentAssertMsg, dest);
++      snprintf(outs, sizeof(outs), currentAssertMsg, dest);
+       textout(outs);
+     }
+     if ((evalerr = eval_expr(dest, &result)) < OK_EXPR)
+@@ -753,10 +778,10 @@
+     strcpy(abuf, bufferOverflowErr);
+     break;
+   case ERVERR:
+-    sprintf(abuf, illegalConcatErr, arg);
++    snprintf(abuf, sizeof(abuf), illegalConcatErr, arg);
+     break;
+   case GRPERR:
+-    sprintf(abuf, tooManyLabelsErr, arg);
++    snprintf(abuf, sizeof(abuf), tooManyLabelsErr, arg);
+     break;
+   case FORERR:
+     strcpy(abuf, unopenedFORErr);
+@@ -766,21 +791,21 @@
+     errorlevel = WARNING;
+     break;
+   case M88ERR:
+-    sprintf(abuf, bad88FormatErr, arg);
++    snprintf(abuf, sizeof(abuf), bad88FormatErr, arg);
+     break;
+   case ZLNERR:
+     strcpy(abuf, noInstErr);
+     errorlevel = WARNING;
+     break;
+   case DLBERR:
+-    sprintf(abuf, discardLabelErr, arg);
++    snprintf(abuf, sizeof(abuf), discardLabelErr, arg);
+     errorlevel = WARNING;
+     break;
+   case TOKERR:
+-    sprintf(abuf, tokenErr, arg);
++    snprintf(abuf, sizeof(abuf), tokenErr, arg);
+     break;
+   case SNFERR:
+-    sprintf(abuf, undefinedSymErr, arg);
++    snprintf(abuf, sizeof(abuf), undefinedSymErr, arg);
+     break;
+   case NUMERR:
+     strcpy(abuf, expectNumberErr);
+@@ -789,13 +814,13 @@
+     strcpy(abuf, syntaxErr);
+     break;
+   case LINERR:
+-    sprintf(abuf, tooManyInstrErr, arg);
++    snprintf(abuf, sizeof(abuf), tooManyInstrErr, arg);
+     break;
+   case EXPERR:
+-    sprintf(abuf, missingErr, arg);
++    snprintf(abuf, sizeof(abuf), missingErr, arg);
+     break;
+   case RECERR:
+-    sprintf(abuf, recursiveErr, arg);
++    snprintf(abuf, sizeof(abuf), recursiveErr, arg);
+     break;
+   case EVLERR:
+     strcpy(abuf, badExprErr);
+@@ -816,7 +841,7 @@
+     errorlevel = WARNING;
+     break;
+   case CATERR:
+-    sprintf(abuf, concatErr, arg);
++    snprintf(abuf, sizeof(abuf), concatErr, arg);
+     break;
+   case DOEERR:
+     strcpy(abuf, ignoreENDErr);
+@@ -827,40 +852,40 @@
+     errorlevel = WARNING;
+     break;
+   case EXXERR:
+-    sprintf(abuf, tooMuchStuffErr, MAXINSTR);
++    snprintf(abuf, sizeof(abuf), tooMuchStuffErr, MAXINSTR);
+     break;
+   case IGNORE:
+-    sprintf(abuf, extraTokenErr, arg);
++    snprintf(abuf, sizeof(abuf), extraTokenErr, arg);
+     errorlevel = WARNING;
+     break;
+   case APPERR:
+-    sprintf(abuf, improperPlaceErr, arg);
++    snprintf(abuf, sizeof(abuf), improperPlaceErr, arg);
+     break;
+   case F88ERR:
+-    sprintf(abuf, invalid88Err, arg);
++    snprintf(abuf, sizeof(abuf), invalid88Err, arg);
+     break;
+   case NOPERR:
+-    sprintf(abuf, incompleteOpErr, arg);
++    snprintf(abuf, sizeof(abuf), incompleteOpErr, arg);
+     break;
+   case IDNERR:
+-    sprintf(abuf, redefinitionErr, arg);
++    snprintf(abuf, sizeof(abuf), redefinitionErr, arg);
+     errorlevel = WARNING;
+     break;
+   case UDFERR:
+-    sprintf(abuf, undefinedLabelErr, arg);
++    snprintf(abuf, sizeof(abuf), undefinedLabelErr, arg);
+     errorlevel = WARNING;
+     break;
+   case CHKERR:
+     strcpy(abuf, assertionFailErr);
+     break;
+   case MISC:
+-    strcpy(abuf, arg);
++    snprintf(abuf, sizeof(abuf), "%s", arg);
+     break;
+   case FNFERR:
+-    sprintf(abuf, fileOpenErr, arg);
++    snprintf(abuf, sizeof(abuf), fileOpenErr, arg);
+     break;
+   case DSKERR:
+-    sprintf(abuf, fileReadErr, arg);
++    snprintf(abuf, sizeof(abuf), fileReadErr, arg);
+     break;
+   case MLCERR:
+     cleanmem();                        /* refresh memory for fprintf and system */
+@@ -890,7 +915,7 @@
+       i++;
+ 
+     if (i == ierr) {
+-      sprintf(outs, "%s", errorlevel == WARNING ? warning : error);
++      snprintf(outs, sizeof(outs), "%s", errorlevel == WARNING ? warning : error);
+ #ifndef VMS
+       textout(outs);
+ #else                                /* if defined(VMS) */
+@@ -905,9 +930,9 @@
+ 
+       if (!SWITCH_D) {
+ #endif
+-        sprintf(outs, inLine, aline->linesrc->loc, aline->linesrc->src);
++        snprintf(outs, sizeof(outs), inLine, aline->linesrc->loc, aline->linesrc->src);
+         textout(outs);
+-        sprintf(outs, "        %s\n", abuf);
++        snprintf(outs, sizeof(outs), "        %s\n", abuf);
+         textout(outs);
+ #ifdef VMS
+       } else {
+@@ -921,7 +946,7 @@
+     } else
+       errkeep[i].num++;
+   } else {
+-    sprintf(outs, "%s:\n",
++    snprintf(outs, sizeof(outs), "%s:\n",
+             errorlevel == WARNING ? warning : error);
+ 
+ #ifndef VMS
+@@ -936,7 +961,7 @@
+               errorlevel == WARNING ? LSEWarn : LSEErr);
+     }
+ #endif
+-    sprintf(outs, "        %s\n", abuf);
++    snprintf(outs, sizeof(outs), "        %s\n", abuf);
+ #ifndef VMS
+     textout(outs);
+ #else
+@@ -950,7 +975,7 @@
+   }
+ 
+   if (ierr >= ERRMAX) {
+-    sprintf(outs, "%s", tooManyMsgErr);
++    snprintf(outs, sizeof(outs), "%s", tooManyMsgErr);
+ #ifndef VMS
+     textout(outs);
+ #else
+@@ -966,7 +991,7 @@
+     Exit(PARSEERR);
+ 
+   }
+-  strcpy(errmsg, abuf);
++  snprintf(errmsg, MAXALLCHAR, "%s", abuf);
+ }
+ 
+ /* ******************************************************************* */
+@@ -975,10 +1000,10 @@
+ #define B_expr buf2
+ #define vallen 8
+ static uChar opcode, modifier;
+-static uChar statefine;
++static unsigned int statefine;
+ static stateCol laststate;
+ 
+-static uShrt line, linemax;
++static uShrt line;
+ static uChar vcont;
+ static uShrt dspnt;
+ static line_st *aline;
+@@ -987,12 +1012,21 @@
+ 
+ /* Here is the automaton */
+ static void
+-automaton(expr, state, cell)
++automaton(char *expr, stateCol state, mem_struct *cell)
++{
++  if (!asm_budget()) return;
++  ++asm_depth;
++  automaton_impl(expr, state, cell);
++  --asm_depth;
++}
++
++static void
++automaton_impl(expr, state, cell)
+   char   *expr;
+   stateCol state;
+   mem_struct *cell;
+ {
+-  uChar   idx = 0;
++  unsigned int idx = 0;
+   char   *tmp;
+   ref_st *atbl;
+ 
+@@ -1375,7 +1409,7 @@
+       case SUB:
+       case CMP:
+         if (cell->B_mode == (FIELD_T) IMMEDIATE) {
+-          sprintf(token, "%s [#$@<] [$@<]", opname[opcode]);
++          snprintf(token, sizeof(token), "%s [#$@<] [$@<]", opname[opcode]);
+           errprn(F88ERR, aline, token);
+         }
+         break;
+@@ -1385,7 +1419,7 @@
+       case DJN:
+       case SPL:
+         if (cell->A_mode == (FIELD_T) IMMEDIATE) {
+-          sprintf(token, "%s [$@<] [#$@<]", opname[opcode]);
++          snprintf(token, sizeof(token), "%s [$@<] [#$@<]", opname[opcode]);
+           errprn(F88ERR, aline, token);
+         }
+         break;
+@@ -1467,9 +1501,8 @@
+ normalize(value)
+   long    value;
+ {
+-  while (value >= (long) coreSize)
+-    value -= (long) coreSize;
+-  while (value < 0)
++  value %= (long) coreSize;
++  if (value < 0)
+     value += (long) coreSize;
+   return ((int) value);
+ }
+@@ -1488,7 +1521,7 @@
+   if (line <= MAXINSTR) {
+ 
+     if (line > (uShrt) instrLim) {
+-      sprintf(buf, "%d", (int) line - instrLim);
++      snprintf(buf, sizeof(buf), "%d", (int) line - instrLim);
+       errprn(LINERR, (line_st *) NULL, buf);
+     }
+     warrior[curWarrior].instLen = line;
+@@ -1580,15 +1613,17 @@
+   long    result;
+   ref_st *atbl, *ptbl;
+   grp_st *forSymGr;
++  unsigned long iteration;
+ 
+   if (symtbl) {
+-    forSymGr = addsym(symtbl->symn, NULL);
++    forSymGr = symtbl;
+     if (symtbl->nextsym) {
+       newtbl();
+       reftbl->reftype = RLABEL;
+       reftbl->grpsym = symtbl->nextsym;
+       reftbl->value = line;
+     }
++    forSymGr->nextsym = NULL;
+     symtbl = NULL;
+     symnum = 0;
+   } else
+@@ -1598,15 +1633,17 @@
+   trav2(expr, dest, SVAL);
+ 
+   if (SWITCH_V) {
+-    sprintf(outs, currentFORMsg, dest);
++    snprintf(outs, sizeof(outs), currentFORMsg, dest);
+     textout(outs);
+   }
+   if ((evalerr = eval_expr(dest, &result)) < OK_EXPR) {
++    disposegrp(forSymGr);
+     if (evalerr == DIV_ZERO)
+       errprn(DIVERR, aline, "");
+     else
+       errprn(EVLERR, aline, "");
+-  } else if (result <= 0L || (uShrt) result == 0) {
++  } else if (result <= 0L) {
++    disposegrp(forSymGr);
+     if (evalerr == OVERFLOW)
+       errprn(OFLERR, aline, "");
+     statefine++;
+@@ -1621,9 +1658,14 @@
+     atbl = reftbl;
+ 
+     cline = aline;
+-    for (atbl->value = 1; vcont && atbl->value <= (uShrt) result && aline;
+-         atbl->value++)
+-      for (aline = cline; vcont;)
++    if (result > USHRT_MAX) {
++      errprn(MISC, aline, "FOR count exceeds limit");
++      vcont = FALSE;
++      return SERR;
++    }
++    for (iteration = 1; vcont && iteration <= (unsigned long) result && aline;
++         iteration++)
++      for (aline = cline, atbl->value = (uShrt) iteration; vcont;)
+         if (aline->nextline) {
+           int     r;
+ 
+@@ -1664,7 +1706,7 @@
+   char   *dest;
+ {
+   line_st *cline, *pline = NULL;
+-  uChar   i;
++  unsigned int i;
+ 
+   if (symtbl) {
+ 
+@@ -1737,7 +1779,7 @@
+   }
+ 
+   aline = cline;
+-  if (isspace(*expr))
++  if (isspace((unsigned char)(*expr)))
+     concat(dest, " ");
+ 
+   tbl->visit = 0;
+@@ -1749,12 +1791,23 @@
+ /* recursively traverse the buffer */
+ /* buf[] has to be "" */
+ static int
+-trav2(buffer, dest, wdecl)
++trav2(char *buffer, char *dest, int wdecl)
++{
++  int result;
++  if (!asm_budget()) return SERR;
++  ++asm_depth;
++  result = trav2_impl(buffer, dest, wdecl);
++  --asm_depth;
++  return result;
++}
++
++static int
++trav2_impl(buffer, dest, wdecl)
+   char   *buffer, *dest;
+   int     wdecl;
+ {
+   int evalerr;
+-  uChar   idxp = 0;
++  unsigned int idxp = 0;
+   ref_st *tbl;
+ 
+   switch (get_token(buffer, &idxp, token)) {
+@@ -1792,8 +1845,8 @@
+       if (statefine)
+         return SNIL;
+       else if (wdecl > SLBL) {
+-        sprintf(buf, "%d", line);
+-        if (isspace(buffer[idxp]))
++        snprintf(buf, sizeof(buf), "%d", line);
++        if (isspace((unsigned char)(buffer[idxp])))
+           concat(buf, " ");
+         if (concat(dest, buf))
+           return (trav2((char *) buffer + idxp, dest, wdecl));
+@@ -1816,14 +1869,16 @@
+ 
+       else if (wdecl <= SLBL) {
+ 
+-        uChar   j, op;
++        unsigned int j;
++        uChar op;
+ 
+         for (j = 0; buf[j]; j++);
+ 
+-        while (buffer[idxp] && !isspace(buffer[idxp]))
++        while (buffer[idxp] && !isspace((unsigned char)(buffer[idxp])))
+           buf[j++] = buffer[idxp++];
+ 
+-        if (isspace(buffer[idxp])) {
++        buf[j] = '\0';
++        if (isspace((unsigned char)(buffer[idxp]))) {
+           buf[j++] = ' ';
+           buf[j] = '\0';
+         }
+@@ -1844,6 +1899,11 @@
+               symnum = 0;
+             }
+             if (op < OPNUM) {
++              if (assembling && line >= instrLim) {
++                errprn(LINERR, aline, "1");
++                vcont = FALSE;
++                return SERR;
++              }
+               line++;
+               if (dbginfo == 2)
+                 dbginfo++;
+@@ -1861,10 +1921,10 @@
+ 
+       char    tmp = 1;
+ 
+-      while ((buffer[idxp] == cat_sym) && (isalpha(buffer[idxp + 1])) &&
++      while ((buffer[idxp] == cat_sym) && (isalpha((unsigned char)(buffer[idxp + 1]))) &&
+              (idxp++, get_token(buffer, &idxp, buf) == CHARTOKEN) && tmp)
+         if (((tbl = lookup(buf)) != NULL) && (tbl->reftype == RSTACK)) {
+-          sprintf(buf, "%02u", (unsigned int) tbl->value);
++          snprintf(buf, sizeof(buf), "%02u", (unsigned int) tbl->value);
+           if (!concat(token, buf))
+             errprn(BUFERR, aline, "");
+         } else {
+@@ -1881,13 +1941,13 @@
+ 
+         else if (wdecl > SLBL) {
+           if (tbl->reftype == RSTACK)
+-            sprintf(buf, "%02u", (unsigned int) tbl->value);
++            snprintf(buf, sizeof(buf), "%02u", (unsigned int) tbl->value);
+           else if (wdecl == SPSE)
+-            sprintf(buf, "%d", tbl->value);        /* absolute value */
++            snprintf(buf, sizeof(buf), "%d", tbl->value);        /* absolute value */
+           else
+-            sprintf(buf, "%d", tbl->value - line);        /* relative value */
+-
+-          if (isspace(buffer[idxp]))
++            snprintf(buf, sizeof(buf), "%d", tbl->value - line);        /* relative value */
++
++          if (isspace((unsigned char)(buffer[idxp])))
+             concat(buf, " ");
+ 
+           if (concat(dest, buf))
+@@ -1910,7 +1970,7 @@
+         /* traverse the rest of buffer */
+         return trav2((char *) buffer + idxp, dest, SLBL);
+       } else {
+-        if (isspace(buffer[idxp]))
++        if (isspace((unsigned char)(buffer[idxp])))
+           concat(token, " ");
+         if (concat(dest, token))
+           return (trav2((char *) buffer + idxp, dest, wdecl));
+@@ -1948,7 +2008,7 @@
+ 
+   vcont = TRUE;
+   statefine = 0;
+-  linemax = (uShrt) instrLim + LEXCMAX;
++
+ 
+   aline = sline[sspnt];
+   while (aline && vcont) {
+@@ -1980,8 +2040,12 @@
+   long    resultA, resultB;
+   mem_struct tmp;
+   ADDR_T  dloc;
+-  uChar   i = 0;
++  unsigned int i = 0;
+   uShrt   sspnt = 0;
++
++  asm_work = 0;
++  asm_depth = 0;
++  assembling = FALSE;
+ 
+   errnum = warnum = 0;
+   ierr = 0;
+@@ -2071,8 +2135,10 @@
+   int     aWarrior;
+ {
+   FILE   *infp;
+-  uChar   cont = TRUE, conLine = FALSE, i;
+-  int     ri = 0;
++  uChar cont = TRUE, conLine = FALSE;
++  unsigned int i;
++  unsigned long input_bytes = 0;
++  int input_char;
+   uShrt   lines;                /* logical and physical lines */
+   uShrt   spnt = 0;                /* index/pointer to sline and lline */
+ 
+@@ -2091,6 +2157,7 @@
+ 
+   pass = 0;
+ 
++  cleanmem();
+   srctbl = NULL;
+   sline[0] = sline[1] = NULL;
+   reftbl = NULL;
+@@ -2100,9 +2167,13 @@
+   lines = 0;
+   ierr = 0;
+ 
++  FREE(errkeep);
+   if ((errkeep = (err_st *) MALLOC(sizeof(err_st) * ERRMAX)) == NULL)
+     MEMORYERROR;
+ 
++  asm_work = 0;
++  asm_depth = 0;
++  assembling = TRUE;
+   curWarrior = aWarrior;
+   warrior[curWarrior].name = pstrdup(unknown);
+   warrior[curWarrior].authorName = pstrdup(anonymous);
+@@ -2126,6 +2197,10 @@
+         temp++;                        /* Bypass ":" */
+     } else
+       temp++;                        /* bypass "]" */
++    if (strlen(temp) > sizeof(DIAfilename) - 5) {
++      errprn(MISC, NULL, "Diagnostic filename too long");
++      Exit(PARSEERR);
++    }
+     strcpy(DIAfilename, temp);
+     temp = strstr(DIAfilename, ".");
+     if (temp == NULL)
+@@ -2168,28 +2243,46 @@
+        * excluded. Need to be non-strict boolean evaluation
+        */
+       *buf = '\0';
+-      ri = 0;                        /* pointer to line buffer start */
+-      int commentfound = FALSE;
+-      do {
+-        if (fgets(buf + ri, MAXALLCHAR - ri, infp)) {
+-          for (; buf[ri]; ri++) {
+-            if (buf[ri] == ';') commentfound = TRUE;
+-            if (buf[ri] == '\n' || buf[ri] == '\r')
+-              break;
++      i = 0;                        /* pointer to line buffer start */
++      {
++        int commentfound = FALSE;
++        do {
++          conLine = FALSE;
++          while ((input_char = fgetc(infp)) != EOF) {
++            if (++input_bytes > ASM_MAX_INPUT) {
++              errprn(MISC, NULL, "Source exceeds input size limit");
++              Exit(PARSEERR);
+             }
+-          buf[ri] = 0;
+-          if (ri > 0 && buf[ri - 1] == '\\' && commentfound == FALSE) {        /* line continued */
++            if (input_char == 0) {
++              errprn(MISC, NULL, "NUL byte in source");
++              Exit(PARSEERR);
++            }
++            if (input_char == '\n') break;
++            if (input_char == '\r') continue;
++            if (i >= MAXALLCHAR - 1) {
++              errprn(BUFERR, NULL, "");
++              Exit(PARSEERR);
++            }
++            if (input_char == ';') commentfound = TRUE;
++            buf[i++] = (char) input_char;
++          }
++          buf[i] = 0;
++          if (input_char == EOF) {
++            if (ferror(infp)) {
++              errprn(DSKERR, NULL, fName);
++              Exit(PARSEERR);
++            }
++            cont = FALSE;
++          } else if (i > 0 && buf[i - 1] == '\\' && !commentfound) {
+             conLine = TRUE;
+-            buf[--ri] = 0;        /* reset */
+-          } else
+-            conLine = FALSE;
+-        } else if (ferror(infp)) {
+-          errprn(DSKERR, (line_st *) NULL, fName);
+-          fclose(infp);
+-          return PARSEERR;
+-        } else
+-          cont = (feof(infp) == 0);
+-      } while (conLine == TRUE);
++            buf[--i] = 0;
++          }
++        } while (conLine);
++      }
++      if (lines == USHRT_MAX) {
++        errprn(MISC, NULL, "Too many source lines");
++        Exit(PARSEERR);
++      }
+       lines++;
+       i = 0;
+ 
+@@ -2318,28 +2411,28 @@
+ #ifndef SERVER
+     if (errnum + warnum) {
+       if (*warrior[curWarrior].fileName)
+-        sprintf(outs, "\nSource: filename '%s'\n", warrior[curWarrior].fileName);
++        snprintf(outs, sizeof(outs), "\nSource: filename '%s'\n", warrior[curWarrior].fileName);
+       else
+-        sprintf(outs, "\nSource: standard input (%s by %s)\n",
++        snprintf(outs, sizeof(outs), "\nSource: standard input (%s by %s)\n",
+                 warrior[curWarrior].name, warrior[curWarrior].authorName);
+       textout(outs);
+     }
+ #endif
+     if (errnum) {
+-      sprintf(outs, errNumMsg, errnum);
++      snprintf(outs, sizeof(outs), errNumMsg, errnum);
+       textout(outs);
+     }
+     if (warnum) {
+-      sprintf(outs, warNumMsg, warnum);
++      snprintf(outs, sizeof(outs), warNumMsg, warnum);
+       textout(outs);
+     }
+     while (ierr)
+       if (errkeep[--ierr].num > 1) {
+-        sprintf(outs, duplicateMsg, errkeep[ierr].loc, errkeep[ierr].num);
++        snprintf(outs, sizeof(outs), duplicateMsg, errkeep[ierr].loc, errkeep[ierr].num);
+         textout(outs);
+       }
+     if (errnum + warnum) {
+-      sprintf(outs, "%s", "\n");
++      snprintf(outs, sizeof(outs), "%s", "\n");
+       textout(outs);
+     }
+   } else
+diff --git a/src/asm.h b/src/asm.h
+--- a/src/asm.h
++++ b/src/asm.h
+@@ -44,13 +44,15 @@
+ 
+ #if defined(NEW_STYLE)
+ extern char *pstrdup(char *), *pstrcat(char *, char *), *pstrchr(char *, int);
+-extern uChar ch_in_set(uShrt, char *), skip_space(char *, uShrt);
++extern uChar ch_in_set(uShrt, char *);
++extern unsigned int skip_space(char *, unsigned int);
+ extern uChar str_in_set(char *, char *s[]);
+-extern int get_token(char *, uChar *, char *);
++extern int get_token(char *, unsigned int *, char *);
+ extern void to_upper(char *);
+ #else
+ extern char *pstrdup(), *pstrcat(), *pstrchr();;
+-extern uChar ch_in_set(), skip_space();
++extern uChar ch_in_set();
++extern unsigned int skip_space();
+ extern uChar str_in_set();
+ extern int get_token();
+ extern void to_upper();
+diff --git a/src/cdb.c b/src/cdb.c
+--- a/src/cdb.c
++++ b/src/cdb.c
+@@ -439,9 +439,9 @@
+     case CA_H:                        /* calculate */
+       if (argType == RANGE_T) {
+         if (!commaSep)
+-          sprintf(outs, "%ld\n", start);
++          snprintf(outs, sizeof(outs), "%ld\n", start);
+         else
+-          sprintf(outs, "%ld,%ld\n", start, stop);
++          snprintf(outs, sizeof(outs), "%ld,%ld\n", start, stop);
+         cdb_fputs(outs, COND);
+       } else
+         bad_arg(argStr);
+@@ -616,7 +616,7 @@
+ #endif /* CLO_H */
+     case ECH_H:
+     case EC_H:
+-      sprintf(outs, "%s\n", argStr);
++      snprintf(outs, sizeof(outs), "%s\n", argStr);
+       cdb_fputs(outs, COND);
+       break;
+     case EDI_H:
+@@ -655,7 +655,7 @@
+                                  * commands */
+       for (i = 0; argStr[i]; ++i)
+         argStr[i] = toupper_(argStr[i]);
+-      sprintf(outs, "#define %s_H %d\n", argStr, hash_str(argStr, VERBLEN));
++      snprintf(outs, sizeof(outs), "#define %s_H %d\n", argStr, hash_str(argStr, VERBLEN));
+       cdb_fputs(outs, COND);
+       break;
+     case HEL_H:
+@@ -1027,7 +1027,7 @@
+       print_core(curAddr, curAddr);
+       break;
+     default:
+-      sprintf(outs, unknownCommand, cmdStr);
++      snprintf(outs, sizeof(outs), unknownCommand, cmdStr);
+       cdb_fputs(outs, FORCE);
+       break;
+     }                                /* switch */
+@@ -1544,7 +1544,7 @@
+ bad_arg(argStr)
+   char   *argStr;
+ {
+-  sprintf(outs, badArgument, argStr);
++  snprintf(outs, sizeof(outs), badArgument, argStr);
+   cdb_fputs(outs, FORCE);
+ }
+ /*---------------------------------------------------------------------------
+@@ -1619,11 +1619,11 @@
+   } else
+     strcpy(buf[bi1], inpStr);
+ 
+-  sprintf(outs, "%d", curAddr);
++  snprintf(outs, sizeof(outs), "%d", curAddr);
+   substitute(buf[bi1], ".", outs, buf[bi2]);
+ 
+   SWITCHBI;
+-  sprintf(outs, "%d", (targetID == QUEUE && !QW->tasks ?
++  snprintf(outs, sizeof(outs), "%d", (targetID == QUEUE && !QW->tasks ?
+                        targetSize - 2 : targetSize - 1));
+   substitute(buf[bi1], "$", outs, buf[bi2]);
+ 
+@@ -1632,15 +1632,15 @@
+   if (*pos) {
+ 
+     SWITCHBI;
+-    sprintf(outs, "%d", targetID == PSP ? QW->pSpaceIndex : memory[targetSelect(curAddr)].A_value);
++    snprintf(outs, sizeof(outs), "%d", targetID == PSP ? QW->pSpaceIndex : memory[targetSelect(curAddr)].A_value);
+     substitute(buf[bi1], "A", outs, buf[bi2]);
+ 
+     SWITCHBI;
+-    sprintf(outs, "%d", targetID == PSP ? QW->pSpaceIndex : memory[targetSelect(curAddr)].B_value);
++    snprintf(outs, sizeof(outs), "%d", targetID == PSP ? QW->pSpaceIndex : memory[targetSelect(curAddr)].B_value);
+     substitute(buf[bi1], "B", outs, buf[bi2]);
+ 
+     for (i = warriors - 1; i >= 0; --i) {
+-      sprintf(outs, "%d", (targetID == QUEUE || targetID == PSP ?
++      snprintf(outs, sizeof(outs), "%d", (targetID == QUEUE || targetID == PSP ?
+                            0 : (targetID == WARRIOR ?
+                  i : (W - warrior == i ? progCnt : *warrior[i].taskHead))));
+       sprintf(outs2, "PC%d", i + 1);
+@@ -1648,7 +1648,7 @@
+       substitute(buf[bi1], outs2, outs, buf[bi2]);
+     }
+     if (warriors < MAXWARRIOR) {/* PCN where N==warriors is PC */
+-      sprintf(outs, "%d", (targetID == QUEUE || targetID == PSP ?
++      snprintf(outs, sizeof(outs), "%d", (targetID == QUEUE || targetID == PSP ?
+                            0 : (targetID == WARRIOR ?
+                                 W - warrior : progCnt)));
+       sprintf(outs2, "PC%d", warriors);
+@@ -1656,50 +1656,50 @@
+       substitute(buf[bi1], outs2, outs, buf[bi2]);
+     }
+     SWITCHBI;
+-    sprintf(outs, "%d", (targetID == QUEUE || targetID == PSP ?
++    snprintf(outs, sizeof(outs), "%d", (targetID == QUEUE || targetID == PSP ?
+                          0 : (targetID == WARRIOR ?
+                               W - warrior : progCnt)));
+     substitute(buf[bi1], "PC", outs, buf[bi2]);
+     SWITCHBI;
+-    sprintf(outs, "%d", (cycle + (warriorsLeft ? warriorsLeft : 1) - 1) /
++    snprintf(outs, sizeof(outs), "%d", (cycle + (warriorsLeft ? warriorsLeft : 1) - 1) /
+             (warriorsLeft ? warriorsLeft : 1));
+     substitute(buf[bi1], "CYCLE", outs, buf[bi2]);
+     SWITCHBI;
+-    sprintf(outs, "%d", round_num);
++    snprintf(outs, sizeof(outs), "%d", round_num);
+     substitute(buf[bi1], "ROUND", outs, buf[bi2]);
+ 
+     SWITCHBI;
+ #if defined(DOSALLGRAPHX)
+     if (displayMode != TEXT)
+-      sprintf(outs, "%d", bgiTextLines - 1);
++      snprintf(outs, sizeof(outs), "%d", bgiTextLines - 1);
+     else
+-      sprintf(outs, "%d", screenY - 2);
++      snprintf(outs, sizeof(outs), "%d", screenY - 2);
+ #else
+ #if defined(DOSGRXGRAPHX)
+-    sprintf(outs, "%d", bgiTextLines - 1);
++    snprintf(outs, sizeof(outs), "%d", bgiTextLines - 1);
+ #else
+ #if defined(CURSESGRAPHX)
+-    sprintf(outs, "%d", LINES);
++    snprintf(outs, sizeof(outs), "%d", LINES);
+ #else
+ #if defined(DOSTXTGRAPHX)
+-    sprintf(outs, "%d", screenY - 2);
++    snprintf(outs, sizeof(outs), "%d", screenY - 2);
+ #else
+ #if defined(MACGRAPHX)
+-    sprintf(outs, "%d", mac_text_lines());
++    snprintf(outs, sizeof(outs), "%d", mac_text_lines());
+ #else
+ #if defined(LINUXGRAPHX)
+-    sprintf(outs, "%d", svgaTextLines);
++    snprintf(outs, sizeof(outs), "%d", svgaTextLines);
+ #else
+ #if defined(XWINGRAPHX)
+-    sprintf(outs, "%d", xWinTextLines);
++    snprintf(outs, sizeof(outs), "%d", xWinTextLines);
+ #else
+ #if defined(SDLGRAPHX)
+-    sprintf(outs, "%d", sdlgr_text_lines());
++    snprintf(outs, sizeof(outs), "%d", sdlgr_text_lines());
+ #else
+ #if defined(STDGRAPHX)
+-    sprintf(outs, "%d", stdio_text_lines());
+-#else
+-    sprintf(outs, "%d", TEXTLINES);
++    snprintf(outs, sizeof(outs), "%d", stdio_text_lines());
++#else
++    snprintf(outs, sizeof(outs), "%d", TEXTLINES);
+ #endif /* STD */
+ #endif /* SDL */
+ #endif /* X11 */
+@@ -2000,13 +2000,13 @@
+ #endif
+   int     nFuture, nPast, count, taskHalf = (coreSize <= 10000 ? 7 : 5);
+ 
+-  sprintf(outs, roundOfCycle, round_num, rounds,
++  snprintf(outs, sizeof(outs), roundOfCycle, round_num, rounds,
+           (cycle + (warriorsLeft ? warriorsLeft : 1) - 1) /
+           (warriorsLeft ? warriorsLeft : 1));
+   cdb_fputs(outs, COND);
+-  sprintf(outs, currentlyExecutingWarrior, W - warrior, W->name);
++  snprintf(outs, sizeof(outs), currentlyExecutingWarrior, W - warrior, W->name);
+   cdb_fputs(outs, COND);
+-  sprintf(outs, processesActive, W->tasks);
++  snprintf(outs, sizeof(outs), processesActive, W->tasks);
+   cdb_fputs(outs, COND);
+ 
+   if (W->tasks > (taskHalf * 2)) {
+@@ -2021,7 +2021,7 @@
+   else
+     thisProc = W->taskTail - nPast;
+   for (count = nPast; --count >= 0; ) {
+-    sprintf(outs, "%d ", *thisProc);
++    snprintf(outs, sizeof(outs), "%d ", *thisProc);
+     cdb_fputs(outs, COND);
+ #ifdef DOS16
+     ++thisProc;
+@@ -2031,10 +2031,10 @@
+ #endif
+   }
+   if (W->tasks) {
+-    sprintf(outs, "[%d]-> ", progCnt);
++    snprintf(outs, sizeof(outs), "[%d]-> ", progCnt);
+     cdb_fputs(outs, COND);
+     for (thisProc = W->taskHead, count = 1; count < nFuture; count++) {
+-      sprintf(outs, "%d ", *thisProc);
++      snprintf(outs, sizeof(outs), "%d ", *thisProc);
+       cdb_fputs(outs, COND);
+ #ifdef DOS16
+       ++thisProc;
+@@ -2048,18 +2048,18 @@
+     cdb_fputs("..", COND);
+   cdb_fputs("\n", COND);
+ #ifdef PSPACE
+-  sprintf(outs, "P-space[%d]: <%d> ", W->pSpaceIndex, W->lastResult);
++  snprintf(outs, sizeof(outs), "P-space[%d]: <%d> ", W->pSpaceIndex, W->lastResult);
+   cdb_fputs(outs, COND);
+   for (count = 1; count < 10; ++count) {
+-    sprintf(outs, "%d ", *(pSpace[W->pSpaceIndex] + count));
++    snprintf(outs, sizeof(outs), "%d ", *(pSpace[W->pSpaceIndex] + count));
+     cdb_fputs(outs, COND);
+   }
+   cdb_fputs("..\n", COND);
+ #endif /* PSPACE */
+   if (warriors == 2) {
+-    sprintf(outs, otherWarrior, W2->name);
++    snprintf(outs, sizeof(outs), otherWarrior, W2->name);
+     cdb_fputs(outs, COND);
+-    sprintf(outs, processesActive, W2->tasks);
++    snprintf(outs, sizeof(outs), processesActive, W2->tasks);
+     cdb_fputs(outs, COND);
+     if (W2->tasks < (taskHalf * 2)) {
+       nPast = W2->tasks >> 1;
+@@ -2073,7 +2073,7 @@
+     else
+       thisProc = W2->taskTail - nPast;
+     for (; thisProc < W2->taskTail;) {
+-      sprintf(outs, "%d ", *thisProc);
++      snprintf(outs, sizeof(outs), "%d ", *thisProc);
+       cdb_fputs(outs, COND);
+ #ifdef DOS16
+       ++thisProc;
+@@ -2083,7 +2083,7 @@
+ #endif
+     }
+     thisProc = W2->taskHead;
+-    sprintf(outs, "[%d]-> ", *thisProc);
++    snprintf(outs, sizeof(outs), "[%d]-> ", *thisProc);
+     cdb_fputs(outs, COND);
+     for (count = 1; count < nFuture; count++) {
+ #ifdef DOS16
+@@ -2092,17 +2092,17 @@
+       if (++thisProc == endQueue)
+         thisProc = taskQueue;
+ #endif
+-      sprintf(outs, "%d ", *thisProc);
++      snprintf(outs, sizeof(outs), "%d ", *thisProc);
+       cdb_fputs(outs, COND);
+     }
+     if (W2->tasks > (taskHalf * 2))
+       cdb_fputs("..", COND);
+     cdb_fputs("\n", COND);
+ #ifdef PSPACE
+-    sprintf(outs, "P-space[%d]: <%d> ", W2->pSpaceIndex, W2->lastResult);
++    snprintf(outs, sizeof(outs), "P-space[%d]: <%d> ", W2->pSpaceIndex, W2->lastResult);
+     cdb_fputs(outs, COND);
+     for (count = 1; count < 10; ++count) {
+-      sprintf(outs, "%d ", *(pSpace[W2->pSpaceIndex] + count));
++      snprintf(outs, sizeof(outs), "%d ", *(pSpace[W2->pSpaceIndex] + count));
+       cdb_fputs(outs, COND);
+     }
+     cdb_fputs("..\n", COND);
+@@ -2112,12 +2112,12 @@
+     warrior_struct *TW;
+     for (TW = warrior; TW < warrior + warriors; ++TW)
+       if (TW != W) {
+-        sprintf(outs, warriorAtAddressHasActiveProcesses, TW - warrior,
++        snprintf(outs, sizeof(outs), warriorAtAddressHasActiveProcesses, TW - warrior,
+                 TW->name, *TW->taskHead, TW->tasks,
+                 (TW->tasks == 1 ? "" : pluralEndingOfProcess));
+         cdb_fputs(outs, COND);
+       }
+-    sprintf(outs, ofWarriorsAreAlive, warriorsLeft, warriors);
++    snprintf(outs, sizeof(outs), ofWarriorsAreAlive, warriorsLeft, warriors);
+     cdb_fputs(outs, COND);
+   }
+ }
+@@ -2138,14 +2138,14 @@
+   do {
+     cdb_fputs((*targetview) (start, outs), COND);
+     if (targetID == QUEUE)
+-      sprintf(outs, "%-4d->%05d   ", start, queue(start));
++      snprintf(outs, sizeof(outs), "%-4d->%05d   ", start, queue(start));
+     else if (targetID == WARRIOR)
+-      sprintf(outs, "#%-2d:  %05d   ", start,
++      snprintf(outs, sizeof(outs), "#%-2d:  %05d   ", start,
+               (W - warrior == start ? progCnt : *warrior[start].taskHead));
+     else if (targetID == PSP)
+-      sprintf(outs, "[%4d]=", start);
++      snprintf(outs, sizeof(outs), "[%4d]=", start);
+     else                        /* targetID == CORE */
+-      sprintf(outs, "%05d   ", start);
++      snprintf(outs, sizeof(outs), "%05d   ", start);
+ 
+     cdb_fputs(outs, COND);
+     xInpP = get_cmd("");
+@@ -2324,7 +2324,7 @@
+ #endif                                /* DJGPP */
+ #endif				      /* CURSES */
+   } else if ((mfp = open_macro_file(fnStr)) == NULL) {
+-    sprintf(outs, cannotOpenMacroFile, fnStr);
++    snprintf(outs, sizeof(outs), cannotOpenMacroFile, fnStr);
+     cdb_fputs(outs, FORCE);
+     return;
+   }
+@@ -2529,7 +2529,7 @@
+     if ((nextMacro = match_macro(macro, macroTab[macroIdx])) != NULL)
+       break;
+   if (!nextMacro) {
+-    sprintf(outs, unknownMacro, macro);
++    snprintf(outs, sizeof(outs), unknownMacro, macro);
+     cdb_fputs(outs, FORCE);
+   }
+ #ifdef CYCLE_CHECK
+@@ -2657,21 +2657,21 @@
+ #if defined(DOSALLGRAPHX)
+   if ((displayMode == TEXT) && !outp) {
+     for (i = 0; i < warriors; ++i) {
+-      sprintf(outs, nameByAuthorScores, warrior[idxV[i]].name, warrior[idxV[i]].authorName,
++      snprintf(outs, sizeof(outs), nameByAuthorScores, warrior[idxV[i]].name, warrior[idxV[i]].authorName,
+               scrV[idxV[i]]);
+       aputs5(outs, NORMAL_ATTR);
+       if (warriors > 2) {
+         aputs5(resultsAre, NORMAL_ATTR);
+         for (j = 0; j < warriors; ++j) {
+-          sprintf(outs, " %d", warrior[idxV[i]].score[j]);
++          snprintf(outs, sizeof(outs), " %d", warrior[idxV[i]].score[j]);
+           aputs5(outs, NORMAL_ATTR);
+         }
+-        sprintf(outs, " %d\n", deaths(idxV[i]));
++        snprintf(outs, sizeof(outs), " %d\n", deaths(idxV[i]));
+         aputs5(outs, NORMAL_ATTR);
+       }
+     }
+     if (warriors == 2) {
+-      sprintf(outs, resultsWLT, warrior[idxV[0]].score[0],
++      snprintf(outs, sizeof(outs), resultsWLT, warrior[idxV[0]].score[0],
+               warrior[idxV[0]].score[2], warrior[idxV[0]].score[1]);
+       aputs5(outs, NORMAL_ATTR);
+     }
+@@ -2693,21 +2693,21 @@
+     }
+   } else {
+     for (i = 0; i < warriors; ++i) {
+-      sprintf(outs, nameByAuthorScores, warrior[idxV[i]].name, warrior[idxV[i]].authorName,
++      snprintf(outs, sizeof(outs), nameByAuthorScores, warrior[idxV[i]].name, warrior[idxV[i]].authorName,
+               scrV[idxV[i]]);
+       grputs(outs);
+       if (warriors > 2) {
+         grputs(resultsAre);
+         for (j = 0; j < warriors; ++j) {
+-          sprintf(outs, " %d", warrior[idxV[i]].score[j]);
++          snprintf(outs, sizeof(outs), " %d", warrior[idxV[i]].score[j]);
+           grputs(outs);
+         }
+-        sprintf(outs, " %d\n", deaths(idxV[i]));
++        snprintf(outs, sizeof(outs), " %d\n", deaths(idxV[i]));
+         grputs(outs);
+       }
+     }
+     if (warriors == 2) {
+-      sprintf(outs, resultsWLT, warrior[idxV[0]].score[0],
++      snprintf(outs, sizeof(outs), resultsWLT, warrior[idxV[0]].score[0],
+               warrior[idxV[0]].score[2], warrior[idxV[0]].score[1]);
+       grputs(outs);
+     }
+@@ -2739,22 +2739,22 @@
+ 
+   if (!outp) {
+     for (i = 0; i < warriors; ++i) {
+-      sprintf(outs, nameByAuthorScores, warrior[idxV[i]].name, warrior[idxV[i]].authorName,
++      snprintf(outs, sizeof(outs), nameByAuthorScores, warrior[idxV[i]].name, warrior[idxV[i]].authorName,
+               scrV[idxV[i]]);
+       OUTTEXT(outs);
+       if (warriors > 2) {
+         OUTTEXT(resultsAre);
+         for (j = 0; j < warriors; ++j) {
+-          sprintf(outs, " %d", warrior[idxV[i]].score[j]);
++          snprintf(outs, sizeof(outs), " %d", warrior[idxV[i]].score[j]);
+           OUTTEXT(outs);
+         }
+         OUTTEXT("\n");
+-        sprintf(outs, " %d\n", deaths(idxV[i]));
++        snprintf(outs, sizeof(outs), " %d\n", deaths(idxV[i]));
+         OUTTEXT(outs);
+       }
+     }
+     if (warriors == 2) {
+-      sprintf(outs, resultsWLT, warrior[idxV[0]].score[0],
++      snprintf(outs, sizeof(outs), resultsWLT, warrior[idxV[0]].score[0],
+               warrior[idxV[0]].score[2], warrior[idxV[0]].score[1]);
+       OUTTEXT(outs);
+     }
+diff --git a/src/clparse.c b/src/clparse.c
+--- a/src/clparse.c
++++ b/src/clparse.c
+@@ -40,6 +40,7 @@
+ 
+ #include <string.h>
+ #include <ctype.h>
++#include <errno.h>
+ #include "global.h"
+ 
+ #define CLP_MAXSTRLEN  8000
+@@ -181,7 +182,7 @@
+   int     i;
+ 
+   if (!printed_usage) {
+-    sprintf(outs, credits_screen1, PMARSVER / 100, (PMARSVER % 100) / 10,
++    snprintf(outs, sizeof(outs), credits_screen1, PMARSVER / 100, (PMARSVER % 100) / 10,
+             PMARSVER % 10, PMARSDATE);
+     errout(outs);
+     errout(credits_screen2);
+@@ -190,7 +191,7 @@
+     errout(optionsAre);
+     for (i = 0, clip = clopt; clip->storage != NULL; ++clip) {
+       if (clip->description != NULL) {
+-        sprintf(outs, "  -%c %s %-30s",
++        snprintf(outs, sizeof(outs), "  -%c %s %-30s",
+                 clip->word, describe[(int) clip->dtype], clip->description);
+         errout(outs);
+         if (i++ % 2)
+@@ -202,7 +203,7 @@
+ #endif
+ #if defined(XWINGRAPHX)
+     for (i = 0; i < xMaxOptions; i++) {
+-      sprintf(outs, "  -%-8s $ %-24s", xOptions[i], optXOpt[i]);
++      snprintf(outs, sizeof(outs), "  -%-8s $ %-24s", xOptions[i], optXOpt[i]);
+       errout(outs);
+       if (i % 2)
+         errout("\n");
+@@ -221,30 +222,43 @@
+   FILE   *filep;
+   char   *inputs;
+ {
+-  int     i;
++  int ch;
++  size_t used = 0;
+   if (filep == NULL) {                /* read from command line */
+     if (argc) {
++      if (strlen(*argv) >= CLP_MAXSTRLEN) {
++        errout("Command line argument too long\n");
++        Exit(CLP_NOGOOD);
++      }
+       strcpy(inputs, *argv);
+       --argc;
+       ++argv;
+     } else
+       *inputs = '\0';                /* read from command file or stdin */
+   } else {
+-    *inputs = '\0';
+-    /* if (!feof(filep))  */
+-    fscanf(filep, "%s", inputs);
+-    if (*inputs == '"') {        /* quoted string */
+-      *inputs = ' ';
+-      i = strlen(inputs);
+-      if (inputs[i - 1] == '"')
+-        inputs[i - 1] = '\0';
+-      else
+-        fscanf(filep, "%[^\"]%*[\"]", inputs + i);
++    int quoted;
++    do {
++      do { ch = fgetc(filep); } while (ch != EOF && isspace((unsigned char)ch));
++      if (ch == ';') {
++        while ((ch = fgetc(filep)) != EOF && ch != '\n');
++        if (ch == EOF) break;
++        ch = ';';
++      }
++    } while (ch == ';');
++    quoted = ch == '"';
++    if (quoted) ch = fgetc(filep);
++    while (ch != EOF && (quoted ? ch != '"' : !isspace((unsigned char)ch))) {
++      if (ch == 0 || used >= CLP_MAXSTRLEN - 1) {
++        errout("Invalid or oversized option file argument\n");
++        Exit(CLP_NOGOOD);
++      }
++      inputs[used++] = (char)ch;
++      ch = fgetc(filep);
+     }
+-    while (*inputs == ';') {
+-      fgets(inputs, 100, filep);
+-      *inputs = '\0';
+-      fscanf(filep, "%s", inputs);
++    inputs[used] = '\0';
++    if ((quoted && ch != '"') || ferror(filep)) {
++      errout("Cannot read option file argument\n");
++      Exit(CLP_NOGOOD);
+     }
+   }
+   if (!strcmp(inputs, "$"))        /* end of input marker */
+@@ -270,6 +284,13 @@
+   unsigned bool_switch;
+   char    inputs[CLP_MAXSTRLEN];
+   FILE   *newFile;
++  static unsigned int include_depth;
++
++  if (include_depth >= 16) {
++    errout("Option file nesting limit exceeded\n");
++    return CLP_NOGOOD;
++  }
++  ++include_depth;
+ 
+   code = NONE;                        /* no error so far */
+   while (next_input(filep, inputs)) {
+@@ -309,11 +330,15 @@
+                 goto ERROR;
+               }
+             }
+-            if ((clp_parse(clopt, newFile)) != NONE) {
++            {
++              int nested_result = clp_parse(clopt, newFile);
++              if (newFile != stdin) fclose(newFile);
++              if (nested_result != NONE) {
+               code = OLDERROR;
+               if (newFile == stdin)
+                 strcpy(inputs, standardInput);
+               goto ERROR;        /* error in command file */
++              }
+             }
+           } else                /* no such option   */
+ #endif                                /* MACGRAPHX */
+@@ -348,8 +373,13 @@
+                 }
+               } else {
+                 char   *idx;
+-                clip->def = atol(inputs);
+-                for (idx = inputs; *idx && isdigit(*idx); ++idx);
++                errno = 0;
++                clip->def = strtol(inputs, &idx, 10);
++                if (errno == ERANGE || idx == inputs) {
++                  code = RANGE;
++                  goto ERROR;
++                }
++                for (idx = inputs; *idx && isdigit((unsigned char)*idx); ++idx);
+                 if (*idx) {
+                   code = ARGUMENT;
+                   goto ERROR;
+@@ -376,7 +406,18 @@
+             many++;
+           } else {                /* number before - ? */
+             inputs[many] = 0;        /* kill the - sign */
+-            many = atoi(inputs);/* how many warriors from stdin */
++            {
++              char *end;
++              long count;
++              errno = 0;
++              count = strtol(inputs, &end, 10);
++              if (errno == ERANGE || *end || end == inputs || count < 1 ||
++                  count > MAXWARRIOR - warriors) {
++                code = TOO_MANY;
++                goto ERROR;
++              }
++              many = (int)count;
++            }
+             if (!many) {
+               code = OPTION;
+               goto ERROR;
+@@ -387,6 +428,10 @@
+ #endif
+           many = 1;
+         for (; many; many--) {
++          if (warriors >= MAXWARRIOR) {
++            code = TOO_MANY;
++            goto ERROR;
++          }
+           if ((warrior[warriors].fileName =
+             (char *) malloc((strlen(inputs) + 1) * sizeof(char))) != NULL) {
+             strcpy(warrior[warriors++].fileName, inputs);
+@@ -401,6 +446,7 @@
+       }
+     }
+   }
++  --include_depth;
+   return (0);
+ 
+ ERROR:
+@@ -411,41 +457,42 @@
+   case NONE:
+     break;
+   case OLDERROR:
+-    sprintf(outs, errorIsLocatedIn, inputs);
++    snprintf(outs, sizeof(outs), errorIsLocatedIn, inputs);
+     errout(outs);
+     break;
+   case OPTION:
+-    sprintf(outs, unknownOption, inputs);
++    snprintf(outs, sizeof(outs), unknownOption, inputs);
+     errout(outs);
+     break;
+   case ARGUMENT:
+ #if defined(XWINGRAPHX)
+     if (clip->word == 'x')
+-      sprintf(outs, badArgumentForXSwitch, xOptions[clip->def]);
++      snprintf(outs, sizeof(outs), badArgumentForXSwitch, xOptions[clip->def]);
+     else
+ #endif
+-      sprintf(outs, badArgumentForSwitch, clip->word);
++      snprintf(outs, sizeof(outs), badArgumentForSwitch, clip->word);
+     errout(outs);
+     break;
+   case RANGE:
+-    sprintf(outs, optionMustBeInTheRange, clip->word);
+-    errout(outs);
+-    sprintf(outs, "%ld - %ld\n", (clip->min), (clip->max));
++    snprintf(outs, sizeof(outs), optionMustBeInTheRange, clip->word);
++    errout(outs);
++    snprintf(outs, sizeof(outs), "%ld - %ld\n", (clip->min), (clip->max));
+     errout(outs);
+     break;
+   case TOO_MANY:
+-    sprintf(outs, tooManyParameters, inputs);
++    snprintf(outs, sizeof(outs), tooManyParameters, inputs);
+     errout(outs);
+     break;
+   case MEMORY:
+-    sprintf(outs, "%s", outOfMemory);
++    snprintf(outs, sizeof(outs), "%s", outOfMemory);
+     errout(outs);
+     break;
+   case FILENAME:
+-    sprintf(outs, "%s", cannotOpenParameterFile);
++    snprintf(outs, sizeof(outs), "%s", cannotOpenParameterFile);
+     errout(outs);
+     break;
+   }
++  --include_depth;
+   return (CLP_NOGOOD);
+ }
+ 
+@@ -595,17 +642,21 @@
+ 	char   *idx;
+ 	useExtRNG = 0;
+ 	SWITCH_Fnum = 0;
+-	for (idx = SWITCH_F; *idx; ++idx) {
+-	  useExtRNG |= !isdigit(*idx);
+-	  SWITCH_Fnum *= 10;
+-	  SWITCH_Fnum += (unsigned char)(*idx) - '0';
+-	}
++	for (idx = SWITCH_F; *idx; ++idx)
++	  useExtRNG |= !isdigit((unsigned char)*idx);
++        if (!useExtRNG) {
++          long fixed;
++          errno = 0;
++          fixed = strtol(SWITCH_F, &idx, 10);
++          if (errno == ERANGE || *idx || fixed > MAXCORESIZE) {
++            errout("Fixed position exceeds supported range\n");
++            result = CLP_NOGOOD;
++          } else SWITCH_Fnum = (S32_T)fixed;
++        }
+ 	if (!useExtRNG && separation > SWITCH_Fnum) {
+ 	  print_usage(options);
+ 	  errout(FLessThand);
+ 	  result = CLP_NOGOOD;
+-	} else {
+-	    if (SWITCH_Fnum < 0) SWITCH_Fnum *= -1;
+ 	}
+       }
+       set_reg('W', (long) warriors);
+@@ -654,6 +705,15 @@
+       }
+ #endif
+       /* further checks of the values */
++      if (warriors > 0 &&
++          ((unsigned long)taskNum > (UINT_MAX - 1UL) / (unsigned int)warriors ||
++           (size_t)taskNum > (((size_t)-1) / sizeof(ADDR_T) - 1) / (unsigned int)warriors ||
++           cycles > LONG_MAX / warriors ||
++           (unsigned long)cycles > UINT_MAX / (unsigned int)warriors ||
++           (size_t)coreSize > ((size_t)-1) / sizeof(mem_struct))) {
++        errout("Simulation parameters exceed safe allocation or counter limits\n");
++        result = CLP_NOGOOD;
++      }
+ 
+ #ifndef OS2PMGRAPHX                /* jk - we can load files after the fact... */
+       if (warrior[0].fileName == NULL) {
+diff --git a/src/config.h b/src/config.h
+--- a/src/config.h
++++ b/src/config.h
+@@ -389,7 +389,7 @@
+ 
+ #if defined(GRAPHX)
+ #ifdef SERVER
+-#undef SERVER
++#error SERVER and GRAPHX are incompatible; server builds must disable the debugger
+ #endif
+ #endif
+ 
+@@ -441,6 +441,9 @@
+ #endif
+ 
+ #if defined(STDGRAPHX)
++#ifdef SERVER
++#error SERVER and STDGRAPHX are incompatible; server builds must disable displays
++#endif
+ #if defined(GRAPHX)
+ #error some other graphx from STDGRAPHX already defined
+ #else
+diff --git a/src/eval.c b/src/eval.c
+--- a/src/eval.c
++++ b/src/eval.c
+@@ -1,421 +1,209 @@
+ /* pMARS -- a portable Memory Array Redcode Simulator
+- * Copyright (C) 1993-1996 Albert Ma, Na'ndor Sieben, Stefan Strack and Mintardjo Wangsawidjaja
+- * Copyright (C) 2000 Ilmari Karonen
++ * Copyright (C) 1993-1996 Albert Ma, Na'ndor Sieben, Stefan Strack and
++ * Mintardjo Wangsawidjaja; Copyright (C) 2000 Ilmari Karonen
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation; either version 2 of the License, or
+  * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ * This program is distributed WITHOUT ANY WARRANTY; without even the
++ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details.
+  */
+ 
+-/*
+- * eval.c: expression evaluator used by assembler and debugger
+- * $Id: eval.c,v 1.3 2000/12/25 00:49:08 iltzu Exp $
++/* Bounded expression evaluator. Preserve pMARS precedence, registers and
++ * eager logical evaluation, but reject malformed or overflowing arithmetic.
+  */
+-
+ #include <ctype.h>
+-
+ #include "global.h"
+ 
+-/*
+- * eval_expr - arithmetic expression evaluator
+- * by Stefan Strack, version 3 (pMARS v0.4.0+)
+- *
+- * usage:
+- *
+- * int eval_expr(char *expr, long *result); returns 0 if expression is ok, -1 if
+- * bad, -2 if attempted division by zero expr must be null-terminated and can
+- * contain whitespace characters (\t \n)
+- *
+- * -recursion-based -supports arbitrary levels of precedence and parentheses
+- * -supports nested unary minus and plus: 3--2 = 3-(-2) = 5
+- * -arithmetic operators: +,-,*,/,%,=
+- * -26 registers named "a" thru "z", assignment operator =
+- * -C-like comparison and logic operators: ==,!=,<,>,<=,>=,&&,||
+- *
+- */
+-
+-#define STANDALONE 0
+-#define BIGNUM 20                /* largest number taken */
+-
+-/* two-char operators */
+-enum {
+-  EQUAL, NEQU, GTE, LTE, AND, OR, IDENT
+-};
+-
+-#ifdef DEBUG
+-#define X(c) (c==IDENT ? '#' :\
+-              (c==EQUAL ? '=' :\
+-               (c==AND ? '&' :\
+-                (c==OR ? '|' :\
+-                 (c)))))
+-#endif
+-
+-#define TERMINAL(c) (((c)==')' || !(c)) ? 1 : 0)
+-/* order of precedence (high to low):
+-   * / %
+-   + -
+-   > < == != >= <=
+-   &&
+-   ||
+-   =
+- */
+-#define PRECEDENCE(op) (op=='*' || op=='/' || op=='%' ? 5 :\
+-                        (op=='+' || op=='-' ? 4 :\
+-                         (op=='>' || op=='<' || op==EQUAL || op==NEQU\
+-                                  || op==GTE || op==LTE ? 3 :\
+-                          (op==AND ? 2 : (op==OR ? 1 : 0)))))
+-#define SKIP_SPACE(e) while(isspace(*(e))) ++(e)
+-
+-/* function prototypes */
+-#ifdef NEW_STYLE
+-char   *eval(int prevPrec, long val, char operator, char *expr, long *result);
+-char   *getreg(char *expr, int regId, long *val);
+-char   *getval(char *expr, long *val);
+-char   *getop(char *expr, char *op);
+-long    calc(long x, long y, int op);
+-#else
+-char   *eval();
+-char   *getreg();
+-char   *getval();
+-char   *getop();
+-long    calc();
+-#endif
+-
+-/* global error flag */
+-int     evalerr;
+-
+-/* registers */
+-
++#define EVAL_MAX_DEPTH 128
++#define EVAL_MAX_STEPS 100000UL
++enum { EQUAL = 256, NEQU, GTE, LTE, AND, OR };
+ static long regAr[26];
+-
+-/* kludge to implement several precedence levels - saveOper works like "push back" in token parsers */
+-
+-char    saveOper = 0;
+-
+-/*--------------------*/
+-long
+-calc(x, y, op)
+-  long    x;
+-  long    y;
+-  int     op;
+-{
+-  long    z;
+-
++int evalerr;
++
++typedef struct {
++  const char *cur;
++  unsigned int depth;
++  unsigned long steps;
++  int error;
++} expr_parser;
++
++static long expression(expr_parser *, int);
++
++static void spaces(expr_parser *p)
++{
++  while (isspace((unsigned char)*p->cur)) ++p->cur;
++}
++
++static int enter(expr_parser *p)
++{
++  if (p->error || p->depth >= EVAL_MAX_DEPTH || ++p->steps > EVAL_MAX_STEPS) {
++    if (!p->error) p->error = BAD_EXPR;
++    return FALSE;
++  }
++  ++p->depth;
++  return TRUE;
++}
++
++static long number(expr_parser *p, int negative)
++{
++  unsigned long value = 0;
++  unsigned long limit = (unsigned long)LONG_MAX + (negative ? 1UL : 0UL);
++  while (isdigit((unsigned char)*p->cur)) {
++    unsigned int digit = (unsigned int)(*p->cur++ - '0');
++    if (value > (limit - digit) / 10UL) {
++      p->error = BAD_EXPR;
++      return 0;
++    }
++    value = value * 10UL + digit;
++  }
++  if (negative && value == (unsigned long)LONG_MAX + 1UL) return LONG_MIN;
++  return negative ? -(long)value : (long)value;
++}
++
++static long primary(expr_parser *p)
++{
++  long value = 0;
++  int ch, reg;
++  if (!enter(p)) return 0;
++  spaces(p);
++  ch = (unsigned char)*p->cur;
++  if (ch == '(') {
++    ++p->cur;
++    value = expression(p, 0);
++    spaces(p);
++    if (*p->cur == ')') ++p->cur;
++    else p->error = BAD_EXPR;
++  } else if (ch == '+' || ch == '-' || ch == '!') {
++    ++p->cur;
++    spaces(p);
++    if (ch == '-' && isdigit((unsigned char)*p->cur))
++      value = number(p, TRUE);
++    else {
++      value = primary(p);
++      if (ch == '-') {
++        if (value == LONG_MIN) p->error = BAD_EXPR;
++        else value = -value;
++      } else if (ch == '!') value = !value;
++    }
++  } else if (isdigit(ch)) {
++    value = number(p, FALSE);
++  } else if ((reg = toupper(ch)) >= 'A' && reg <= 'Z') {
++    ++p->cur;
++    spaces(p);
++    if (*p->cur == '=' && p->cur[1] != '=') {
++      ++p->cur;
++      value = expression(p, 0);
++      if (!p->error) regAr[reg - 'A'] = value;
++    } else value = regAr[reg - 'A'];
++  } else {
++    p->error = BAD_EXPR;
++  }
++  --p->depth;
++  return value;
++}
++
++static int read_operator(expr_parser *p, int *width, int *precedence)
++{
++  int ch = (unsigned char)*p->cur;
++  *width = 1;
++  *precedence = 3;
++  switch (ch) {
++  case '*': case '/': case '%': *precedence = 5; return ch;
++  case '+': case '-': *precedence = 4; return ch;
++  case '<': case '>':
++    if (p->cur[1] == '=') { *width = 2; return ch == '<' ? LTE : GTE; }
++    return ch;
++  case '=': case '!':
++    if (p->cur[1] == '=') { *width = 2; return ch == '=' ? EQUAL : NEQU; }
++    return 0;
++  case '&': case '|':
++    if (p->cur[1] == ch) {
++      *width = 2; *precedence = ch == '&' ? 2 : 1;
++      return ch == '&' ? AND : OR;
++    }
++    return 0;
++  default: return 0;
++  }
++}
++
++static long arithmetic(expr_parser *p, long x, long y, int op)
++{
+   switch (op) {
+   case '+':
+-    if (evalerr == OK_EXPR && (x > 0 ?
+-                               y > 0 && x > LONG_MAX - y :
+-                               y < 0 && x < LONG_MIN - y ))
+-      evalerr = OVERFLOW;
+-    z = x + y;
+-    break;
++    if ((y > 0 && x > LONG_MAX - y) || (y < 0 && x < LONG_MIN - y)) break;
++    return x + y;
+   case '-':
+-    if (evalerr == OK_EXPR && (x > 0 ?
+-                               y < 0 && x > LONG_MAX + y :
+-                               y > 0 && x < LONG_MIN + y ))
+-      evalerr = OVERFLOW;
+-    z = x - y;
+-    break;
+-  case '/':
+-    if (y == 0) {
+-      evalerr = DIV_ZERO;
+-      z = 0;
+-    } else
+-      z = x / y;
+-    break;
++    if ((y < 0 && x > LONG_MAX + y) || (y > 0 && x < LONG_MIN + y)) break;
++    return x - y;
+   case '*':
+-    if (evalerr == OK_EXPR && x != 0 && y != 0 &&
+-        x != -1 && y != -1 &&    /* LONG_MIN/(-1) causes FP error! */
+-	x != 1 && y != 1 &&	/* LONG_MIN/(+1) causes FP error on an Alpha! */
+-        ((x > 0) == (y > 0) ?   /* (even though it shouldn't.) */
+-         LONG_MAX / y / x == 0 :
+-         LONG_MIN / y / x == 0 ))
+-      evalerr = OVERFLOW;
+-    z = x * y;
+-    break;
+-  case '%':
+-    if (y == 0) {
+-      evalerr = DIV_ZERO;
+-      z = 0;
+-    } else
+-      z = x % y;
+-    break;
+-  case AND:
+-    z = x && y;
+-    break;
+-  case OR:
+-    z = x || y;
+-    break;
+-  case EQUAL:
+-    z = x == y;
+-    break;
+-  case NEQU:
+-    z = x != y;
+-    break;
+-  case '<':
+-    z = x < y;
+-    break;
+-  case '>':
+-    z = x > y;
+-    break;
+-  case LTE:
+-    z = x <= y;
+-    break;
+-  case GTE:
+-    z = x >= y;
+-    break;
+-  case IDENT:                        /* the right-identity operator, used for
+-                                 * initial call to eval() */
+-    z = y;
+-    break;
+-  default:
+-    z = 0;
+-    evalerr = BAD_EXPR;
+-  }
+-  return z;
+-}
+-
+-/*--------------------*/
+-char   *
+-getop(expr, oper)
+-  char   *expr;
+-  char   *oper;
+-{
+-  char    ch;
+-  switch (ch = *(expr++)) {
+-
+-#define DIGRAM(c1, c2, op)\
+-  case c1:\
+-    if (*expr == c2) {\
+-      ++expr;\
+-      ch = op;\
+-    }\
+-    break
+-
+-  DIGRAM('&', '&', AND);
+-  DIGRAM('|', '|', OR);
+-  DIGRAM('=', '=', EQUAL);
+-  DIGRAM('!', '=', NEQU);
+-  DIGRAM('<', '=', LTE);
+-  DIGRAM('>', '=', GTE);
+-
+-#undef DIGRAM
+-
+-  }
+-  *oper = ch;
+-  return expr;
+-}
+-/*--------------------*/
+-char   *
+-getreg(expr, regId, val)
+-  char   *expr;
+-  int     regId;
+-  long   *val;
+-{
+-  SKIP_SPACE(expr);
+-  if (*expr == '=' && *(expr + 1) != '=') {        /* assignment, not equality */
+-    expr = eval(-1, 0L, IDENT, expr + 1, val);
+-    regAr[regId] = *val;
+-  } else
+-    *val = regAr[regId];
+-  return expr;
+-}
+-
+-/*--------------------*/
+-char   *
+-getval(expr, val)
+-  char   *expr;
+-  long   *val;
+-{
+-  char    buffer[BIGNUM];
+-  int     regId;
+-  int     bufptr = 0;
+-  long    accum;
+-
+-  SKIP_SPACE(expr);
+-  if (*expr == '(') {                /* parenthetical expression */
+-    expr = eval(-1, 0L, IDENT, expr + 1, val);
+-    if (*expr != ')')
+-      evalerr = BAD_EXPR;
+-    return expr + 1;
+-  }
+-  if (*expr == '-') {                /* unary minus */
+-    expr = getval(expr + 1, &accum);
+-    *val = accum * -1;
+-    return expr;
+-  } else if (*expr == '!') {        /* logical NOT */
+-    expr = getval(expr + 1, &accum);
+-    *val = (accum ? 0 : 1);
+-    return expr;
+-  } else if (*expr == '+')        /* unary plus */
+-    return getval(expr + 1, val);
+-  else if (((regId = (int) toupper(*expr)) >= 'A') && (regId <= 'Z'))
+-    return getreg(expr + 1, regId - 'A', val);
+-  else
+-    while (isdigit(*expr) && bufptr < BIGNUM) /* FIXED (?): possible buffer overflow without the bufptr < BIGNUM? */
+-      buffer[bufptr++] = *expr++;
+-  if (bufptr == 0)
+-    evalerr = BAD_EXPR;                /* no digits */
+-  buffer[bufptr] = 0;
+-  sscanf(buffer, "%ld", val); /* FIXME wouldn't it be simpler and more efficient to calculate val directly, ie val = val*10+digitvalueof(*expr++) in the loop? */
+-  return expr;
+-}
+-
+-/*--------------------*/
+-#ifdef NEW_STYLE
+-char   *
+-eval(int prevPrec, long val1, char oper1, char *expr, long *result)
+-#else
+-char   *
+-eval(prevPrec, val1, oper1, expr, result)
+-  int     prevPrec;/* prevPrec is the precedence that ends the subevaluation, ie in 1 && 2+3*4-1 || 0 prevPrec would be prec of && while evaluating 2+3*4-1 */
+-  char    oper1, *expr;
+-  long    val1, *result;
+-#endif
+-{
+-  long    result2, val2;
+-  char    oper2;
+-  int     prec1, prec2;
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "eval prev = %ld, val1 = %ld, op1 = %c \n", prevPrec, val1, X(oper1));
+-#endif
+-
+-  saveOper = 0;
+-
+-  expr = getval(expr, &val2);
+-  SKIP_SPACE(expr);
+-  if (TERMINAL(*expr)) {        /* trivial: expr is number or () */
+-    *result = calc(val1, val2, oper1);
+-    return expr;
+-  }
+-  expr = getop(expr, &oper2);
+-
+-  if ((prec1 = PRECEDENCE(oper1)) >= (prec2 = PRECEDENCE(oper2))) {
+-    if (prec2 > prevPrec /* don't understand this, so I removed it: || prec1 <= prevPrec */) {
+-      /* continue to gobble up expressions */
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "gobble prev = %ld, val1 = %ld, op1 = %c, val2 = %ld, op2 = %c \n", prevPrec, val1, X(oper1), val2, X(oper2));
+-#endif
+-
+-      expr = eval(prevPrec, calc(val1, val2, oper1), oper2, expr, result);/* prec1 -> prevPrec */
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "gobbled (prev %ld) %ld = ((%ld %c %ld) %c ..)\n", prevPrec, *result, val1, X(oper1), val2, X(oper2));
+-#endif
+-
+-    } else {
+-      /* return from subevaluation of terms with higher precedence */
+-      *result = calc(val1, val2, oper1);
+-      saveOper = oper2;/* akin to "push back" in parsers */
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "return (prev %ld, save = %c) %ld = (%ld %c %ld)\n", prevPrec, X(saveOper), *result, val1, X(oper1), val2);
+-#endif
+-
+-    }
+-  } else {
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "subevaluate op2, prev = %ld, val1 = %ld, op1 = %c, val2 = %ld, op2 = %c, saveOp = %c (%ld) \n", prevPrec, val1, X(oper1), val2, X(oper2), X(saveOper), saveOper);
+-#endif
+-
+-    expr = eval(prec1, val2, oper2, expr, &result2);/* start subevaluation starting from val2 op2 */
+-    *result = calc(val1, result2, oper1);
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "returned from subeval, result2 = %ld, result = %ld, prev = %ld, val1 = %ld, op1 = %c, val2 = %ld, op2 = %c, saveOp = %c (%ld) \n", result2, *result, prevPrec, val1, X(oper1), val2, X(oper2), X(saveOper), saveOper);
+-#endif
+-
+-      if (saveOper && PRECEDENCE(saveOper) >= prevPrec) {/* otherwise (if saveOper, but precedence < prevPrec) yet more nested subevalutions to return from */
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "evaluate saveOper, prev = %ld, val1 = %ld, op1 = %c \n", prevPrec, *result , X(saveOper));
+-#endif
+-
+-      expr = eval(prevPrec, *result, saveOper, expr, result);/* prec2 -> prevPrec */
+-
+-#ifdef DEBUG
+-      fprintf(stderr, "return, no more subevals (prev %ld, old Saved: %c (%ld)) %ld = .. ? (%ld %c (%ld %c ..))\n", prevPrec, X(saveOper), saveOper, *result,
+-              val1, X(oper1), val2, X(oper2));
+-#endif
+-
+-      /* saveOper = 0; */ /* FIXED don't erase history, continue if saveOper exists */
+-    }
+-
+-#ifdef DEBUG
+-    else
+-      fprintf(stderr, "return, no saveOp or more subevals (prev %ld, saveOp = %c (%ld)) %ld = (%ld %c (%ld %c ..))\n", prevPrec, X(saveOper), saveOper, *result, val1, X(oper1), val2, X(oper2));
+-#endif
+-
+-  }
+-
+-  return expr;
+-}
+-
+-/*--------------------*/
+-void
+-reset_regs()
+-{
+-  register int idx;
+-
+-  for (idx = 0; idx < 26; ++idx)
+-    regAr[idx] = 0L;
+-}
+-
+-/*--------------------*/
+-
+-void
+-set_reg(regChr, val)
+-  char    regChr;
+-  long    val;
+-{
+-  regAr[regChr - 'A'] = val;
+-}
+-
+-/*--------------------*/
+-int
+-eval_expr(expr, result)                /* wrapper for eval() */
+-  char   *expr;
+-  long   *result;
+-{
+-#ifdef DEBUG
+-      fprintf(stderr, "* eval *\n");
+-#endif
+-  evalerr = OK_EXPR;
+-  if (*eval(-1, 0L, IDENT, expr, result) != 0)
+-    evalerr = BAD_EXPR;                /* still chars left */
+-  return (evalerr);
+-}
+-
+-#if STANDALONE
+-/*--------------------*/
+-void
+-main()
+-{                                /* test evaluator */
+-  char    expr[80];
+-  long    result;
+-  int     err;
+-
+-  printf("Enter infix expression: ");
+-  gets(expr);
+-
+-  if ((err = eval_expr(expr, &result)) >= OK_EXPR)
+-    printf("Evaluation result:      %ld\n", result);
+-  else if (err == DIV_ZERO)
+-    printf("Division by zero in %s\n", expr);
+-  else if (err == BAD_EXPR)
+-    printf("Bad expression %s\n", expr);
+-}
+-#endif
++    if (x > 0 ? (y > 0 ? x > LONG_MAX / y : y < LONG_MIN / x) :
++        (x < 0 && (y > 0 ? x < LONG_MIN / y : y < 0 && x < LONG_MAX / y))) break;
++    return x * y;
++  case '/': case '%':
++    if (!y) { p->error = DIV_ZERO; return 0; }
++    if (x == LONG_MIN && y == -1) break;
++    return op == '/' ? x / y : x % y;
++  case AND: return x && y;
++  case OR: return x || y;
++  case EQUAL: return x == y;
++  case NEQU: return x != y;
++  case '<': return x < y;
++  case '>': return x > y;
++  case LTE: return x <= y;
++  case GTE: return x >= y;
++  }
++  p->error = BAD_EXPR;
++  return 0;
++}
++
++static long expression(expr_parser *p, int minimum)
++{
++  long left;
++  int op, width, precedence;
++  if (!enter(p)) return 0;
++  left = primary(p);
++  while (!p->error) {
++    long right;
++    spaces(p);
++    op = read_operator(p, &width, &precedence);
++    if (!op || precedence < minimum) break;
++    if (++p->steps > EVAL_MAX_STEPS) { p->error = BAD_EXPR; break; }
++    p->cur += width;
++    right = expression(p, precedence + 1);
++    if (!p->error) left = arithmetic(p, left, right, op);
++  }
++  --p->depth;
++  return left;
++}
++
++void reset_regs(void)
++{
++  int i;
++  for (i = 0; i < 26; ++i) regAr[i] = 0;
++}
++
++void set_reg(char regChr, long val)
++{
++  if (regChr >= 'A' && regChr <= 'Z') regAr[regChr - 'A'] = val;
++}
++
++int eval_expr(char *expr, long *result)
++{
++  expr_parser p;
++  long saved[26];
++  int i;
++  p.cur = expr; p.depth = 0; p.steps = 0; p.error = OK_EXPR;
++  for (i = 0; i < 26; ++i) saved[i] = regAr[i];
++  *result = expression(&p, 0);
++  spaces(&p);
++  if (!p.error && *p.cur) p.error = BAD_EXPR;
++  if (p.error) {
++    *result = 0;
++    for (i = 0; i < 26; ++i) regAr[i] = saved[i];
++  }
++  evalerr = p.error;
++  return p.error;
++}
+diff --git a/src/global.h b/src/global.h
+--- a/src/global.h
++++ b/src/global.h
+@@ -362,11 +362,12 @@
+ #endif
+ extern ADDR_T pSpaceSize;
+ 
++#define         SPEEDLEVELS 9
++
+ /* ***********************************************************************
+    display define's, declarations and typedefs
+    *********************************************************************** */
+ 
+-#define         SPEEDLEVELS 9
+ 
+ #if defined(DOSTXTGRAPHX) || defined(DOSGRXGRAPHX) || defined(LINUXGRAPHX) \
+     || defined(XWINGRAPHX) || defined(SDLGRAPHX) || defined(STDGRAPHX)
+diff --git a/src/pmars.c b/src/pmars.c
+--- a/src/pmars.c
++++ b/src/pmars.c
+@@ -216,7 +216,7 @@
+       }
+     }
+ #ifdef PSPACE                        /* set up pSpace */
+-  pspace_init();
++  if (errorcode == SUCCESS) pspace_init();
+ #endif
+   if (rounds && !SWITCH_A && (errorcode == SUCCESS)) {
+     simulator1();
+@@ -420,7 +420,8 @@
+                                                          * unmatched */
+       warrior[i].pSpaceIndex = pspP;
+       for (j = i + 1; j < warriors; ++j)
+-        if (warrior[i].pSpaceIDNumber == warrior[j].pSpaceIDNumber)
++        if (warrior[j].pSpaceIndex == PIN_APPEARED &&
++            warrior[i].pSpaceIDNumber == warrior[j].pSpaceIDNumber)
+           warrior[j].pSpaceIndex = pspP;
+       ++pspP;
+     }                                /* else: pSpace already shared, don't
+diff --git a/src/pos.c b/src/pos.c
+--- a/src/pos.c
++++ b/src/pos.c
+@@ -46,6 +46,8 @@
+ {
+   register S32_T temp = seed;
+   if (!useExtRNG) {
++      temp = (S32_T)((U32_T)temp & INT_MAX);
++      if (!temp) temp = 1;
+       temp = 16807 * (temp % 127773) - 2836 * (temp / 127773);
+       if (temp < 0)
+ 	  temp += 2147483647;
+@@ -140,10 +142,10 @@
+ {
+     U32_T a = 0, b = 0;
+     int i, j;
+-    unsigned char *p = SWITCH_F;
++    unsigned char *p = (unsigned char *)SWITCH_F;
+     while (*p) {
+-	for (i=0; *p && i<4; i++, p++)  a ^= *p << (i*8);
+-	for (i=0; *p && i<4; i++, p++)  b ^= *p << (i*8);
++	for (i=0; *p && i<4; i++, p++)  a ^= (U32_T)*p << (i*8);
++	for (i=0; *p && i<4; i++, p++)  b ^= (U32_T)*p << (i*8);
+     }
+     rc5_schedule(schedule, a, b, 12);
+ }
+diff --git a/src/sim.c b/src/sim.c
+--- a/src/sim.c
++++ b/src/sim.c
+@@ -195,7 +195,7 @@
+ 
+ {
+   int     shuffle = 0;                /* XOR with position-dependent int */
+-  S32_T   checksum = 0;                /* accumulator */
++  U32_T   checksum = 0;                /* defined unsigned wraparound */
+   mem_struct *source;
+   mem_struct *last;
+ 
+@@ -217,7 +217,7 @@
+     }
+     ++W;
+   } while (W < endWar);
+-  return checksum;
++  return (S32_T)(checksum & INT_MAX);
+ }
+ 
+ #ifdef RWLIMIT
+@@ -253,7 +253,7 @@
+   ADDR_T  coreSize1 = coreSize - 1;
+   warrior_struct *starter = warrior;        /* pointer to warrior that starts
+ 					 * round */
+-  U32_T   cycles2 = warriors * cycles;
++  U32_T   cycles2 = (U32_T)warriors * (U32_T)cycles;
+ #ifndef SERVER
+   char    outs[60];                /* for cdb() entering message */
+ #endif
+@@ -1282,7 +1282,7 @@
+ 
+ #ifndef SERVER
+ 	if (debugState == BREAK) {
+-	  sprintf(outs, warriorTerminated, W - warrior, W->name);
++	  snprintf(outs, sizeof(outs), warriorTerminated, W - warrior, W->name);
+ 	  debugState = cdb(outs);
+ 	}
+ #endif                                /* SERVER */
+@@ -1420,13 +1420,13 @@
+ #ifndef SERVER
+     if (debugState == BREAK) {
+       if (warriorsLeft == 1 && warriors != 1)
+-	sprintf(outs, warriorTerminatedEndOfRound, W - warrior, W->name, round_num);
++	snprintf(outs, sizeof(outs), warriorTerminatedEndOfRound, W - warrior, W->name, round_num);
+       else
+-	sprintf(outs, endOfRound, round_num);
++	snprintf(outs, sizeof(outs), endOfRound, round_num);
+       debugState = cdb(outs);
+     }
+ #endif
+-  } while (++round_num <= rounds);
++  } while (round_num < rounds && (++round_num, TRUE));
+ 
+   display_close();
+ #ifdef PERMUTATE
+diff --git a/src/token.c b/src/token.c
+--- a/src/token.c
++++ b/src/token.c
+@@ -29,7 +29,7 @@
+ /* **************************** Prototype ******************************** */
+ 
+ #ifdef NEW_STYLE
+-#define toupper_(x) (toupper(x))
++#define toupper_(x) (toupper((unsigned char)(x)))
+ #else
+ #define toupper_(x) (isalpha(x) && islower(x) ? toupper(x) : (x))
+ #endif
+@@ -38,7 +38,7 @@
+ 
+ #define is_addr(ch)  pstrchr(addr_sym, (int) ch)
+ #define is_expr(ch)  pstrchr(expr_sym, (int) ch)
+-#define is_alpha(ch) (isalpha(ch) || (ch) == '_')
++#define is_alpha(ch) (isalpha((unsigned char)(ch)) || (ch) == '_')
+ 
+ /* ********************************************************************** */
+ 
+@@ -127,14 +127,13 @@
+ /* ********************************************************************** */
+ 
+ /* return next char which is non-whitespace char */
+-uChar 
++unsigned int
+ skip_space(str, i)
+   char   *str;
+-  uShrt   i;
+-{
+-  register uChar idx;
+-  idx = (uChar) i;
+-  while (isspace(str[idx]))
++  unsigned int i;
++{
++  unsigned int idx = i;
++  while (isspace((unsigned char)str[idx]))
+     idx++;
+   return (idx);
+ }
+@@ -155,24 +154,26 @@
+ int 
+ get_token(str, curIndex, token)
+   char   *str, *token;
+-  uChar  *curIndex;
+-{
+-  register uChar src, dst = 0;
++  unsigned int *curIndex;
++{
++  unsigned int src, dst = 0;
+   register int ch;                /* int for ctype compliance */
+   int     tokenType;
+ 
+-  src = skip_space(str, (uShrt) * curIndex);
++  src = skip_space(str, *curIndex);
+ 
+   if (str[src])
+-    if (isdigit(ch = str[src])) {        /* Grab the whole digit */
+-      while (isdigit(str[src]))
+-        token[dst++] = str[src++];
++    if (isdigit(ch = (unsigned char)str[src])) {        /* Grab the whole digit */
++      while (isdigit((unsigned char)str[src]))
++        if (dst < MAXALLCHAR - 1) token[dst++] = str[src++];
++        else { token[dst] = 0; *curIndex = src; return MISCTOKEN; }
+       tokenType = NUMBTOKEN;
+     }
+   /* Grab the whole identifier. There would be special treatment to modifiers */
+     else if (is_alpha(ch)) {
+-      for (; ((ch = str[src]) != '\0') && (is_alpha(ch) || isdigit(ch));)
+-        token[dst++] = str[src++];
++      for (; ((ch = (unsigned char)str[src]) != '\0') && (is_alpha(ch) || isdigit(ch));)
++        if (dst < MAXALLCHAR - 1) token[dst++] = str[src++];
++        else { token[dst] = 0; *curIndex = src; return MISCTOKEN; }
+       tokenType = CHARTOKEN;
+     }
+   /*

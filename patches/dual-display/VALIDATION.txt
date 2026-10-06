@@ -1,0 +1,9 @@
+2026-10-06: git apply --check and git apply succeeded for both routes on fresh baseline extractions.
+Both results contain exactly 88 source/document/test files, identical to the current tree after LF normalization.
+The original core patch and all previously published patches remain byte-identical.
+See BUILD-DISPLAYS.md in the patched tree for Windows build/runtime validation.
+Fresh reconstructed series tree: mingw32-make -C src check-graphics GRAPHICS=gdi passed.
+261 security/compatibility checks; 30 GDI mode/debugger checks; 7 assembler checks;
+GDI clipping, scrolling, color-key, copy and allocation tests passed.
+SDL3 was not rebuilt from the reconstructed copy: its full source hashes match
+those of the previously compiled/tested live tree (including native Windows tests).

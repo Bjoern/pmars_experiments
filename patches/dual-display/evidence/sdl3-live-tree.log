@@ -1,0 +1,841 @@
+mingw32-make: Entering directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/src'
+"../dependencies/build-tools/cmake/data/bin/cmake.exe" -S .. -B "../build-sdl3" -G "MinGW Makefiles" -DCMAKE_MAKE_PROGRAM="C:/ProgramData/mingw64/mingw64/bin/mingw32-make.exe" -DCMAKE_C_COMPILER="gcc" -DCMAKE_CXX_COMPILER="g++" -DCMAKE_BUILD_TYPE=Release -DPMARS_STATIC=ON -DPMARS_BUILD_EVENT_TESTS=ON -DSDL3_SOURCE_DIR="" -DCMAKE_C_FLAGS=" -O2 -DEXT94 -DPERMUTATE -std=c99 -fstack-protector-strong" -DCMAKE_EXE_LINKER_FLAGS=""
+-- The C compiler identification is GNU 16.1.0
+-- The CXX compiler identification is GNU 16.1.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/ProgramData/mingw64/mingw64/bin/gcc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/ProgramData/mingw64/mingw64/bin/g++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE) 
+-- Detecting Target CPU Architecture
+-- Detecting Target CPU Architecture - X64
+-- Performing Test HAVE_GDWARF_4
+-- Performing Test HAVE_GDWARF_4 - Success
+-- Performing Test HAVE_GCC_WALL
+-- Performing Test HAVE_GCC_WALL - Success
+-- Performing Test HAVE_GCC_WUNDEF
+-- Performing Test HAVE_GCC_WUNDEF - Success
+-- Performing Test HAVE_GCC_WFLOAT_CONVERSION
+-- Performing Test HAVE_GCC_WFLOAT_CONVERSION - Success
+-- Performing Test HAVE_GCC_NO_STRICT_ALIASING
+-- Performing Test HAVE_GCC_NO_STRICT_ALIASING - Success
+-- Performing Test HAVE_GCC_WDOCUMENTATION
+-- Performing Test HAVE_GCC_WDOCUMENTATION - Failed
+-- Performing Test HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND
+-- Performing Test HAVE_GCC_WDOCUMENTATION_UNKNOWN_COMMAND - Failed
+-- Performing Test HAVE_GCC_COMMENT_BLOCK_COMMANDS
+-- Performing Test HAVE_GCC_COMMENT_BLOCK_COMMANDS - Failed
+-- Performing Test HAVE_CLANG_COMMENT_BLOCK_COMMANDS
+-- Performing Test HAVE_CLANG_COMMENT_BLOCK_COMMANDS - Failed
+-- Performing Test HAVE_GCC_WSHADOW
+-- Performing Test HAVE_GCC_WSHADOW - Success
+-- Performing Test HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS
+-- Performing Test HAVE_GCC_WUNUSED_LOCAL_TYPEDEFS - Success
+-- Performing Test HAVE_GCC_WIMPLICIT_FALLTHROUGH
+-- Performing Test HAVE_GCC_WIMPLICIT_FALLTHROUGH - Success
+-- Performing Test COMPILER_SUPPORTS_FDIAGNOSTICS_COLOR_ALWAYS
+-- Performing Test COMPILER_SUPPORTS_FDIAGNOSTICS_COLOR_ALWAYS - Success
+-- Looking for __GLIBC__
+-- Looking for __GLIBC__ - not found
+-- Performing Test HAVE_WL_VERSION_SCRIPT
+-- Performing Test HAVE_WL_VERSION_SCRIPT - Success
+-- Performing Test COMPILER_SUPPORTS_GCC_ATOMICS
+-- Performing Test COMPILER_SUPPORTS_GCC_ATOMICS - Success
+-- Performing Test HAVE_GCC_FVISIBILITY
+-- Performing Test HAVE_GCC_FVISIBILITY - Failed
+-- Performing Test LINKER_SUPPORTS_WL_NO_UNDEFINED
+-- Performing Test LINKER_SUPPORTS_WL_NO_UNDEFINED - Success
+-- Performing Test COMPILER_SUPPORTS_MMX
+-- Performing Test COMPILER_SUPPORTS_MMX - Success
+-- Performing Test COMPILER_SUPPORTS_SSE
+-- Performing Test COMPILER_SUPPORTS_SSE - Success
+-- Performing Test COMPILER_SUPPORTS_SSE2
+-- Performing Test COMPILER_SUPPORTS_SSE2 - Success
+-- Performing Test COMPILER_SUPPORTS_SSE3
+-- Performing Test COMPILER_SUPPORTS_SSE3 - Success
+-- Performing Test COMPILER_SUPPORTS_SSE4_1
+-- Performing Test COMPILER_SUPPORTS_SSE4_1 - Success
+-- Performing Test COMPILER_SUPPORTS_SSE4_2
+-- Performing Test COMPILER_SUPPORTS_SSE4_2 - Success
+-- Performing Test COMPILER_SUPPORTS_AVX
+-- Performing Test COMPILER_SUPPORTS_AVX - Success
+-- Performing Test COMPILER_SUPPORTS_AVX2
+-- Performing Test COMPILER_SUPPORTS_AVX2 - Success
+-- Performing Test COMPILER_SUPPORTS_AVX512F
+-- Performing Test COMPILER_SUPPORTS_AVX512F - Success
+-- Looking for alloca.h
+-- Looking for alloca.h - not found
+-- Looking for float.h
+-- Looking for float.h - found
+-- Looking for iconv.h
+-- Looking for iconv.h - found
+-- Looking for inttypes.h
+-- Looking for inttypes.h - found
+-- Looking for limits.h
+-- Looking for limits.h - found
+-- Looking for malloc.h
+-- Looking for malloc.h - found
+-- Looking for math.h
+-- Looking for math.h - found
+-- Looking for memory.h
+-- Looking for memory.h - found
+-- Looking for signal.h
+-- Looking for signal.h - found
+-- Looking for stdarg.h
+-- Looking for stdarg.h - found
+-- Looking for stdbool.h
+-- Looking for stdbool.h - found
+-- Looking for stddef.h
+-- Looking for stddef.h - found
+-- Looking for stdint.h
+-- Looking for stdint.h - found
+-- Looking for stdio.h
+-- Looking for stdio.h - found
+-- Looking for stdlib.h
+-- Looking for stdlib.h - found
+-- Looking for string.h
+-- Looking for string.h - found
+-- Looking for strings.h
+-- Looking for strings.h - found
+-- Looking for sys/types.h
+-- Looking for sys/types.h - found
+-- Looking for time.h
+-- Looking for time.h - found
+-- Looking for wchar.h
+-- Looking for wchar.h - found
+-- Looking for pow in m
+-- Looking for pow in m - found
+-- Looking for abs
+-- Looking for abs - found
+-- Looking for acos
+-- Looking for acos - found
+-- Looking for acosf
+-- Looking for acosf - found
+-- Looking for asin
+-- Looking for asin - found
+-- Looking for asinf
+-- Looking for asinf - found
+-- Looking for atan
+-- Looking for atan - found
+-- Looking for atan2
+-- Looking for atan2 - found
+-- Looking for atan2f
+-- Looking for atan2f - found
+-- Looking for atanf
+-- Looking for atanf - found
+-- Looking for atof
+-- Looking for atof - found
+-- Looking for atoi
+-- Looking for atoi - found
+-- Looking for bcopy
+-- Looking for bcopy - not found
+-- Looking for ceil
+-- Looking for ceil - found
+-- Looking for ceilf
+-- Looking for ceilf - found
+-- Looking for copysign
+-- Looking for copysign - found
+-- Looking for copysignf
+-- Looking for copysignf - found
+-- Looking for cos
+-- Looking for cos - found
+-- Looking for cosf
+-- Looking for cosf - found
+-- Looking for _Exit
+-- Looking for _Exit - found
+-- Looking for exp
+-- Looking for exp - found
+-- Looking for expf
+-- Looking for expf - found
+-- Looking for fabs
+-- Looking for fabs - found
+-- Looking for fabsf
+-- Looking for fabsf - found
+-- Looking for floor
+-- Looking for floor - found
+-- Looking for floorf
+-- Looking for floorf - found
+-- Looking for fmod
+-- Looking for fmod - found
+-- Looking for fmodf
+-- Looking for fmodf - found
+-- Looking for fopen64
+-- Looking for fopen64 - found
+-- Looking for fseeko
+-- Looking for fseeko - found
+-- Looking for fseeko64
+-- Looking for fseeko64 - found
+-- Looking for getenv
+-- Looking for getenv - found
+-- Looking for _i64toa
+-- Looking for _i64toa - found
+-- Looking for index
+-- Looking for index - not found
+-- Looking for itoa
+-- Looking for itoa - found
+-- Looking for log
+-- Looking for log - found
+-- Looking for log10
+-- Looking for log10 - found
+-- Looking for log10f
+-- Looking for log10f - found
+-- Looking for logf
+-- Looking for logf - found
+-- Looking for lround
+-- Looking for lround - found
+-- Looking for lroundf
+-- Looking for lroundf - found
+-- Looking for _ltoa
+-- Looking for _ltoa - found
+-- Looking for malloc
+-- Looking for malloc - found
+-- Looking for memcmp
+-- Looking for memcmp - found
+-- Looking for memcpy
+-- Looking for memcpy - found
+-- Looking for memmove
+-- Looking for memmove - found
+-- Looking for memset
+-- Looking for memset - found
+-- Looking for modf
+-- Looking for modf - found
+-- Looking for modff
+-- Looking for modff - found
+-- Looking for pow
+-- Looking for pow - found
+-- Looking for powf
+-- Looking for powf - found
+-- Looking for putenv
+-- Looking for putenv - found
+-- Looking for rindex
+-- Looking for rindex - not found
+-- Looking for round
+-- Looking for round - found
+-- Looking for roundf
+-- Looking for roundf - found
+-- Looking for scalbn
+-- Looking for scalbn - found
+-- Looking for scalbnf
+-- Looking for scalbnf - found
+-- Looking for setenv
+-- Looking for setenv - not found
+-- Looking for sin
+-- Looking for sin - found
+-- Looking for sinf
+-- Looking for sinf - found
+-- Looking for sqr
+-- Looking for sqr - not found
+-- Looking for sqrt
+-- Looking for sqrt - found
+-- Looking for sqrtf
+-- Looking for sqrtf - found
+-- Looking for sscanf
+-- Looking for sscanf - found
+-- Looking for strchr
+-- Looking for strchr - found
+-- Looking for strcmp
+-- Looking for strcmp - found
+-- Looking for strlcat
+-- Looking for strlcat - not found
+-- Looking for strlcpy
+-- Looking for strlcpy - not found
+-- Looking for strlen
+-- Looking for strlen - found
+-- Looking for strncmp
+-- Looking for strncmp - found
+-- Looking for strnlen
+-- Looking for strnlen - found
+-- Looking for strpbrk
+-- Looking for strpbrk - found
+-- Looking for strrchr
+-- Looking for strrchr - found
+-- Looking for strstr
+-- Looking for strstr - found
+-- Looking for strnstr
+-- Looking for strnstr - not found
+-- Looking for strtod
+-- Looking for strtod - found
+-- Looking for strtok_r
+-- Looking for strtok_r - found
+-- Looking for strtol
+-- Looking for strtol - found
+-- Looking for strtoll
+-- Looking for strtoll - found
+-- Looking for strtoul
+-- Looking for strtoul - found
+-- Looking for strtoull
+-- Looking for strtoull - found
+-- Looking for tan
+-- Looking for tan - found
+-- Looking for tanf
+-- Looking for tanf - found
+-- Looking for trunc
+-- Looking for trunc - found
+-- Looking for truncf
+-- Looking for truncf - found
+-- Looking for unsetenv
+-- Looking for unsetenv - not found
+-- Looking for vsnprintf
+-- Looking for vsnprintf - found
+-- Looking for vsscanf
+-- Looking for vsscanf - found
+-- Looking for wcsnlen
+-- Looking for wcsnlen - found
+-- Looking for wcscmp
+-- Looking for wcscmp - found
+-- Looking for wcsdup
+-- Looking for wcsdup - found
+-- Looking for wcslcat
+-- Looking for wcslcat - not found
+-- Looking for wcslcpy
+-- Looking for wcslcpy - not found
+-- Looking for wcslen
+-- Looking for wcslen - found
+-- Looking for wcsncmp
+-- Looking for wcsncmp - found
+-- Looking for wcsstr
+-- Looking for wcsstr - found
+-- Looking for wcstol
+-- Looking for wcstol - found
+-- Looking for _copysign
+-- Looking for _copysign - found
+-- Looking for _fseeki64
+-- Looking for _fseeki64 - found
+-- Looking for _strrev
+-- Looking for _strrev - found
+-- Looking for _ui64toa
+-- Looking for _ui64toa - found
+-- Looking for _ultoa
+-- Looking for _ultoa - found
+-- Looking for _wcsdup
+-- Looking for _wcsdup - found
+-- Performing Test LIBC_HAS_ISINF
+-- Performing Test LIBC_HAS_ISINF - Success
+-- Performing Test LIBC_ISINF_HANDLES_FLOAT
+-- Performing Test LIBC_ISINF_HANDLES_FLOAT - Success
+-- Performing Test LIBC_HAS_ISINFF
+-- Performing Test LIBC_HAS_ISINFF - Failed
+-- Performing Test LIBC_HAS_ISNAN
+-- Performing Test LIBC_HAS_ISNAN - Success
+-- Performing Test LIBC_ISNAN_HANDLES_FLOAT
+-- Performing Test LIBC_ISNAN_HANDLES_FLOAT - Success
+-- Performing Test LIBC_HAS_ISNANF
+-- Performing Test LIBC_HAS_ISNANF - Failed
+-- Performing Test HAVE_WIN32_CC
+-- Performing Test HAVE_WIN32_CC - Success
+-- Performing Test HAVE_D3D9_H
+-- Performing Test HAVE_D3D9_H - Success
+-- Performing Test HAVE_D3D11_H
+-- Performing Test HAVE_D3D11_H - Success
+-- Performing Test HAVE_DDRAW_H
+-- Performing Test HAVE_DDRAW_H - Success
+-- Performing Test HAVE_DSOUND_H
+-- Performing Test HAVE_DSOUND_H - Success
+-- Performing Test HAVE_DINPUT_H
+-- Performing Test HAVE_DINPUT_H - Success
+-- Looking for dxgi.h
+-- Looking for dxgi.h - found
+-- Performing Test HAVE_XINPUT_H
+-- Performing Test HAVE_XINPUT_H - Success
+-- Performing Test HAVE_WINDOWS_GAMING_INPUT_H
+-- Performing Test HAVE_WINDOWS_GAMING_INPUT_H - Success
+-- Performing Test HAVE_GAMEINPUT_H
+-- Performing Test HAVE_GAMEINPUT_H - Failed
+-- Looking for dxgi1_5.h
+-- Looking for dxgi1_5.h - found
+-- Looking for dxgi1_6.h
+-- Looking for dxgi1_6.h - found
+-- Looking for tpcshrd.h
+-- Looking for tpcshrd.h - found
+-- Looking for roapi.h
+-- Looking for roapi.h - found
+-- Looking for mmdeviceapi.h
+-- Looking for mmdeviceapi.h - found
+-- Looking for audioclient.h
+-- Looking for audioclient.h - found
+-- Looking for sensorsapi.h
+-- Looking for sensorsapi.h - found
+-- Looking for shellscalingapi.h
+-- Looking for shellscalingapi.h - found
+-- Performing Test HAVE_MFAPI_H
+-- Performing Test HAVE_MFAPI_H - Success
+-- Could NOT find LibUSB (missing: LibUSB_LIBRARY LibUSB_INCLUDE_PATH) (found version "LibUSB_VERSION-NOTFOUND")
+-- 
+-- SDL3 was configured with the following options:
+-- 
+-- Platform: Windows-10.0.26300
+-- 64-bit:   TRUE
+-- Compiler: C:/ProgramData/mingw64/mingw64/bin/gcc.exe
+-- Revision: SDL-release-3.4.16-0-gfa2c02bb6
+-- Vendor:   
+-- 
+-- Subsystems:
+--   Audio:    ON
+--   Video:    ON
+--   GPU:      ON
+--   Render:   ON
+--   Camera:   ON
+--   Joystick: ON
+--   Haptic:   ON
+--   Hidapi:   ON
+--   Power:    ON
+--   Sensor:   ON
+--   Dialog:   ON
+--   Tray:     ON
+-- 
+-- Options:
+--   SDL_ALSA                    (Wanted: OFF): OFF
+--   SDL_ALSA_SHARED             (Wanted: OFF): OFF
+--   SDL_ALTIVEC                 (Wanted: OFF): OFF
+--   SDL_ARMNEON                 (Wanted: OFF): OFF
+--   SDL_ASAN                    (Wanted: OFF): OFF
+--   SDL_ASSEMBLY                (Wanted: ON): ON
+--   SDL_ASSERTIONS              (Wanted: auto): auto
+--   SDL_AVX                     (Wanted: ON): ON
+--   SDL_AVX2                    (Wanted: ON): ON
+--   SDL_AVX512F                 (Wanted: ON): ON
+--   SDL_BACKGROUNDING_SIGNAL    (Wanted: OFF): OFF
+--   SDL_CCACHE                  (Wanted: OFF): OFF
+--   SDL_CLANG_TIDY              (Wanted: OFF): OFF
+--   SDL_CLOCK_GETTIME           (Wanted: OFF): OFF
+--   SDL_COCOA                   (Wanted: OFF): OFF
+--   SDL_DBUS                    (Wanted: OFF): OFF
+--   SDL_DEPS_SHARED             (Wanted: ON): OFF
+--   SDL_DIRECTX                 (Wanted: ON): ON
+--   SDL_DISKAUDIO               (Wanted: ON): ON
+--   SDL_DLOPEN_NOTES            (Wanted: OFF): OFF
+--   SDL_DUMMYAUDIO              (Wanted: ON): ON
+--   SDL_DUMMYCAMERA             (Wanted: ON): ON
+--   SDL_DUMMYVIDEO              (Wanted: ON): ON
+--   SDL_EXAMPLES                (Wanted: OFF): OFF
+--   SDL_EXAMPLES_LINK_SHARED    (Wanted: OFF): OFF
+--   SDL_FOREGROUNDING_SIGNAL    (Wanted: OFF): OFF
+--   SDL_FRIBIDI                 (Wanted: OFF): OFF
+--   SDL_FRIBIDI_SHARED          (Wanted: OFF): OFF
+--   SDL_GCC_ATOMICS             (Wanted: ON): ON
+--   SDL_HIDAPI                  (Wanted: ON): ON
+--   SDL_HIDAPI_JOYSTICK         (Wanted: ON): ON
+--   SDL_HIDAPI_LIBUSB           (Wanted: ON): OFF
+--   SDL_HIDAPI_LIBUSB_SHARED    (Wanted: ON): OFF
+--   SDL_IBUS                    (Wanted: OFF): OFF
+--   SDL_INSTALL                 (Wanted: OFF): OFF
+--   SDL_INSTALL_TESTS           (Wanted: OFF): OFF
+--   SDL_JACK                    (Wanted: OFF): OFF
+--   SDL_JACK_SHARED             (Wanted: OFF): OFF
+--   SDL_KMSDRM                  (Wanted: OFF): OFF
+--   SDL_KMSDRM_SHARED           (Wanted: OFF): OFF
+--   SDL_LASX                    (Wanted: OFF): OFF
+--   SDL_LIBC                    (Wanted: ON): ON
+--   SDL_LIBICONV                (Wanted: OFF): OFF
+--   SDL_LIBTHAI                 (Wanted: OFF): OFF
+--   SDL_LIBTHAI_SHARED          (Wanted: OFF): OFF
+--   SDL_LIBUDEV                 (Wanted: ON): OFF
+--   SDL_LIBURING                (Wanted: OFF): OFF
+--   SDL_LSX                     (Wanted: OFF): OFF
+--   SDL_METAL                   (Wanted: OFF): OFF
+--   SDL_MMX                     (Wanted: ON): ON
+--   SDL_OFFSCREEN               (Wanted: ON): ON
+--   SDL_OPENGL                  (Wanted: ON): ON
+--   SDL_OPENGLES                (Wanted: ON): ON
+--   SDL_OPENVR                  (Wanted: OFF): OFF
+--   SDL_OSS                     (Wanted: OFF): OFF
+--   SDL_PIPEWIRE                (Wanted: OFF): OFF
+--   SDL_PIPEWIRE_SHARED         (Wanted: OFF): OFF
+--   SDL_PTHREADS                (Wanted: OFF): OFF
+--   SDL_PTHREADS_SEM            (Wanted: OFF): OFF
+--   SDL_PULSEAUDIO              (Wanted: OFF): OFF
+--   SDL_PULSEAUDIO_SHARED       (Wanted: OFF): OFF
+--   SDL_RENDER_D3D              (Wanted: ON): ON
+--   SDL_RENDER_D3D11            (Wanted: ON): ON
+--   SDL_RENDER_D3D12            (Wanted: ON): ON
+--   SDL_RENDER_GPU              (Wanted: ON): ON
+--   SDL_RENDER_METAL            (Wanted: OFF): OFF
+--   SDL_RENDER_VULKAN           (Wanted: ON): ON
+--   SDL_ROCKCHIP                (Wanted: OFF): OFF
+--   SDL_RPATH                   (Wanted: OFF): OFF
+--   SDL_RPI                     (Wanted: OFF): OFF
+--   SDL_SNDIO                   (Wanted: OFF): OFF
+--   SDL_SNDIO_SHARED            (Wanted: OFF): OFF
+--   SDL_SSE                     (Wanted: ON): ON
+--   SDL_SSE2                    (Wanted: ON): ON
+--   SDL_SSE3                    (Wanted: ON): ON
+--   SDL_SSE4_1                  (Wanted: ON): ON
+--   SDL_SSE4_2                  (Wanted: ON): ON
+--   SDL_SYSTEM_ICONV            (Wanted: OFF): OFF
+--   SDL_TESTS                   (Wanted: OFF): OFF
+--   SDL_TESTS_LINK_SHARED       (Wanted: OFF): OFF
+--   SDL_UNINSTALL               (Wanted: OFF): OFF
+--   SDL_VIRTUAL_JOYSTICK        (Wanted: ON): ON
+--   SDL_VIVANTE                 (Wanted: OFF): OFF
+--   SDL_VULKAN                  (Wanted: ON): ON
+--   SDL_WASAPI                  (Wanted: ON): ON
+--   SDL_WAYLAND                 (Wanted: OFF): OFF
+--   SDL_WAYLAND_LIBDECOR        (Wanted: OFF): OFF
+--   SDL_WAYLAND_LIBDECOR_SHARED (Wanted: OFF): OFF
+--   SDL_WAYLAND_SHARED          (Wanted: OFF): OFF
+--   SDL_X11                     (Wanted: OFF): OFF
+--   SDL_X11_SHARED              (Wanted: OFF): OFF
+--   SDL_X11_XCURSOR             (Wanted: OFF): OFF
+--   SDL_X11_XDBE                (Wanted: OFF): OFF
+--   SDL_X11_XFIXES              (Wanted: OFF): OFF
+--   SDL_X11_XINPUT              (Wanted: OFF): OFF
+--   SDL_X11_XRANDR              (Wanted: OFF): OFF
+--   SDL_X11_XSCRNSAVER          (Wanted: OFF): OFF
+--   SDL_X11_XSHAPE              (Wanted: OFF): OFF
+--   SDL_X11_XSYNC               (Wanted: OFF): OFF
+--   SDL_X11_XTEST               (Wanted: OFF): OFF
+--   SDL_XINPUT                  (Wanted: ON): ON
+-- 
+--  Build Shared Library: OFF
+--  Build Static Library: ON
+-- 
+-- Enabled backends:
+--   Video drivers: dummy offscreen windows
+--   Render drivers: d3d d3d11 d3d12 gpu ogl ogl_es2 vulkan
+--   GPU drivers: d3d12 vulkan
+--   Audio drivers: disk dsound dummy wasapi
+--   Joystick drivers: dinput hidapi rawinput virtual wgi xinput
+--   Camera drivers: dummy mediafoundation
+-- 
+-- Configuring done (129.5s)
+-- Generating done (0.5s)
+-- Build files have been written to: C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/build-sdl3
+"../dependencies/build-tools/cmake/data/bin/cmake.exe" --build "../build-sdl3" --target pmars-sdl3 --parallel 8
+mingw32-make[1]: Entering directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/build-sdl3'
+[  0%] Building CXX object sdl3/CMakeFiles/SDL3-static.dir/cmake_pch.hxx.gch
+[  0%] Building C object sdl3/CMakeFiles/SDL3-static.dir/cmake_pch.h.gch
+[  0%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/dynapi/SDL_dynapi.c.obj
+[  0%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL.c.obj
+[  1%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_assert.c.obj
+[  1%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_error.c.obj
+[  1%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_guid.c.obj
+[  2%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_hashtable.c.obj
+[  2%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_hints.c.obj
+[  2%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_list.c.obj
+[  3%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_log.c.obj
+[  3%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_properties.c.obj
+[  3%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/SDL_utils.c.obj
+[  4%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/atomic/SDL_atomic.c.obj
+[  4%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/atomic/SDL_spinlock.c.obj
+[  4%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_audio.c.obj
+[  5%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_audiocvt.c.obj
+[  5%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_audiodev.c.obj
+[  5%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_audioqueue.c.obj
+[  6%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_audioresample.c.obj
+[  6%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_audiotypecvt.c.obj
+[  6%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_mixer.c.obj
+[  7%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/SDL_wave.c.obj
+[  7%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/camera/SDL_camera.c.obj
+[  7%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/core/SDL_core_unsupported.c.obj
+[  8%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/cpuinfo/SDL_cpuinfo.c.obj
+[  8%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_categories.c.obj
+[  9%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_clipboardevents.c.obj
+[  9%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_displayevents.c.obj
+[  9%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_dropevents.c.obj
+[ 10%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_events.c.obj
+[ 10%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_eventwatch.c.obj
+[ 10%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_keyboard.c.obj
+[ 12%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_keymap.c.obj
+[ 12%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_keysym_to_keycode.c.obj
+[ 12%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_keysym_to_scancode.c.obj
+[ 13%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_mouse.c.obj
+[ 13%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_pen.c.obj
+[ 13%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_quit.c.obj
+[ 14%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_scancode_tables.c.obj
+[ 14%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_touch.c.obj
+[ 14%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/SDL_windowevents.c.obj
+[ 15%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/events/imKStoUCS.c.obj
+[ 15%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/filesystem/SDL_filesystem.c.obj
+[ 15%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/gpu/SDL_gpu.c.obj
+[ 16%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/haptic/SDL_haptic.c.obj
+[ 16%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/hidapi/SDL_hidapi.c.obj
+[ 16%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/io/SDL_asyncio.c.obj
+[ 17%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/io/SDL_iostream.c.obj
+[ 17%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/io/generic/SDL_asyncio_generic.c.obj
+[ 17%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/SDL_gamepad.c.obj
+[ 17%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/SDL_joystick.c.obj
+[ 18%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/SDL_steam_virtual_gamepad.c.obj
+[ 18%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/controller_type.c.obj
+[ 18%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/locale/SDL_locale.c.obj
+[ 19%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/main/SDL_main_callbacks.c.obj
+[ 19%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/main/SDL_runapp.c.obj
+[ 19%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/misc/SDL_libusb.c.obj
+[ 20%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/misc/SDL_url.c.obj
+[ 20%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/power/SDL_power.c.obj
+[ 20%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/SDL_render.c.obj
+[ 21%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/SDL_render_unsupported.c.obj
+[ 21%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/SDL_yuv_sw.c.obj
+[ 21%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/direct3d/SDL_render_d3d.c.obj
+[ 23%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/direct3d/SDL_shaders_d3d.c.obj
+[ 23%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/direct3d11/SDL_render_d3d11.c.obj
+[ 23%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/direct3d11/SDL_shaders_d3d11.c.obj
+[ 24%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/direct3d12/SDL_render_d3d12.c.obj
+[ 24%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/direct3d12/SDL_shaders_d3d12.c.obj
+[ 24%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/gpu/SDL_pipeline_gpu.c.obj
+[ 25%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/gpu/SDL_render_gpu.c.obj
+[ 25%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/gpu/SDL_shaders_gpu.c.obj
+[ 25%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/ngage/SDL_render_ngage.c.obj
+[ 26%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/opengl/SDL_render_gl.c.obj
+[ 26%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/opengl/SDL_shaders_gl.c.obj
+[ 26%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/opengles2/SDL_render_gles2.c.obj
+[ 27%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/opengles2/SDL_shaders_gles2.c.obj
+[ 27%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/ps2/SDL_render_ps2.c.obj
+[ 27%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/psp/SDL_render_psp.c.obj
+[ 28%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_blendfillrect.c.obj
+[ 28%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_blendline.c.obj
+[ 28%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_blendpoint.c.obj
+[ 29%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_drawline.c.obj
+[ 29%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_drawpoint.c.obj
+[ 29%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_render_sw.c.obj
+[ 30%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/software/SDL_triangle.c.obj
+[ 30%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/vitagxm/SDL_render_vita_gxm.c.obj
+[ 30%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/vitagxm/SDL_render_vita_gxm_memory.c.obj
+[ 31%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/vitagxm/SDL_render_vita_gxm_tools.c.obj
+[ 31%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/vulkan/SDL_render_vulkan.c.obj
+[ 31%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/render/vulkan/SDL_shaders_vulkan.c.obj
+[ 32%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/sensor/SDL_sensor.c.obj
+[ 32%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_crc16.c.obj
+[ 32%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_crc32.c.obj
+[ 34%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_getenv.c.obj
+[ 34%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_iconv.c.obj
+[ 34%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_malloc.c.obj
+[ 35%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_memcpy.c.obj
+[ 35%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_memmove.c.obj
+[ 35%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_memset.c.obj
+[ 36%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_mslibc.c.obj
+[ 36%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_murmur3.c.obj
+[ 36%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_qsort.c.obj
+[ 36%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_random.c.obj
+[ 37%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_stdlib.c.obj
+[ 37%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_string.c.obj
+[ 37%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_strtokr.c.obj
+[ 38%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/storage/SDL_storage.c.obj
+[ 38%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/SDL_thread.c.obj
+[ 38%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/time/SDL_time.c.obj
+[ 39%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/timer/SDL_timer.c.obj
+[ 39%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_RLEaccel.c.obj
+[ 39%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit.c.obj
+[ 40%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_0.c.obj
+[ 40%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_1.c.obj
+[ 40%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_A.c.obj
+[ 41%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_N.c.obj
+[ 41%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_auto.c.obj
+[ 41%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_copy.c.obj
+[ 42%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_slow.c.obj
+[ 42%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_bmp.c.obj
+[ 42%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_clipboard.c.obj
+[ 43%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_egl.c.obj
+[ 43%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_fillrect.c.obj
+[ 43%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_pixels.c.obj
+[ 45%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_rect.c.obj
+[ 45%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_rotate.c.obj
+[ 45%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_stb.c.obj
+[ 46%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_stretch.c.obj
+[ 46%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_surface.c.obj
+[ 46%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_video.c.obj
+[ 47%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_video_unsupported.c.obj
+[ 47%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_vulkan_utils.c.obj
+[ 47%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/SDL_yuv.c.obj
+[ 48%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/yuv2rgb/yuv_rgb_lsx.c.obj
+[ 48%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/yuv2rgb/yuv_rgb_sse.c.obj
+[ 48%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/yuv2rgb/yuv_rgb_std.c.obj
+[ 49%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_atan2.c.obj
+[ 49%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_exp.c.obj
+[ 49%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_fmod.c.obj
+[ 50%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_log.c.obj
+[ 50%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_log10.c.obj
+[ 50%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_pow.c.obj
+[ 51%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_rem_pio2.c.obj
+[ 51%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/e_sqrt.c.obj
+[ 51%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/k_cos.c.obj
+[ 52%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/k_rem_pio2.c.obj
+[ 52%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/k_sin.c.obj
+[ 52%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/k_tan.c.obj
+[ 53%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_atan.c.obj
+[ 53%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_copysign.c.obj
+[ 53%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_cos.c.obj
+[ 54%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_fabs.c.obj
+[ 54%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_floor.c.obj
+[ 54%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_isinf.c.obj
+[ 54%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_isinff.c.obj
+[ 56%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_isnan.c.obj
+[ 56%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_isnanf.c.obj
+[ 56%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_modf.c.obj
+[ 57%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_scalbn.c.obj
+[ 57%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_sin.c.obj
+[ 57%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/libm/s_tan.c.obj
+[ 58%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/dummy/SDL_dummyaudio.c.obj
+[ 58%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/disk/SDL_diskaudio.c.obj
+[ 58%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/camera/dummy/SDL_camera_dummy.c.obj
+[ 59%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/virtual/SDL_virtualjoystick.c.obj
+[ 59%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/dummy/SDL_nullevents.c.obj
+[ 59%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/dummy/SDL_nullframebuffer.c.obj
+[ 60%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/dummy/SDL_nullvideo.c.obj
+[ 60%] Building CXX object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/SDL_gameinput.cpp.obj
+[ 60%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/SDL_hid.c.obj
+[ 61%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/SDL_immdevice.c.obj
+[ 61%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/SDL_windows.c.obj
+[ 61%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/SDL_xinput.c.obj
+[ 62%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/pch.c.obj
+[ 62%] Building CXX object sdl3/CMakeFiles/SDL3-static.dir/src/core/windows/pch_cpp.cpp.obj
+[ 62%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/main/windows/SDL_sysmain_runapp.c.obj
+[ 63%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/io/windows/SDL_asyncio_windows_ioring.c.obj
+[ 63%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/misc/windows/SDL_sysurl.c.obj
+[ 63%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/directsound/SDL_directsound.c.obj
+[ 64%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/audio/wasapi/SDL_wasapi.c.obj
+[ 64%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsclipboard.c.obj
+[ 64%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsevents.c.obj
+[ 65%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsframebuffer.c.obj
+[ 65%] Building CXX object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsgameinput.cpp.obj
+[ 65%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowskeyboard.c.obj
+[ 67%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsmessagebox.c.obj
+[ 67%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsmodes.c.obj
+[ 67%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsmouse.c.obj
+[ 68%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsopengl.c.obj
+[ 68%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsopengles.c.obj
+[ 68%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsrawinput.c.obj
+[ 69%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsshape.c.obj
+[ 69%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsvideo.c.obj
+[ 69%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowsvulkan.c.obj
+[ 70%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/windows/SDL_windowswindow.c.obj
+[ 70%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/generic/SDL_syscond.c.obj
+[ 70%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/generic/SDL_sysrwlock.c.obj
+[ 71%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/windows/SDL_syscond_cv.c.obj
+[ 71%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/windows/SDL_sysmutex.c.obj
+[ 71%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/windows/SDL_sysrwlock_srw.c.obj
+[ 72%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/windows/SDL_syssem.c.obj
+[ 72%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/windows/SDL_systhread.c.obj
+[ 72%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/thread/windows/SDL_systls.c.obj
+[ 72%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/sensor/windows/SDL_windowssensor.c.obj
+[ 73%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/power/windows/SDL_syspower.c.obj
+[ 73%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/locale/windows/SDL_syslocale.c.obj
+[ 73%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/filesystem/windows/SDL_sysfilesystem.c.obj
+[ 74%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/filesystem/windows/SDL_sysfsops.c.obj
+[ 74%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/storage/generic/SDL_genericstorage.c.obj
+[ 74%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/storage/steam/SDL_steamstorage.c.obj
+[ 75%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/time/windows/SDL_systime.c.obj
+[ 75%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/timer/windows/SDL_systimer.c.obj
+[ 75%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/loadso/windows/SDL_sysloadso.c.obj
+[ 76%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/tray/windows/SDL_tray.c.obj
+[ 76%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_8bitdo.c.obj
+[ 76%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_combined.c.obj
+[ 78%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_flydigi.c.obj
+[ 78%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_gamecube.c.obj
+[ 78%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_gip.c.obj
+[ 79%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_lg4ff.c.obj
+[ 79%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_luna.c.obj
+[ 79%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_ps3.c.obj
+[ 80%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_ps4.c.obj
+[ 80%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_ps5.c.obj
+[ 80%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_rumble.c.obj
+[ 81%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_shield.c.obj
+[ 81%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_sinput.c.obj
+[ 81%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_stadia.c.obj
+[ 82%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steam.c.obj
+[ 82%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steam_hori.c.obj
+[ 82%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steam_triton.c.obj
+[ 83%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steamdeck.c.obj
+[ 83%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_switch.c.obj
+[ 83%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_switch2.c.obj
+[ 84%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_wii.c.obj
+[ 84%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_xbox360.c.obj
+[ 84%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_xbox360w.c.obj
+[ 85%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_xboxone.c.obj
+[ 85%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_zuiki.c.obj
+[ 85%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapijoystick.c.obj
+[ 86%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_report_descriptor.c.obj
+[ 86%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/haptic/hidapi/SDL_hidapihaptic.c.obj
+[ 86%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/haptic/hidapi/SDL_hidapihaptic_lg4ff.c.obj
+[ 87%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/windows/SDL_dinputjoystick.c.obj
+[ 87%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/windows/SDL_rawinputjoystick.c.obj
+[ 87%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/windows/SDL_windows_gaming_input.c.obj
+[ 89%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/windows/SDL_windowsjoystick.c.obj
+[ 89%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/joystick/windows/SDL_xinputjoystick.c.obj
+[ 89%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/haptic/windows/SDL_dinputhaptic.c.obj
+[ 90%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/haptic/windows/SDL_windowshaptic.c.obj
+[ 90%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/camera/mediafoundation/SDL_camera_mediafoundation.c.obj
+[ 90%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/dialog/SDL_dialog.c.obj
+[ 91%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/dialog/SDL_dialog_utils.c.obj
+[ 91%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/dialog/windows/SDL_windowsdialog.c.obj
+[ 91%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/process/SDL_process.c.obj
+[ 91%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/process/windows/SDL_windowsprocess.c.obj
+[ 92%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenevents.c.obj
+[ 92%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenframebuffer.c.obj
+[ 92%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenopengles.c.obj
+[ 93%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenvideo.c.obj
+[ 93%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenvulkan.c.obj
+[ 93%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenwindow.c.obj
+[ 94%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/tray/SDL_tray_utils.c.obj
+[ 94%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/gpu/d3d12/SDL_gpu_d3d12.c.obj
+[ 94%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/gpu/vulkan/SDL_gpu_vulkan.c.obj
+[ 95%] Building C object sdl3/CMakeFiles/SDL3-static.dir/src/main/generic/SDL_sysmain_callbacks.c.obj
+[ 95%] Linking CXX static library libSDL3.a
+[ 95%] Built target SDL3-static
+[ 95%] Building C object CMakeFiles/pmars-sdl3.dir/src/pmars.c.obj
+[ 96%] Building C object CMakeFiles/pmars-sdl3.dir/src/asm.c.obj
+[ 96%] Building C object CMakeFiles/pmars-sdl3.dir/src/eval.c.obj
+[ 96%] Building C object CMakeFiles/pmars-sdl3.dir/src/disasm.c.obj
+[ 97%] Building C object CMakeFiles/pmars-sdl3.dir/src/cdb.c.obj
+[ 97%] Building C object CMakeFiles/pmars-sdl3.dir/src/sim.c.obj
+[ 97%] Building C object CMakeFiles/pmars-sdl3.dir/src/pos.c.obj
+[ 98%] Building C object CMakeFiles/pmars-sdl3.dir/src/clparse.c.obj
+[ 98%] Building C object CMakeFiles/pmars-sdl3.dir/src/global.c.obj
+[ 98%] Building C object CMakeFiles/pmars-sdl3.dir/src/token.c.obj
+[100%] Building C object CMakeFiles/pmars-sdl3.dir/src/str_eng.c.obj
+[100%] Building C object CMakeFiles/pmars-sdl3.dir/src/SDL_main.c.obj
+[100%] Linking CXX executable pmars-sdl3.exe
+[100%] Built target pmars-sdl3
+mingw32-make[1]: Leaving directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/build-sdl3'
+"../dependencies/build-tools/cmake/data/bin/cmake.exe" -E copy_if_different "../build-sdl3/pmars-sdl3.exe" "pmars-sdl3.exe"
+"../dependencies/build-tools/cmake/data/bin/cmake.exe" --build "../build-sdl3" --target pmars-server pmars-sdl3-events --parallel 8
+mingw32-make[1]: Entering directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/build-sdl3'
+[  0%] Building C object CMakeFiles/pmars-server.dir/src/pmars.c.obj
+[  0%] Building C object CMakeFiles/pmars-server.dir/src/asm.c.obj
+[ 25%] Building C object CMakeFiles/pmars-server.dir/src/eval.c.obj
+[ 25%] Building C object CMakeFiles/pmars-server.dir/src/disasm.c.obj
+[ 25%] Building C object CMakeFiles/pmars-server.dir/src/cdb.c.obj
+[ 50%] Building C object CMakeFiles/pmars-server.dir/src/sim.c.obj
+[ 50%] Building C object CMakeFiles/pmars-server.dir/src/pos.c.obj
+[ 50%] Building C object CMakeFiles/pmars-server.dir/src/clparse.c.obj
+[ 75%] Building C object CMakeFiles/pmars-server.dir/src/global.c.obj
+[ 75%] Building C object CMakeFiles/pmars-server.dir/src/token.c.obj
+[ 75%] Building C object CMakeFiles/pmars-server.dir/src/str_eng.c.obj
+[100%] Linking C executable pmars-server.exe
+[100%] Built target pmars-server
+[ 94%] Built target SDL3-static
+[ 95%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/pmars.c.obj
+[ 95%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/asm.c.obj
+[ 95%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/eval.c.obj
+[ 96%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/disasm.c.obj
+[ 96%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/cdb.c.obj
+[ 96%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/sim.c.obj
+[ 97%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/pos.c.obj
+[ 97%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/clparse.c.obj
+[ 97%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/global.c.obj
+[ 98%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/token.c.obj
+[ 98%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/str_eng.c.obj
+[ 98%] Building C object CMakeFiles/pmars-sdl3-events.dir/src/SDL_main.c.obj
+[100%] Linking CXX executable pmars-sdl3-events.exe
+[100%] Built target pmars-sdl3-events
+mingw32-make[1]: Leaving directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/build-sdl3'
+python ../security/test_sdl3.py "../build-sdl3" 
+PASS: 273 security and compatibility checks
+
+PASS: 18 SDL mode and debugger checks
+PASS: 7 0.9.6 assembler regression checks
+PASS: SDL3 text, editing, history, AltGr, keypad, F13/F15, macros, tab, mouse, resize, scroll, pixels, expose, fullscreen (native only), battle hotkeys; driver=dummy
+PASS: dummy close, Ctrl+C, Escape, final key wait
+PASS: x64 console PE; Windows system imports only: ADVAPI32.dll, GDI32.dll, IMM32.dll, KERNEL32.dll, api-ms-win-crt-convert-l1-1-0.dll, api-ms-win-crt-environment-l1-1-0.dll, api-ms-win-crt-heap-l1-1-0.dll, api-ms-win-crt-locale-l1-1-0.dll, api-ms-win-crt-math-l1-1-0.dll, api-ms-win-crt-private-l1-1-0.dll, api-ms-win-crt-runtime-l1-1-0.dll, api-ms-win-crt-stdio-l1-1-0.dll, api-ms-win-crt-string-l1-1-0.dll, api-ms-win-crt-time-l1-1-0.dll, api-ms-win-crt-utility-l1-1-0.dll, ole32.dll, OLEAUT32.dll, SETUPAPI.dll, SHELL32.dll, USER32.dll, VERSION.dll, WINMM.dll
+Validate 1.1R by Stefan Strack scores 1
+
+Sunset by David Moore scores 1
+
+Results: 0 0 1
+PASS: clean-directory launch, console stdout/stderr and exit status without SDL/compiler runtime DLLs
+mingw32-make: Leaving directory 'C:/Users/micro/Documents/projects/corewar_chartgpt/pmars-0.9.6-dev/src'

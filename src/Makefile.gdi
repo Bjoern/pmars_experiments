@@ -1,0 +1,7 @@
+# Compatibility entry point; options and descriptions live in Makefile.
+PROGRAM ?= pmars-gdi.exe
+.PHONY: all check
+all:
+	$(MAKE) -f Makefile gdi GDI_PROGRAM="$(PROGRAM)"
+check:
+	$(MAKE) -f Makefile check-gdi GDI_PROGRAM="$(PROGRAM)"
