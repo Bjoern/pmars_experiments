@@ -34,8 +34,9 @@ make
 Make configures a Release build with CMake, builds the included SDL3 source
 statically and copies the executable to `src/pmars-sdl3`. An installed SDL3
 or pkg-config is not needed. System libraries/frameworks remain dependencies.
-The exact macOS/Linux build remains unverified here; please retain any
-compiler diagnostic, including the previously reported missing-include error.
+The macOS build and SDL3 dummy-driver regression suite were verified on
+2026-10-06. The SDL3 display explicitly includes `<errno.h>` for mode parsing.
+Linux builds remain unverified; older C code still emits compiler warnings.
 
 ## Choose a target or change the defaults
 

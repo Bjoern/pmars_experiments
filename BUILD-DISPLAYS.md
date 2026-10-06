@@ -15,7 +15,8 @@ core/debugger panels. They link compiler runtimes statically and require
 only Windows system DLLs. SDL3 is also linked statically in its Windows
 build; no separate SDL DLL is needed. GDI is Windows-only. SDL3 on Unix/macOS
 also builds the included SDL3 source through CMake, with output
-`src/pmars-sdl3`; that path has not been tested here.
+`src/pmars-sdl3`; the macOS build and dummy-driver tests were verified on
+2026-10-06. Linux builds remain unverified.
 
 ## Build
 
@@ -98,7 +99,15 @@ checks and deterministic battle comparisons against the server build.
 GDI also passed its surface-operation tests. SDL3 passed dummy and native
 Windows event/rendering tests, static-import checks and clean-directory
 launch checks. Makefile selection, compatibility wrappers, invalid values
-and non-Windows GDI rejection were checked. Unix/macOS builds are unverified.
+and non-Windows GDI rejection were checked.
+
+## Verified on macOS (2026-10-06)
+
+Plain `make` built the bundled static SDL3 display after adding the missing
+`<errno.h>` include used by its mode parser. `make check-sdl` passed security,
+assembler, deterministic battle, debugger/mode and dummy-driver event tests.
+All 13 make entry-point and platform-selection checks passed. Native macOS
+window tests and Linux builds remain unverified; Windows was not retested.
 
 Plain-make convenience support was added after the initial patch bundle.
 The existing bundle remains a snapshot of the earlier GDI/SDL3 state.

@@ -19,6 +19,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <errno.h>
 #include <SDL3/SDL.h>
 #include "pmarsicnsdl.h"
 
