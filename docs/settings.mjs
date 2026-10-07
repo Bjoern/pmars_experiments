@@ -2,7 +2,7 @@
 export const defaults = Object.freeze({
   coreSize:8000, rounds:1, cycles:80000, tasks:8000, warriors:2,
   maxLength:100, distance:0, pspace:0, brief:false, verbose:false,
-  koth:false, rules88:false, fixedSeries:true, fixedPosition:'', sort:false,
+  koth:false, rules88:false, fixedSeries:false, fixedPosition:'', sort:false,
   permutate:false, assembleOnly:false, noPspace:false, formula:'(W*W-1)/S'
 });
 export function settings(input = {}) {

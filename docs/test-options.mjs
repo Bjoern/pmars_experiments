@@ -26,7 +26,7 @@ const cases=[
  {name:'large length',options:{maxLength:200,distance:200,rounds:0},sources:[red('for 150\ndat 0,0\nrof'),dead]}
 ];
 for(const fixture of cases){
- const config=settings({...fixture.options,warriors:fixture.sources.length});
+ const config=settings({fixedSeries:true,...fixture.options,warriors:fixture.sources.length});
  const output=[];const engine=await Engine.create(config,{visual:false,log:(s,c)=>{if(c==='stdout')output.push(s);}});
  try { engine.compile(fixture.sources); } catch (e) { throw new Error(fixture.name+": "+e.message); }let u=engine.start(),calls=0;
  while(!u.done){u=engine.advance(100000,8);assert(++calls<100000);}
@@ -37,6 +37,8 @@ for(const fixture of cases){
  assert.equal(output.join('\n').trimEnd(),result.stdout.replaceAll('\r','').trimEnd(),fixture.name);
 }
 assert.equal(settings({rounds:100000}).rounds,100000);
+assert.equal(settings().fixedSeries,false);
+assert(!argumentsFor(settings()).includes("-f"));
 const nop=await Engine.create({noPspace:true},{log:()=>{}});
 assert.throws(()=>nop.compile([red('ldp #0,0'),loop]),/forbids/);
 const old=await Engine.create({rules88:true},{log:()=>{}});

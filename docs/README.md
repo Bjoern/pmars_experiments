@@ -41,8 +41,8 @@ the full form; rounds and **Run series in background** remain outside it.
 The form supports the native options `-r -s -b -c -V -p -k -l -8 -d -f -F -o -S -P -A -=`.
 Native parsing, assembly, positioning, scoring, and output are shared with pMARS.
 Filesystem options are deliberately unavailable. Fixed-series placement
-(`-f`) defaults on initially for reproducibility; every predefined preset
-turns it off. Entering `-F` also disables it.
+(`-f`) defaults off, including in all presets. Enable it explicitly for
+repeatable placement. Entering `-F` also disables it.
 Permutation requires two warriors. Zero rounds and assemble-only both assemble
 without running a battle.
 

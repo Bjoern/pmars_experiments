@@ -55,7 +55,7 @@ for (const name of ['excalibur', 'forgottenloreii', 'sonofvain', 'sunset', 'arto
     {rounds: 3, cycles: 2000}]);
 }
 for (const [sources, options] of cases) {
-  const config = settings({...options, warriors:sources.length});
+  const config = settings({fixedSeries:true,...options, warriors:sources.length});
   const small = await run(sources, config, 1, true, true);
   const large = await run(sources, config, 100000, true, true, true);
   const headless = await run(sources, config, 100000, false);
