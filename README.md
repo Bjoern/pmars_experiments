@@ -82,3 +82,10 @@ The patch bundle describes the initial tested GDI/SDL3 state. Subsequent
 commits do not automatically update those patches or their manifests; rebuild
 the bundle when preparing a new submission to upstream. Git configuration
 and history stay in `.git` and are not included in the patches.
+
+## Browser development
+
+The browser integration builds pMARS to WebAssembly with Emscripten. It includes
+an incremental canvas display, pause/step controls, assembly in a worker, and
+headless match series with progress updates. See [web/README.md](web/README.md)
+for building, running, the JavaScript API, and regression tests.

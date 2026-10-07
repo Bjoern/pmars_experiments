@@ -30,3 +30,7 @@ __pycache__/
 /src/pmars
 /src/pmars-sdl3
 /src/core
+
+# Emscripten output and browser test artifacts.
+/web/dist/
+/web/test-output/
