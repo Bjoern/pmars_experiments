@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 #ifndef PMARS_WEBAPI_H
 #define PMARS_WEBAPI_H
-#define WEB_CAPACITY 8192
+#define WEB_CAPACITY 65536
 /* Four unsigned 32-bit words per event: kind, address, warrior, value.
    Kinds: reset, load, execute, read, write, decrement, increment,
    process count, warrior death, round end. */

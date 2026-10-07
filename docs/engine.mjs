@@ -1,19 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import createModule from './dist/pmars.mjs';
 
-export const defaults = Object.freeze({coreSize: 8000, rounds: 1, cycles: 80000, tasks: 8000, warriors: 2});
-export function settings(input = {}) {
-  const result = {...defaults, ...input};
-  for (const [key, min, max] of [
-    ['coreSize', 800, 65536], ['rounds', 1, 1000],
-    ['cycles', 1, 10000000], ['tasks', 1, 65536], ['warriors', 1, 36]
-  ]) {
-    if (!Number.isInteger(result[key]) || result[key] < min || result[key] > max)
-      throw new Error(`${key} must be an integer from ${min} to ${max}.`);
-  }
-  if (result.coreSize < result.warriors * 100) throw new Error('Core must have at least 100 cells per warrior.');
-  return result;
-}
+import {settings, argumentsFor} from './settings.mjs';
+export {settings, defaults} from './settings.mjs';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }
@@ -23,8 +12,9 @@ function check(code) {
 export class Engine {
   static async create(options, {visual = true, log = () => {}} = {}) {
     const config = settings(options);
-    const module = await createModule({noInitialRun: true, print: log, printErr: log});
-    check(module._web_configure(config.coreSize, config.rounds, config.cycles, config.tasks, +visual, config.warriors));
+    const module = await createModule({noInitialRun: true, print: line => log(line,'stdout'), printErr: line => log(line,'stderr')});
+    check(module.ccall('web_configure','number',['string','number','number'],[argumentsFor(config).join('\n'),+visual,config.warriors]));
+    config.rounds = module._web_round_limit();
     return new Engine(module, config);
   }
   constructor(module, config) { this.module = module; this.config = config; this.started = false; }
@@ -37,7 +27,7 @@ export class Engine {
       m.FS.writeFile('/warrior-' + i + '.red', source);
       check(m._web_compile(i));
     });
-    return sources.map((_, i) => {
+    const banks = sources.map((_, i) => {
       const field = n => m._web_field(i, n);
       const ptr = field(0);
       return {
@@ -47,13 +37,20 @@ export class Engine {
         author: m.ccall('web_name', 'string', ['number', 'number'], [i, 1])
       };
     });
+    if (this.config.noPspace) for (const bank of banks) {
+      if (bank.pinState === -2) throw new Error('This hill preset forbids PIN and P-space instructions.');
+      const stride = m._web_field(0,5);
+      for (let offset=8; offset<bank.code.length; offset+=stride)
+        if ((bank.code[offset] >>> 3) >= 17) throw new Error('This hill preset forbids LDP/STP instructions.');
+    }
+    return banks;
   }
   import(banks) {
     if (!Array.isArray(banks) || banks.length !== this.config.warriors) throw new Error('Compiled bank count must match settings.warriors.');
     const m = this.module;
     banks.forEach((bank, i) => {
       if (!(bank.code instanceof Uint8Array) || !Number.isInteger(bank.length) ||
-          bank.length < 1 || bank.length > 100 ||
+          bank.length < 1 || bank.length > this.config.maxLength ||
           bank.code.length !== bank.length * m._web_field(i, 5))
         throw new Error('Invalid compiled bank. Use banks from this exact build.');
       const ptr = m._malloc(bank.code.length);
@@ -65,6 +62,7 @@ export class Engine {
     });
   }
   start() {
+    if (this.config.assembleOnly || this.config.rounds===0) return this.update(true);
     check(this.module._web_start());
     this.started = true;
     return this.update(false);
@@ -72,6 +70,7 @@ export class Engine {
   advance(instructions = 1, milliseconds = 4) {
     const done = this.module._web_advance(instructions, milliseconds);
     if (done < 0) throw new Error('advance requires 1..100000 instructions and a time budget in (0,8] ms.');
+    if (done && !this.printedResults) { this.module._web_print_results(); this.printedResults = true; }
     return this.update(!!done);
   }
   setTrace(enabled) { this.module._web_set_trace(+enabled); }

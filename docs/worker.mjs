@@ -4,31 +4,47 @@ let busy = false;
 self.onmessage = async ({data}) => {
   if (busy) return;
   busy = true;
-  let logBytes = 0;
-  const log = line => {
-    if (logBytes >= 65536) return;
-    const text = String(line).slice(0, 65536 - logBytes);
+  // Buffer native output so verbose assembly cannot flood the main thread.
+  // Keep a bounded tail, and flush before progress/results so final scores survive.
+  let logBytes = 0, pendingLogs = [];
+  const log = (line,channel='stdout') => {
+    const text = String(line).slice(-65536);
+    const last = pendingLogs.at(-1);
+    if (last?.channel === channel) last.text += '\n' + text;
+    else pendingLogs.push({type:'log',text,channel});
     logBytes += text.length + 1;
-    self.postMessage({type: 'log', text});
+    while (logBytes > 65536 && pendingLogs.length) {
+      const first=pendingLogs[0], excess=logBytes-65536;
+      if(first.text.length+1<=excess){logBytes-=first.text.length+1;pendingLogs.shift();}
+      else {first.text=first.text.slice(excess);logBytes-=excess;}
+    }
+  };
+  const flush = () => {
+    for(const message of pendingLogs) self.postMessage(message);
+    pendingLogs=[];logBytes=0;
   };
   try {
     const engine = await Engine.create(data.settings, {visual: false, log});
     const banks = engine.compile(data.sources);
+    flush();
     if (data.type === 'compile') {
-      self.postMessage({type: 'compiled', banks}, banks.map(b => b.code.buffer));
+      self.postMessage({type: 'compiled', banks, rounds:engine.config.rounds}, banks.map(b => b.code.buffer));
     } else if (data.type === 'series') {
       let update = engine.start(), last = performance.now();
       while (!update.done) {
         update = engine.advance(100000, 8);
         if (performance.now() - last >= 100 || update.done) {
+          flush();
           self.postMessage({type: 'progress', update});
           last = performance.now();
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
+      flush();
       self.postMessage({type: 'done', update});
     } else throw new Error('Unknown worker command.');
   } catch (error) {
+    flush();
     self.postMessage({type: 'error', message: error.message || String(error)});
   } finally {
     self.close();

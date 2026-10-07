@@ -11,28 +11,60 @@ Activate an [Emscripten SDK](https://emscripten.org/docs/getting_started/downloa
 (tested with 4.0.15), then run from the repository root:
 
 ```sh
-python web/build.py
+python docs/build.py
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:8765/web/. Use HTTP, not file://. On Windows, set
+Open http://127.0.0.1:8765/docs/. Use HTTP, not file://. On Windows, set
 `EMCC` to the absolute path to `emcc.bat` if the SDK is not on PATH.
-Generated `web/dist/pmars.mjs` and `pmars.wasm` are ignored by Git.
+Generated `docs/dist/pmars.mjs` and `pmars.wasm` are committed for static hosting.
 The browser does not require Emscripten to be installed.
 
-For deployment, serve the contents of `web/`, including `dist/`, as static
-files, with JavaScript module and application/wasm MIME types. The demo license
-link expects COPYING one directory above web/. Preserve the GPL license and
-provide corresponding source for the distributed engine and modifications.
-See the repository COPYING for the actual license terms.
+## GitHub Pages deployment
+
+The self-contained `docs/` directory includes the Wasm runtime, license,
+`.nojekyll`, and a corresponding-source download (`pmars-source.zip`).
+The build script refreshes these artifacts; commit them whenever engine or
+browser source changes. Serve over HTTP with JavaScript and WebAssembly MIME
+types. No build tools or backend are needed on the host.
+
+When ready to publish, push the branch you intend to deploy and select that
+branch and **/docs** in the repository's GitHub Pages settings. Configure
+`corewar.dev` as the custom domain and configure its DNS at that time.
+This branch does not configure DNS, publish the site, or include a CNAME.
+The old `/web/` preview URL redirects to `/docs/`.
+
+## Match settings
+
+The visible summary describes the editable next match. **Edit settings** opens
+the full form; rounds and **Run series in background** remain outside it.
+The form supports the native options `-r -s -b -c -V -p -k -l -8 -d -f -F -o -S -P -A -=`.
+Native parsing, assembly, positioning, scoring, and output are shared with pMARS.
+Filesystem options are deliberately unavailable. Fixed-series placement
+(`-f`) defaults on for reproducibility; entering `-F` disables it.
+Permutation requires two warriors. Zero rounds and assemble-only both assemble
+without running a battle.
+
+Preset choices fill the editable form: standard pMARS, KotH '94 no-P-space,
+KotH '88, SAL nano, tiny, tiny limited-process, and KotH '94 experimental.
+These are historical rule references, with source links in the UI, not claims
+about currently operating servers. The no-P-space preset rejects PIN, LDP,
+and STP after assembly.
+
+The native console is collapsed by default and includes assembly listings,
+diagnostics, and final native results. Brief, verbose, KotH output, sorting,
+and score formula settings affect this output. Its retained text is bounded
+to 256 KiB; diagnostics retain 64 KiB.
 
 ## Controls
 
-- Add/remove warriors: supports 1–36, including solo debugging. Editor headings
+- Add/remove warriors: supports 1–36, including solo debugging. Create a new
+  editable warrior, upload one or multiple files, or drop files on the upload
+  area or Add warrior dialog. Each editor has a Save download button. Editor headings
   update from the source's `;name` directive while typing. An active battle's
   legend and traces retain the loaded names until Reset.
   Changes to loaded sources/settings are marked as pending until Reset.
-- Run battle: assemble in a worker and animate one round. With Start paused
+- Run battle: assemble in a worker and animate the configured number of rounds. With Start paused
   checked, loading stops before instruction one, like the native `-e` option.
   Before the first instruction (including after Reset), the button says Run
   battle and applies any edits made since loading. After execution begins it
@@ -78,13 +110,26 @@ macro loops, breakpoints, operand-pointer expressions, shell/file operations,
 and arbitrary .mac loading are not implemented. On-page command help
 lists the supported behavior.
 
-The display shows last activity by warrior color, dim reads, bright writes,
-and a white marker at each warrior's last execution address. It redraws only
+The display uses native pMARS quadrant markers in warrior colors: read marks
+the top-left quarter, write marks the top-right and bottom-left quarters,
+decrement marks the top half, increment marks the left half, and execution
+marks the whole cell. Unaffected quarters retain their previous owner.
+The legend illustrates these shapes. A white outline marks each warrior's
+last execution address. Modern, pMARS classic, and accessible palettes are
+selectable. It redraws only
 dirty cells except when initializing a round or resizing. All activity events
 are consumed in order; multiple operations at the same cell within one browser
 frame end with that frame's final visual state. Slow down or step to examine
 individual instructions. This prototype does not animate the separate operand
 operations within one instruction across multiple frames.
+
+Process history and cumulative series-score charts retain at most 300 samples.
+The process chart samples at most ten times a second. Each chart and each
+warrior execution log can be paused independently; **Pause live views** pauses
+both charts and execution logging while simulation continues. Turning execution
+logs off, or pausing all of them, disables native trace capture. Series runs
+skip display events and instruction traces. Completed battle totals are shown
+for the current run and the current page session.
 
 ## Responsiveness
 
@@ -103,7 +148,7 @@ It does not accumulate an unbounded backlog.
 
 User source assembly runs exclusively in the demo's worker, has a 64 KiB input
 limit per warrior, and a 15-second timeout. Stop also cancels it. Only compiled
-banks, at most 100 instructions per warrior, cross to the main thread.
+banks, at most 1000 instructions per warrior, cross to the main thread.
 Headless series use the same stepping API without collecting display events.
 
 ## JavaScript API
@@ -143,17 +188,19 @@ Settings and bounds:
 
 | Setting | Default | Allowed |
 |---|---:|---:|
-| coreSize | 8000 | 800–65536 |
-| rounds | 1 | 1–1000 |
+| coreSize | 8000 | 80–65536 |
+| rounds | 1 | 0–2147483647 |
 | cycles | 80000 | 1–10000000 |
 | tasks | 8000 | 1–65536 |
 | warriors | 2 | 1–36 |
 
-Source/bank count must match settings.warriors. Maximum length 100; coreSize
-must be at least 100 times the warrior count. Default pMARS separation and P-space
-size. ICWS '94 extensions and P-space are enabled. Placement uses native
-`-f` (source-code checksum) for repeatability. Individual round start order,
-scoring, and P-space behavior remain pMARS's own.
+Additional settings are defined in `settings.mjs`: maxLength (1–1000,
+default 100), distance (0–65536, zero selects native default), pspace
+(0–coreSize, zero selects native default), and the flags/text options described
+above. These are browser resource bounds, not unrestricted native limits.
+Source/bank count must match settings.warriors. The core must fit at least
+max(2, warrior count) times max(maxLength, distance). ICWS '94 extensions
+and P-space are enabled unless the selected rules restrict them.
 
 `start()` returns initial loaded cells. `advance(n, milliseconds)` accepts
 1–100000 instructions and a time budget greater than zero and at most 8 ms.
@@ -197,13 +244,15 @@ above. Turn tracing off for maximum simulation throughput.
 ## Tests
 
 ```sh
-node web/test-engine.mjs /path/to/native/pmars-server
+node docs/test-engine.mjs /path/to/native/pmars-server
+node docs/test-options.mjs /path/to/native/pmars-server
 python security/test_security.py /path/to/native/pmars-server
 python security/test_096.py /path/to/native/pmars-server
 # With the preview server running and Playwright installed:
-node web/test-browser.mjs
-node web/test-debugger.mjs
-node web/test-controls.mjs
+node docs/test-browser.mjs
+node docs/test-debugger.mjs
+node docs/test-controls.mjs
+node docs/test-features.mjs
 ```
 
 The engine suite checks native deterministic score parity, exact ordered event
@@ -211,11 +260,15 @@ parity between one-instruction and large slices, full final-core parity, worker
 bank import, shared P-space, core-size limits, solo and 3/4/36-warrior matches,
 self-modification snapshots, and invalid inputs. Browser tests
 exercise pause/resume, exact stepping, cancellation/restart, assembly errors,
-a 100-round worker series, mobile layout, and a page heartbeat at maximum speed.
+a 1001-round worker series, uploads/drop/download, presets, native output,
+chart/log pausing, themes, mobile layout, and a page heartbeat at maximum speed.
+The options suite compares assembly and final output against native pMARS
+across 12 configurations, including permutation, '88, fixed positions,
+verbose output, assemble-only, and custom scoring.
 
 Optional browser-test environment variables: `BROWSER_CHANNEL=msedge`,
 `PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs`, and `PMARS_URL`.
-Generated screenshots and test files go into ignored `web/test-output/`.
+Generated screenshots and test files go into ignored `docs/test-output/`.
 
 Native displays remain selected by their existing build flags. The new
 `BROWSER` build uses `SERVER` to prevent blocking stdin/debugger interaction.

@@ -11,10 +11,10 @@ page.on('pageerror', e=>errors.push(e.message));
 const ready = text => page.waitForFunction(t=>document.querySelector('#status').textContent.includes(t),text);
 const count = async () => Number((await page.locator('#timing').textContent()).split(' instructions')[0].replaceAll(',',''));
 try {
-  await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/web/');
+  await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
   const loop = ';redcode-94\n;name Loop\n;assert 1\njmp 0\n';
   await page.locator('#first').fill(loop); await page.locator('#second').fill(loop);
-  await page.getByText('Match settings',{exact:true}).click();
+  await page.locator('#editSettings').click();
   await page.locator('#speed').fill('5');
   await page.locator('#cycles').fill('10');
   await page.locator('#run').click(); await ready('Battle complete');

@@ -34,3 +34,5 @@ __pycache__/
 # Emscripten output and browser test artifacts.
 /web/dist/
 /web/test-output/
+
+/docs/test-output/

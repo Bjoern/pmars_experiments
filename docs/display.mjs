@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+const palettes = {
+ modern:['#54d8df','#f9a567','#b4a0ff','#91d97e','#ff8bb8','#f0db75'],
+ classic:['#00ff00','#ff0000','#00ffff','#ffff00','#ff00ff','#0000ff'],
+ accessible:['#0072b2','#e69f00','#f0e442','#cc79a7','#d55e00','#56b4e9','#009e73']
+};
+let theme='modern';
+export function setTheme(value){theme=palettes[value]?value:'modern';document.body.dataset.theme=theme;}
 export function warriorColor(i) {
-  return ['#54d8df', '#f9a567', '#b4a0ff', '#91d97e', '#ff8bb8', '#f0db75'][i] ||
-    'hsl(' + ((i * 137.508) % 360) + ' 70% 70%)';
+ return palettes[theme][i % palettes[theme].length];
 }
 export class CoreDisplay {
   constructor(canvas) {
@@ -10,7 +16,7 @@ export class CoreDisplay {
     this.columns = Math.ceil(Math.sqrt(8000 * 2.5));
     this.size = 8000;
     this.pcs = [];
-    this.cells = new Uint16Array(this.size);
+    this.cells = new Uint8Array(this.size*4);
     this.observer = new ResizeObserver(() => this.redraw());
     this.observer.observe(canvas);
     this.redraw();
@@ -19,7 +25,7 @@ export class CoreDisplay {
     this.size = size;
     this.pcs = [];
     this.columns = Math.ceil(Math.sqrt(size * 2.5));
-    this.cells = new Uint16Array(size);
+    this.cells = new Uint8Array(size*4);
     this.redraw();
   }
   redraw() {
@@ -33,7 +39,7 @@ export class CoreDisplay {
     this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
     this.context.fillStyle = '#101d29';
     this.context.fillRect(0, 0, width, height);
-    for (let i = 0; i < this.size; ++i) if (this.cells[i]) this.draw(i);
+    for (let i = 0; i < this.size; ++i) this.draw(i);
   }
   apply(events) {
     const dirty = new Set();
@@ -53,28 +59,26 @@ export class CoreDisplay {
           if (this.pcs[owner] >= 0) dirty.add(this.pcs[owner]);
           this.pcs[owner] = address;
         }
-        this.cells[address] = ((owner + 1) << 8) | kind;
+        const mask=[0,15,15,1,6,3,5][kind];
+        for(let q=0;q<4;q++) if(mask & (1<<q)) this.cells[address*4+q]=owner+1;
         dirty.add(address);
       }
     }
     for (const address of dirty) this.draw(address);
   }
   draw(address) {
-    const value = this.cells[address], kind = value & 255;
-    const x = (address % this.columns) * this.cellSize;
-    const y = Math.floor(address / this.columns) * this.cellSize;
-    const c = this.context;
-    c.fillStyle = '#101d29';
-    c.fillRect(x, y, this.cellSize, this.cellSize);
-    c.globalAlpha = kind === 3 ? 0.45 : kind === 1 ? 0.65 : 1;
-    c.fillStyle = value ? warriorColor((value >>> 8) - 1) : '#101d29';
-    const pad = Math.min(1, this.cellSize / 6);
-    c.fillRect(x + pad, y + pad, this.cellSize - 2 * pad, this.cellSize - 2 * pad);
-    c.globalAlpha = 1;
-    if (this.pcs.includes(address)) {
-      c.fillStyle = '#ffffff';
-      c.fillRect(x + this.cellSize / 3, y + this.cellSize / 3,
-        this.cellSize / 3, this.cellSize / 3);
+    const x=(address%this.columns)*this.cellSize,y=Math.floor(address/this.columns)*this.cellSize;
+    const c=this.context,pad=Math.min(0.7,this.cellSize/10),half=this.cellSize/2;
+    c.fillStyle='#101d29';c.fillRect(x,y,this.cellSize,this.cellSize);
+    for(let q=0;q<4;q++){
+      const owner=this.cells[address*4+q];
+      if(!owner)continue;
+      c.fillStyle=warriorColor(owner-1);
+      c.fillRect(x+(q%2)*half+pad,y+Math.floor(q/2)*half+pad,Math.max(0.2,half-2*pad),Math.max(0.2,half-2*pad));
+    }
+    if(this.pcs.includes(address)){
+      c.strokeStyle='#ffffff';c.lineWidth=Math.max(0.4,this.cellSize/12);
+      c.strokeRect(x+pad,y+pad,this.cellSize-2*pad,this.cellSize-2*pad);
     }
   }
   addressAt(event) {

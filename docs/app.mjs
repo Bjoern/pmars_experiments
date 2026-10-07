@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import {Engine, settings} from './engine.mjs';
-import {CoreDisplay, warriorColor} from './display.mjs';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs';
+import {readSettings,setupSettings} from './settings-ui.mjs';
+import {HistoryChart} from './charts.mjs';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -8,9 +10,17 @@ let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let sources = [$('first').value, $('second').value];
+let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
+const pausedWarriors=new Set();
+const processChart=new HistoryChart($('processChart'),'Processes / executed instructions');
+const scoreChart=new HistoryChart($('scoreChart'),'Cumulative score / completed battles');
 const addressText = n => String(n).padStart(String((engine?.config.coreSize || 8000) - 1).length, '0');
 function status(text) { $('status').textContent = text; }
-function log(text) { $('log').textContent = ($('log').textContent + text + '\n').slice(-65536); }
+function log(text,channel='stderr') {
+ consoleText=(consoleText+text+'\n').slice(-262144);
+ if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;
+ if(channel==='stderr')$('log').textContent=($('log').textContent+text+'\n').slice(-65536);
+}
 function draftName(source, i) {
   return source.match(/^\s*;name\s+([^\r\n]*)/im)?.[1].trim() || `Warrior ${i + 1}`;
 }
@@ -38,7 +48,8 @@ function editors() {
     remove.disabled = sources.length === 1;
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
     remove.onclick = () => { sources.splice(i,1); markDirty(); editors(); };
-    top.append(label,remove);
+    const save=document.createElement('button');save.textContent='Save';save.className='save-warrior';save.setAttribute('aria-label','Save warrior '+(i+1));save.onclick=()=>saveWarrior(i);
+    top.append(label,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
     area.setAttribute('aria-label', `Warrior ${i+1} source`);
@@ -69,14 +80,12 @@ function stop() {
   worker = null; clearTimeout(workerTimer);
   if (pendingReject) pendingReject(new DOMException('Stopped', 'AbortError'));
   pendingReject = null; engine = null; latest = null;
-  history = []; combined = []; renderTrace();
+  history = []; combined = []; renderTrace(); countedCompleted=0;lastScoreSample=-1;
+  processChart.clear();scoreChart.clear();
   state = 'idle'; dirty = false; $('changed').textContent = ''; $('activeSettings').textContent = ''; legend();
   $('progress').hidden = true; status('Stopped. Ready for another battle.'); controls();
 }
-function options(series = false) {
-  return settings({...Object.fromEntries(['coreSize','cycles','tasks','rounds'].map(key =>
-    [key, key === 'rounds' && !series ? 1 : Number($(key).value)])), warriors:sources.length});
-}
+function options() { return readSettings({warriors:sources.length}); }
 function work(type, config) {
   return new Promise((resolve, reject) => {
     pendingReject = reject;
@@ -89,21 +98,24 @@ function work(type, config) {
     workerTimer = setTimeout(() => finish(new Error('Assembly timed out after 15 seconds.')),15000);
     w.onerror = event => finish(new Error(event.message || 'Worker failed to load.'));
     w.onmessage = ({data}) => {
-      if (data.type === 'log') log(data.text);
+      if(worker!==w)return;
+      if (data.type === 'log') log(data.text,data.channel);
       else if (data.type === 'error') finish(new Error(data.message));
       else if (data.type === 'compiled') finish(null,data.banks);
       else if (data.type === 'progress') {
         clearTimeout(workerTimer);
         $('progress').value = data.update.completed;
         status(`Series: ${data.update.completed} / ${config.rounds} rounds completed.`);
-        scores(data.update);
+        scores(data.update); sampleScores(data.update);
       } else if (data.type === 'done') finish(null,data.update);
     };
     w.postMessage({type, settings:config, sources:[...sources]});
   });
 }
 function scores(update) {
-  $('scores').replaceChildren(...update.warriors.map((w,i) => {
+  const order=update.warriors.map((w,i)=>({w,i}));
+  if($('sort').checked)order.sort((a,b)=>b.w.score-a.w.score);
+  $('scores').replaceChildren(...order.map(({w,i}) => {
     const row = document.createElement('div'); row.className = 'score'; row.style.color = warriorColor(i);
     const outcome = update.warriors.length === 1
       ? `${w.wins} survived / ${w.losses} terminated`
@@ -164,29 +176,37 @@ function present(update) {
   let n = total;
   for (const entry of update.trace) {
     entry.number = ++n;
+    if($('pauseViews').checked || pausedWarriors.has(entry.warrior))continue;
     (history[entry.warrior] ||= []).push(entry);
     if (history[entry.warrior].length > 100) history[entry.warrior].shift();
     combined.push(entry);
   }
   if (combined.length > 300) combined.splice(0,combined.length-300);
   total += update.executed;
+  sampleScores(update);
   $('timing').textContent = `${total.toLocaleString()} instructions · peak slice ${maxSlice.toFixed(1)} ms`;
   if (update.done) { state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
-  if (state !== 'running' || performance.now()-lastText >= 100) textViews();
+  if (state !== 'running' || performance.now()-lastText >= 100) {
+    if(!$('pauseViews').checked && !$('pauseProcesses').checked)processChart.add(total,update.warriors.map(w=>w.tasks));
+    textViews();
+  }
 }
 async function load() {
   stop(); const token = generation;
-  state = 'loading'; controls(); $('log').textContent = '';
+  state = 'loading'; controls(); $('log').textContent = ''; consoleText='';$('consoleOutput').textContent='';
   status('Assembling warriors in a background worker…');
   const config = options(), banks = await work('compile',config);
   if (token !== generation) return false;
   const next = await Engine.create(config,{log});
   if (token !== generation) return false;
-  next.import(banks); next.setTrace($('traceMode').value !== 'off');
+  next.import(banks);
   engine = next; total = 0; maxSlice = 0; credit = 0; history = []; combined = [];
   display.configure(config.coreSize); $('address').max = config.coreSize-1; $('address').value = 0;
   $('follow').replaceChildren(new Option('Fixed address','-1'), ...banks.map((b,i) => new Option(b.name,String(i))));
-  present(engine.start()); legend(); state = 'paused'; controls();
+  traceControls(banks.map(b=>b.name));
+  const initial=engine.start();present(initial);legend();
+  if(initial.done){state='done';status('Assembly complete. No battles run.');controls();return false;}
+  state = 'paused'; controls();
   status('Paused before instruction 1. Step or Run battle.');
   return true;
 }
@@ -256,7 +276,8 @@ async function run() {
 }
 async function command(text) {
   if (state === 'loading' || state === 'series') return log('Stop the current operation before entering debugger commands.');
-  const parts = text.trim().toLowerCase().split(/\s+/), verb = parts.shift(), rest = parts.join(' ');
+  const reply = message => { log(message); return message; };
+  const parts = text.trim().toLowerCase().replace(/^(l|s)(?=[0-9.-])/,'$1 ').split(/\s+/), verb = parts.shift(), rest = parts.join(' ');
   if (['m','macro'].includes(verb)) return command(rest);
   if (['s','step','f5','f7','f8','alt-s'].includes(verb)) {
     const count = rest ? Number(rest) : 1;
@@ -279,52 +300,115 @@ async function command(text) {
   else if (['pgdn','ctrl-l'].includes(verb)) showAddress(Number($('address').value)+lineCount());
   else if (['mouse','mousel','mousem','mouser'].includes(verb)) { pause(); inspect(); }
   else if (['progress','p','alive','tproc','registers','reg','key-p'].includes(verb)) {
-    if (!latest) return log('Load a battle first.');
-    log(`Round ${latest.round}; ${total} instructions; ${latest.warriors.filter(w=>w.tasks>0).length} alive; ${latest.warriors.reduce((n,w)=>n+w.tasks,0)} processes.`);
-    if (['registers','reg','key-p'].includes(verb)) latest.warriors.forEach((w,i)=>log(`${i+1} ${w.name}: next PC ${w.pc < 0 ? '—' : addressText(w.pc)}, ${w.tasks} processes`));
+    if (!latest) return reply('Load a battle first.');
+    const output = [`Round ${latest.round}; ${total} instructions; ${latest.warriors.filter(w=>w.tasks>0).length} alive; ${latest.warriors.reduce((n,w)=>n+w.tasks,0)} processes.`];
+    if (['registers','reg','key-p'].includes(verb)) latest.warriors.forEach((w,i)=>output.push(`${i+1} ${w.name}: next PC ${w.pc < 0 ? '—' : addressText(w.pc)}, ${w.tasks} processes`));
+    return reply(output.join('\n'));
   } else if (verb === 'pause') pause();
   else if (verb === 'reset') await load();
-  else if (['help','f1'].includes(verb)) $('debugHelp').open = true;
-  else log('Unsupported command. Open Browser debugger commands for the supported subset.');
+  else if (['help','f1','?'].includes(verb)) $('debugHelp').open = true;
+  else return reply('Unsupported command. Open Browser debugger commands for the supported subset.');
 }
 $('run').onclick = safe(run);
 $('step').onclick = safe(() => step());
 $('pause').onclick = pause;
 $('reset').onclick = safe(load);
 $('stop').onclick = stop;
-$('addWarrior').onclick = () => {
-  if (sources.length >= 36) return;
-  sources.push(`;redcode-94\n;name Warrior ${sources.length+1}\n;assert 1\nmov.i 0, 1\nend\n`);
-  markDirty(); editors();
-};
 $('series').onclick = safe(async () => {
-  stop(); state = 'series'; controls(); $('log').textContent = '';
+  stop(); state = 'series'; controls(); $('log').textContent = '';consoleText='';$('consoleOutput').textContent='';
   const token = generation, config = options(true);
   $('progress').hidden = false; $('progress').max = config.rounds; $('progress').value = 0;
   status('Running series in a background worker…');
   const update = await work('series',config);
   if (token !== generation) return;
-  latest = update; scores(update); $('progress').value = config.rounds;
-  state = 'done'; controls(); status(`Series complete: ${config.rounds} rounds.`);
+  latest = update; scores(update); sampleScores(update);$('progress').value = update.completed;
+  state = 'done'; controls(); status(config.assembleOnly || !config.rounds ? 'Assembly complete. No battles run.' : `Series complete: ${update.completed} rounds.`);
 });
 $('speed').oninput = () => { $('speedValue').textContent = Math.round(10 ** Number($('speed').value)).toLocaleString(); };
 $('address').oninput = () => { $('follow').value = '-1'; inspect(); };
 $('lines').oninput = inspect; $('follow').onchange = inspect;
 $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());
 $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
-$('traceMode').onchange = () => { engine?.setTrace($('traceMode').value !== 'off'); renderTrace(); };
+$('traceMode').onchange = () => { syncTrace(); renderTrace(); };
 $('core').onclick = event => { pause(); showAddress(display.addressAt(event)); };
 $('core').oncontextmenu = event => { event.preventDefault(); pause(); showAddress(display.addressAt(event)-lineCount()+1); };
 $('commandForm').onsubmit = event => {
   event.preventDefault(); const text = $('command').value; $('command').value = '';
   // Invalid debugger commands must not destroy an active battle.
-  command(text).catch(error => log(error.message));
+  $('commandOutput').textContent='> '+text+'\n';
+  command(text).then(result=>{$('commandOutput').textContent += result || 'Done. '+$('status').textContent;}).catch(error=>{$('commandOutput').textContent += error.message;log(error.message);});
 };
-for (const id of ['coreSize','cycles','tasks','rounds']) $(id).oninput = markDirty;
+
 document.addEventListener('keydown',event => {
   if (event.target.closest('textarea,input,select,button') || event.ctrlKey || event.altKey || event.metaKey) return;
   const key = {F1:'help',F5:'f5',F7:'f7',F8:'f8',F9:'go',ArrowUp:'up',ArrowDown:'down',PageUp:'pgup',PageDown:'pgdn',Escape:'pause'}[event.key];
   if (key) { event.preventDefault(); command(key).catch(error=>log(error.message)); }
 });
 document.addEventListener('visibilitychange',() => { previous = performance.now(); credit = 0; });
+
+function traceControls(names) {
+ pausedWarriors.clear();
+ $('tracePauses').replaceChildren(...names.map((name,i)=>{
+  const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';
+  check.onchange=()=>{check.checked?pausedWarriors.add(i):pausedWarriors.delete(i);syncTrace();};
+  label.style.color=warriorColor(i);label.append(check,' Pause '+name);return label;
+ }));
+ syncTrace();
+}
+function syncTrace(){
+ engine?.setTrace(!$('pauseViews').checked && $('traceMode').value!=='off' &&
+   pausedWarriors.size < (engine?.config.warriors || sources.length));
+}
+function battleCount(update){
+ sessionBattles += Math.max(0,update.completed-countedCompleted);countedCompleted=update.completed;
+ $('battleTotals').textContent='Warriors · '+update.completed.toLocaleString()+' battles this run';
+ $('diagnosticsTitle').textContent='Diagnostics · '+sessionBattles.toLocaleString()+' battles this session';
+}
+function sampleScores(update){
+ battleCount(update);
+ if(!$('pauseViews').checked && !$('pauseScores').checked && update.completed!==lastScoreSample){
+  scoreChart.add(update.completed,update.warriors.map(w=>w.score));lastScoreSample=update.completed;
+ }
+}
+function saveWarrior(i){
+ const a=document.createElement('a'),url=URL.createObjectURL(new Blob([sources[i]],{type:'text/plain;charset=utf-8'}));
+ a.href=url;a.download=(draftName(sources[i],i).replace(/[^a-z0-9_.-]+/gi,'_')||'warrior')+'.red';
+ document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function importFiles(files){
+ const list=Array.from(files);
+ if(!list.length)return;
+ if(sources.length+list.length>36)throw new Error('At most 36 warriors can be loaded. Remove some before importing.');
+ if(list.some(f=>f.size>65536))throw new Error('Warrior files must be at most 64 KiB each.');
+ const texts=await Promise.all(list.map(f=>f.text()));
+ if(sources.length+texts.length>36)throw new Error('Too many warriors after concurrent imports.');
+ sources.push(...texts);markDirty();editors();$('addDialog').close();
+ status('Imported '+list.length+' warrior files. Edit them below or Reset to load them.');
+}
+$('addWarrior').onclick=()=>$('addDialog').showModal();
+$('newWarrior').onclick=()=>{
+ if(sources.length>=36)return;
+ sources.push(';redcode-94\n;name Warrior '+(sources.length+1)+'\n;assert 1\nmov.i 0, 1\nend\n');
+ markDirty();editors();$('addDialog').close();
+};
+for(const id of ['uploadWarriors','dialogUpload','dropZone']) $(id).onclick=()=>$('warriorFiles').click();
+$('dropZone').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('warriorFiles').click();}};
+$('closeAdd').onclick=()=>$('addDialog').close();
+$('warriorFiles').onchange=()=>{importFiles($('warriorFiles').files).catch(e=>status(e.message));$('warriorFiles').value='';};
+for(const id of ['dropZone','addDialog']){
+ const zone=$(id);
+ zone.ondragover=e=>{e.preventDefault();zone.classList.add('dragging');};
+ zone.ondragleave=()=>zone.classList.remove('dragging');
+ zone.ondrop=e=>{e.preventDefault();zone.classList.remove('dragging');importFiles(e.dataTransfer.files).catch(err=>status(err.message));};
+}
+$('theme').onchange=()=>{
+ setTheme($('theme').value);
+ for(const selector of ['#tracePauses label','#editors .warrior']) document.querySelectorAll(selector).forEach((label,i)=>{label.style.color=warriorColor(i);});
+ display.redraw();legend();textViews();processChart.draw();scoreChart.draw();
+};
+$('pauseViews').onchange=syncTrace;
+$('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;};
+setupSettings(markDirty);
+processChart.clear();scoreChart.clear();
+
 editors(); controls();

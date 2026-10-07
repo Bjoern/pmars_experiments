@@ -16,7 +16,7 @@ const ready = text => page.waitForFunction(text =>
   document.querySelector('#status').textContent.includes(text), text);
 const count = async () => Number((await page.locator('#timing').textContent()).split(' instructions')[0].replaceAll(',',''));
 try {
-  await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/web/');
+  await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
   await page.locator('#step').click();
   await ready('Paused after');
   assert.equal(await count(), 1);
@@ -36,7 +36,7 @@ try {
   const imp = ';redcode-94\n;assert 1\nmov.i 0,1\n';
   await page.locator('#first').fill(imp);
   await page.locator('#second').fill(imp);
-  await page.getByText('Match settings',{exact:true}).click();
+  await page.locator('#editSettings').click();
   await page.locator('#cycles').fill('10000000');
   await page.locator('#speed').fill('5');
   await page.locator('#run').click();

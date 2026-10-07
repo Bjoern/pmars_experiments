@@ -87,5 +87,5 @@ and history stay in `.git` and are not included in the patches.
 
 The browser integration builds pMARS to WebAssembly with Emscripten. It includes
 an incremental canvas display, pause/step controls, assembly in a worker, and
-headless match series with progress updates. See [web/README.md](web/README.md)
+headless match series with progress updates. See [docs/README.md](docs/README.md)
 for building, running, the JavaScript API, and regression tests.

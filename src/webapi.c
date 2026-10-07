@@ -73,32 +73,65 @@ int web_should_yield(void)
   return 0;
 }
 
-API int web_configure(int size, int count, int limit, int tasks, int visual, int num)
+API int web_configure(const char *options, int visual, int num)
 {
-  char s[16], r[16], c[16], p[16], paths[MAXWARRIOR][32];
-  int i, result;
-  char *args[11 + MAXWARRIOR] = {"pmars", "-b", "-f", "-s", s, "-r", r, "-c", c,
-                  "-p", p};
-  if (num < 1 || num > MAXWARRIOR || size < num * 100 || configured || size < 800 || size > 65536 || count < 1 || count > 1000 ||
-      limit < 1 || limit > 10000000 || tasks < 1 || tasks > 65536) return 2;
+  char paths[MAXWARRIOR][32], *args[128], *part, *storage;
+  int i, argc = 1, result;
+  if (configured || num < 1 || num > MAXWARRIOR || strlen(options) > 4096) return 2;
   configured = 1;
   web_visual = !!visual;
-  snprintf(s, sizeof(s), "%d", size); snprintf(r, sizeof(r), "%d", count);
-  snprintf(c, sizeof(c), "%d", limit); snprintf(p, sizeof(p), "%d", tasks);
+  args[0] = "pmars";
+  /* Retain option strings for SWITCH_F / SWITCH_eq for the instance lifetime. */
+  storage = strdup(options);
+  if (!storage) return MEMERR;
+  part = strtok(storage, "\n");
+  while (part && argc < 90) {
+    args[argc++] = part;
+    part = strtok(NULL, "\n");
+  }
+  if (part) return 2;
   for (i = 0; i < num; ++i) {
     snprintf(paths[i], sizeof(paths[i]), "/warrior-%d.red", i);
-    args[11 + i] = paths[i];
+    args[argc++] = paths[i];
   }
-  result = parse_param(11 + num, args);
+  result = parse_param(argc, args);
   if (result) return result;
   init();
   return 0;
+}
+API int web_round_limit(void) { return rounds; }
+API void web_print_results(void)
+{
+  int i, j;
+  extern void results(FILE *);
+  if (SWITCH_k) {
+    set_reg('W', warriors);
+    if (warriors == 2)
+      printf("%d %d\n%d %d\n", warrior[0].score[0], warrior[0].score[1],
+             warrior[1].score[0], warrior[1].score[1]);
+    else for (i = 0; i < warriors; ++i) {
+      printf("%d ", score(i));
+      for (j = 0; j < warriors; ++j) printf("%d ", warrior[i].score[j]);
+      printf("%d\n", deaths(i));
+    }
+  } else results(stdout);
+  fflush(stdout);
 }
 
 API int web_compile(int index)
 {
   if (!configured || started || index < 0 || index >= warriors || loaded[index]) return 2;
-  assemble(warrior[index].fileName, index);
+  if (!assemble(warrior[index].fileName, index) && !SWITCH_b) {
+    extern char *info01;
+    if (!SWITCH_A) printf(info01, warrior[index].name, warrior[index].instLen, warrior[index].authorName);
+    disasm(warrior[index].instBank, warrior[index].instLen, warrior[index].offset);
+    if (SWITCH_A) {
+      if (warrior[index].pSpaceIndex == PIN_APPEARED)
+        printf("       PIN     %6ld\n", warrior[index].pSpaceIDNumber);
+      printf("       END\n");
+    } else printf("\n");
+  }
+  fflush(stdout); fflush(stderr);
   if (errorcode == 0) loaded[index] = 1;
   return errorcode;
 }
@@ -136,7 +169,7 @@ API int web_import(int index, int ptr, int length, int offset, int pinState,
 {
   warrior_struct *w;
   if (!configured || started || index < 0 || index >= warriors || loaded[index] ||
-      length < 1 || length > 100 || !ptr ||
+      length < 1 || length > instrLim || !ptr ||
       (pinState != UNSHARED && pinState != PIN_APPEARED)) return 2;
   w = warrior + index;
   w->instBank = (mem_struct *)ptr; w->instLen = length; w->offset = offset;

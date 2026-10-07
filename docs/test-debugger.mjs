@@ -12,7 +12,7 @@ const ready = text => page.waitForFunction(t=>document.querySelector('#status').
 const count = async () => Number((await page.locator('#timing').textContent()).split(' instructions')[0].replaceAll(',',''));
 const command = async text => { await page.locator('#command').fill(text); await page.locator('#command').press('Enter'); };
 try {
-  await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/web/');
+  await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
   await page.locator('#first').fill(';redcode-94\n;name Alpha\n;assert 1\nmov.i 0,1\n');
   assert((await page.locator('label[for=first]').textContent()).includes('Alpha'));
   await page.locator('#debugStart').check();
@@ -65,7 +65,7 @@ try {
   assert.match(await page.locator('#instruction').textContent(),/ADD.AB\s+#\s*1,\s*\$\s*1/);
   assert((await page.locator('#scores').textContent()).includes('survived'));
 
-  await page.locator('#addWarrior').click(); await page.locator('#addWarrior').click();
+  await page.locator('#addWarrior').click(); await page.locator('#newWarrior').click(); await page.locator('#addWarrior').click(); await page.locator('#newWarrior').click();
   await page.locator('#traceMode').selectOption('columns');
   await page.locator('#reset').click(); await ready('Paused before');
   assert.equal(await page.locator('#execution section').count(),3);
@@ -75,11 +75,11 @@ try {
   assert(rows.every(s=>s.includes('#')));
   const colors = await page.locator('#execution section').evaluateAll(nodes=>nodes.map(n=>n.style.color));
   assert.equal(new Set(colors).size,3);
-  await page.screenshot({path:'web/test-output/debugger-desktop.png',fullPage:true});
+  await page.screenshot({path:'docs/test-output/debugger-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(100);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.screenshot({path:'web/test-output/debugger-mobile.png',fullPage:true});
+  await page.screenshot({path:'docs/test-output/debugger-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
   console.log('PASS: debug start at zero, resume without reset, reset clears history, live names, wrapped listings, macros, solo/self-modifying trace, three warrior consoles, mobile layout.');
 } finally { await browser.close(); }
