@@ -31,7 +31,19 @@ types. No build tools or backend are needed on the host.
 When ready to publish, push the branch you intend to deploy and select that
 branch and **/docs** in the repository's GitHub Pages settings. Configure
 `corewar.dev` as the custom domain and configure its DNS at that time.
-This branch does not configure DNS, publish the site, or include a CNAME.
+The included `docs/CNAME` names `corewar.dev`. Publishing setup is still required:
+1. Push `browser-integration` (or merge and push your default branch).
+2. In repository Settings → Pages, choose Deploy from a branch, that branch,
+   and `/docs`, then Save.
+3. Set Custom domain to `corewar.dev` in Pages settings before changing DNS.
+4. At your DNS provider, point the apex domain at GitHub Pages using ALIAS/ANAME
+   to `bjoern.github.io`, or the A records in GitHub's current instructions.
+   Optional `www` uses a CNAME to `bjoern.github.io`, without a repository path.
+5. Once GitHub finishes the DNS check and issues the certificate, enable
+   Enforce HTTPS. The public entry point is `https://corewar.dev/`, not `/docs/`.
+
+See [GitHub's custom-domain instructions](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
+These files prepare the site; they do not change GitHub settings or DNS.
 The old `/web/` preview URL redirects to `/docs/`.
 
 ## Match settings
