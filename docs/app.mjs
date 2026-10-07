@@ -12,6 +12,16 @@ let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let sources = [$('first').value, $('second').value];
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
 let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
+let validationTimer=null, validationQueue=[];
+function cancelAutoValidation(){clearTimeout(validationTimer);validationQueue=[];}
+function nextValidation(){
+ const index=validationQueue.shift();
+ if(index!==undefined)checkWarrior(index,true);
+}
+function scheduleValidation(){
+ cancelAutoValidation();
+ validationTimer=setTimeout(()=>{validationQueue=sources.map((_,i)=>i);nextValidation();},1000);
+}
 function showConsole() {
  $('consoleWindow').open=true;
  $('consoleOutput').textContent=consoleText || 'Validate a warrior or run a battle to see assembly output here.';
@@ -29,13 +39,14 @@ function cancelCompileCheck() {
  compileStates=compileStates.map(s=>s==='busy'?'':s);
  refreshCompileButtons();
 }
-function checkWarrior(index) {
- cancelCompileCheck();showConsole();
+function checkWarrior(index,automatic=false) {
+ if(!automatic)cancelAutoValidation();
+ cancelCompileCheck();if(!automatic)showConsole();
  let config;
- try {config={...options(),brief:false,assembleOnly:true};}
- catch(error){compileStates[index]='failed';refreshCompileButtons();log(error.message);return;}
+ try {config={...options(),brief:automatic,assembleOnly:true};}
+ catch(error){compileStates[index]='failed';refreshCompileButtons();log(error.message);if(automatic)nextValidation();return;}
  const ticket=revision;
- log('Compiling '+draftName(sources[index],index)+'…','stdout');
+ if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
  const w=compileWorker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
@@ -43,7 +54,8 @@ function checkWarrior(index) {
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
   if(ticket!==revision)return;
   compileStates[index]=ok?'ok':'failed';refreshCompileButtons();
-  log(message,ok?'stdout':'stderr');showConsole();
+  log(message,ok?'stdout':'stderr');if(!automatic)showConsole();
+  if(automatic)nextValidation();
  };
  compileTimer=setTimeout(()=>finish(false,'Compilation timed out after 15 seconds.'),15000);
  w.onerror=e=>finish(false,e.message || 'Compiler worker failed.');
@@ -69,7 +81,7 @@ function draftName(source, i) {
   return source.match(/^\s*;name\s+([^\r\n]*)/im)?.[1].trim() || `Warrior ${i + 1}`;
 }
 function markDirty() {
-  revision++;cancelCompileCheck();compileStates=[];refreshCompileButtons();
+  revision++;cancelCompileCheck();compileStates=[];refreshCompileButtons();scheduleValidation();
   dirty = !!engine || state === 'loading';
   $('changed').textContent = dirty ? 'Sources or settings changed. Run applies them before instruction 1; otherwise Reset applies them and Resume keeps the loaded battle.' : '';
 }
@@ -96,7 +108,10 @@ function editors() {
     const save=document.createElement('button');save.textContent='Save';save.className='save-warrior';save.setAttribute('aria-label','Save warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
-    top.append(label);
+    const revalidate=document.createElement('button');revalidate.className='revalidate';revalidate.textContent='↻';
+    revalidate.title='Revalidate warrior';revalidate.setAttribute('aria-label','Revalidate warrior '+(i+1));
+    revalidate.onclick=()=>checkWarrior(i);
+    top.append(label,revalidate);
     const actions=document.createElement("div");actions.className="warrior-actions";actions.append(compile,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
@@ -125,7 +140,7 @@ function controls() {
   $('series').disabled = busy;
 }
 function stop() {
-  cancelCompileCheck();
+  cancelAutoValidation();cancelCompileCheck();
   generation++; stepEpoch++; stepping = false; cancelAnimationFrame(animation);
   if (worker) worker.terminate();
   worker = null; clearTimeout(workerTimer);
@@ -138,7 +153,7 @@ function stop() {
 }
 function options() { return readSettings({warriors:sources.length}); }
 function work(type, config) {
-  cancelCompileCheck();
+  cancelAutoValidation();cancelCompileCheck();
   compileStates=sources.map(()=> '');refreshCompileButtons();
   const ticket=revision;
   const assemblyStatus=(index,ok)=>{
@@ -490,4 +505,4 @@ $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').t
 setupSettings(markDirty);
 processChart.clear();scoreChart.clear();
 
-editors(); controls();
+editors(); controls();scheduleValidation();

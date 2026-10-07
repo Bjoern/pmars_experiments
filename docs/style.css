@@ -68,3 +68,5 @@ body[data-theme=accessible]{background:#09131d}body[data-theme=accessible] butto
 .series-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px;border:1px solid #2a3d4d;border-radius:6px}
 .series-controls label{display:flex;align-items:center;gap:8px}
 #clearConsole{font-size:12px;padding:5px 10px}
+
+.revalidate{padding:2px 8px;font-size:20px;font-weight:400;background:transparent;border-color:transparent}

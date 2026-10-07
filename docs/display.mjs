@@ -30,7 +30,7 @@ export class CoreDisplay {
     this.redraw();
   }
   setCellSize(size) {
-    if (![0,8,12,16,24].includes(size)) return;
+    if (![0,4,6,8,12,16,24].includes(size)) return;
     this.preferredCellSize = size;
     this.redraw();
   }
@@ -76,18 +76,21 @@ export class CoreDisplay {
   }
   draw(address) {
     const x=(address%this.columns)*this.cellSize,y=Math.floor(address/this.columns)*this.cellSize;
-    const c=this.context,pad=0,half=this.cellSize/2;
+    const classic=this.preferredCellSize===4 || this.preferredCellSize===6;
+    const c=this.context,pad=classic?1:0,half=(this.cellSize-2*pad)/2;
     c.fillStyle='#101d29';c.fillRect(x,y,this.cellSize,this.cellSize);
     c.fillStyle='#192b39';c.fillRect(x+pad,y+pad,this.cellSize-2*pad,this.cellSize-2*pad);
     for(let q=0;q<4;q++){
       const owner=this.cells[address*4+q];
       if(!owner)continue;
       c.fillStyle=warriorColor(owner-1);
-      c.fillRect(x+(q%2)*half+(q%2?0:pad),y+Math.floor(q/2)*half+(q<2?pad:0),half-pad,half-pad);
+      c.fillRect(x+pad+(q%2)*half,y+pad+Math.floor(q/2)*half,half,half);
     }
+    if(!classic){
     c.strokeStyle='#101d29';c.lineWidth=Math.min(1,this.cellSize/8);
     const border=c.lineWidth/2;
     c.strokeRect(x+border,y+border,this.cellSize-2*border,this.cellSize-2*border);
+    }
     if(this.pcs.includes(address)){
       c.strokeStyle='#ffffff';c.lineWidth=Math.max(0.4,this.cellSize/12);
       const inset=c.lineWidth/2;

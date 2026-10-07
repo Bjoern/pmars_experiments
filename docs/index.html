@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>pMARS • Core War in your browser</title>
-<link rel="stylesheet" href="style.css?v=20261007-series">
+<link rel="stylesheet" href="style.css?v=20261007-validation">
 </head>
 <body>
 <header><div class="eyebrow">pMARS / BROWSER LAB</div><h1>Watch code compete.</h1>
@@ -34,7 +34,7 @@ bomb dat.f #0, #0
 end
 </textarea></label>
 </section>
-<p class="hint">Validate is optional. Running a battle automatically assembles the warriors.</p>
+<p class="hint">Validation runs after a one-second editing pause; ↻ revalidates immediately. Validate is optional. Running a battle automatically assembles the warriors.</p>
 <section class="controls" aria-label="Battle controls">
 <button id="run" class="primary">Run battle</button><button id="pause" disabled>Pause</button>
 <button id="step">Step</button><button id="reset" title="Reload current sources and pause before the first instruction">Reset</button><button id="stop" disabled>Stop</button>
@@ -56,7 +56,7 @@ end
 <progress id="progress" value="0" max="100" aria-label="Series progress" hidden></progress>
 <section class="arena" aria-label="Core arena">
 <div class="arena-controls"><label for="cellSize">Cell size</label>
-<select id="cellSize"><option value="0">Fit width</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
+<select id="cellSize"><option value="0">Fit width</option><option value="4">Classic · 2×2 mark</option><option value="6">Compact · 4×4 mark</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
 <div class="arena-layout" role="group" aria-label="Arena layout"><button id="arenaScroll" type="button" aria-pressed="true">Scroll</button><button id="arenaExpand" type="button" aria-pressed="false">Expand</button></div>
 <span class="hint">Every square is one memory address. Dark cells still contain instructions; colored parts show activity.</span></div>
 <div class="arena-viewport" tabindex="0" role="region" aria-label="Scrollable core arena">
@@ -102,5 +102,5 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=20261007-series"></script>
+</main><script type="module" src="app.mjs?v=20261007-validation"></script>
 </body></html>

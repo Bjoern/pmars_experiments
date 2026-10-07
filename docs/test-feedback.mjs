@@ -8,6 +8,24 @@ const source=';redcode\n;name Loop\n;assert WARRIORS == 2\njmp 0\n';
 const compiled=()=>page.waitForFunction(()=>document.querySelector('.compile-warrior').dataset.result==='ok');
 try {
  await page.goto('http://127.0.0.1:8765/docs/');
+ await page.waitForFunction(()=>Array.from(document.querySelectorAll('.compile-warrior')).every(e=>e.dataset.result==='ok'));
+ assert.equal(await page.locator('#consoleWindow').evaluate(e=>e.open),false);
+ let validationWorkers=0;page.on('worker',()=>validationWorkers++);
+ for(let i=0;i<3;i++){
+  await page.locator('#first').fill(source+';edit '+i);
+  await page.waitForTimeout(100);
+ }
+ assert.equal(validationWorkers,0,'Typing should not trigger immediate validation');
+ await page.waitForFunction(()=>Array.from(document.querySelectorAll('.compile-warrior')).every(e=>e.dataset.result==='ok'));
+ assert.equal(validationWorkers,2,'One validation per warrior after the editing pause');
+ assert.equal(await page.locator('#consoleWindow').evaluate(e=>e.open),false);
+ await page.getByRole('button',{name:'Revalidate warrior 1',exact:true}).click();await compiled();
+ assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
+ await page.locator('#cellSize').selectOption('4');
+ assert.equal(await page.locator('#core').evaluate(c=>c.clientWidth),142*4);
+ await page.locator('#cellSize').selectOption('6');
+ assert.equal(await page.locator('#core').evaluate(c=>c.clientWidth),142*6);
+
  assert(await page.getByRole('button',{name:'Validate warrior 1',exact:true}).isVisible());
  assert(await page.getByRole('button',{name:'Validate warrior 2',exact:true}).isVisible());
  await page.locator('#cellSize').selectOption('24');

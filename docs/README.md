@@ -58,7 +58,10 @@ open it automatically. Clear output clears the console; starting a new battle
 or series also clears it. Validation is optional: Run assembles automatically. Validate checks just that warrior with the current match
 settings (including warrior count), always prints its listing, and preserves
 the active battle. Buttons show success/failure and reset when inputs change.
-Run battle also reports the failing warrior. The console includes assembly listings,
+All warriors are validated on page load and one second after the latest source
+or settings edit, one worker at a time. Editing cancels stale checks. Automatic
+validation updates labels without opening the console; the ↻ icon revalidates
+immediately and opens the output. Run battle also reports the failing warrior. The console includes assembly listings,
 diagnostics, and final native results. Brief, verbose, KotH output, sorting,
 and score formula settings affect this output. Its retained text is bounded
 to 256 KiB; diagnostics retain 64 KiB.
@@ -82,7 +85,10 @@ to 256 KiB; diagnostics retain 64 KiB.
 - Reset explicitly reloads current sources/settings and pauses at instruction zero.
 - Stop cancels assembly/series work or releases the visual engine.
 - Instructions / second: choose 1–100,000; this is a target, not a guarantee.
-- Cell size defaults to 8 CSS pixels. Choose 12, 16, or 24 pixels for larger
+- Cell size defaults to 8 CSS pixels. Classic uses a 2×2 mark with 2 pixels
+  of inter-cell spacing (4-pixel pitch), matching native SDL modes 0/1.
+  Compact uses a 4×4 mark with 2-pixel spacing (6-pixel pitch, native mode 3).
+  These are CSS pixels, scaled by the browser/device pixel ratio. Choose 12, 16, or 24 pixels for larger
   markers, or Fit width for the compact overview. Scroll keeps the arena within a
   bounded viewport; Expand shows its full size on the page (wide cores may
   extend beyond the page width). Changing size preserves memory marks and battle state.
