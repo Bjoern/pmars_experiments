@@ -23,6 +23,24 @@ try {
   assert.equal(await page.locator('#execution pre').first().textContent(),'');
   await page.locator('#step').click(); await ready('Paused after');
   assert.equal(await count(),1);
+  // Resizing an active arena preserves execution and cell inspection after scrolling.
+  const listingBeforeZoom = await page.locator('#instruction').textContent();
+  await page.locator('#cellSize').selectOption('24');
+  assert.equal(await count(),1);
+  assert.equal(await page.locator('#instruction').textContent(),listingBeforeZoom);
+  await page.locator('.arena-viewport').scrollIntoViewIfNeeded();
+  const point = await page.evaluate(()=>{
+    const viewport=document.querySelector('.arena-viewport'),canvas=document.querySelector('#core');
+    viewport.scrollLeft=240;viewport.scrollTop=240;
+    const rect=canvas.getBoundingClientRect();
+    return {x:rect.left+12*24+12,y:rect.top+12*24+12};
+  });
+  await page.mouse.click(point.x,point.y);
+  assert.equal(Number(await page.locator('#address').inputValue()),12*142+12);
+  await page.locator('#cellSize').selectOption('0');
+  assert(await page.locator('#core').evaluate(c=>Math.abs(c.clientWidth-c.parentElement.clientWidth)<=1));
+  await page.locator('#cellSize').selectOption('8');
+
   assert((await page.locator('#execution pre').first().textContent()).includes('0000  MOV.I'));
   const beforeWorkers = workers;
   await page.locator('#run').click(); await ready('Battle running');

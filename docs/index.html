@@ -53,7 +53,11 @@ end
 <p id="activeSettings" class="hint" aria-live="polite"></p>
 <progress id="progress" value="0" max="100" aria-label="Series progress" hidden></progress>
 <section class="arena" aria-label="Core arena">
-<canvas id="core" aria-label="Core memory activity; use the address inspector below for text details"></canvas>
+<div class="arena-controls"><label for="cellSize">Cell size</label>
+<select id="cellSize"><option value="0">Fit width</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
+<span class="hint">Enlarge cells for inspection; scroll to explore the arena.</span></div>
+<div class="arena-viewport" tabindex="0" role="region" aria-label="Scrollable core arena">
+<canvas id="core" aria-label="Core memory activity; use the address inspector below for text details"></canvas></div>
 </section>
 <div class="legend"><span id="legendNames"></span><span><span class="glyph read"></span> Read (top-left)
 <span class="glyph write"></span> Write (opposite corners)

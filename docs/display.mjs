@@ -15,10 +15,11 @@ export class CoreDisplay {
     this.context = canvas.getContext('2d', {alpha: false});
     this.columns = Math.ceil(Math.sqrt(8000 * 2.5));
     this.size = 8000;
+    this.preferredCellSize = 8;
     this.pcs = [];
     this.cells = new Uint8Array(this.size*4);
     this.observer = new ResizeObserver(() => this.redraw());
-    this.observer.observe(canvas);
+    this.observer.observe(canvas.parentElement || canvas);
     this.redraw();
   }
   configure(size) {
@@ -28,9 +29,16 @@ export class CoreDisplay {
     this.cells = new Uint8Array(size*4);
     this.redraw();
   }
+  setCellSize(size) {
+    if (![0,8,12,16,24].includes(size)) return;
+    this.preferredCellSize = size;
+    this.redraw();
+  }
   redraw() {
     const ratio = window.devicePixelRatio || 1;
-    const width = Math.max(320, this.canvas.clientWidth);
+    const available = Math.max(1, (this.canvas.parentElement || this.canvas).clientWidth);
+    const width = this.preferredCellSize ? this.columns * this.preferredCellSize : available;
+    this.canvas.style.width = width + 'px';
     this.cellSize = width / this.columns;
     const height = Math.ceil(this.size / this.columns) * this.cellSize;
     this.canvas.style.height = height + 'px';

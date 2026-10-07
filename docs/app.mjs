@@ -330,6 +330,7 @@ $('lines').oninput = inspect; $('follow').onchange = inspect;
 $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());
 $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
 $('traceMode').onchange = () => { syncTrace(); renderTrace(); };
+$('cellSize').onchange = () => display.setCellSize(Number($('cellSize').value));
 $('core').onclick = event => { pause(); showAddress(display.addressAt(event)); };
 $('core').oncontextmenu = event => { event.preventDefault(); pause(); showAddress(display.addressAt(event)-lineCount()+1); };
 $('commandForm').onsubmit = event => {

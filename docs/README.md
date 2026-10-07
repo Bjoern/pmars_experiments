@@ -75,6 +75,9 @@ to 256 KiB; diagnostics retain 64 KiB.
 - Reset explicitly reloads current sources/settings and pauses at instruction zero.
 - Stop cancels assembly/series work or releases the visual engine.
 - Instructions / second: choose 1–100,000; this is a target, not a guarantee.
+- Cell size defaults to 8 CSS pixels. Choose 12, 16, or 24 pixels for larger
+  markers, or Fit width for the compact overview. The arena scrolls within a
+  bounded viewport. Changing size preserves memory marks and battle state.
 - Click the arena to pause and list from that address. Right-click lists up to
   the clicked address. Listings default to ten lines, with addresses, wraparound,
   paging, and next-PC markers. Follow selects a warrior's next instruction.
