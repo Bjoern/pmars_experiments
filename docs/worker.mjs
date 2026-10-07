@@ -25,9 +25,11 @@ self.onmessage = async ({data}) => {
   };
   try {
     const engine = await Engine.create(data.settings, {visual: false, log});
-    const banks = engine.compile(data.sources);
+    const banks = engine.compile(data.sources, index=>{
+      flush(); self.postMessage({type:'assembly',index,ok:true});
+    },data.type==='check'?data.index:null);
     flush();
-    if (data.type === 'compile') {
+    if (data.type === 'compile' || data.type === 'check') {
       self.postMessage({type: 'compiled', banks, rounds:engine.config.rounds}, banks.map(b => b.code.buffer));
     } else if (data.type === 'series') {
       let update = engine.start(), last = performance.now();
@@ -45,7 +47,7 @@ self.onmessage = async ({data}) => {
     } else throw new Error('Unknown worker command.');
   } catch (error) {
     flush();
-    self.postMessage({type: 'error', message: error.message || String(error)});
+    self.postMessage({type: 'error', message: error.message || String(error), index:error.warriorIndex});
   } finally {
     self.close();
   }

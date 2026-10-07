@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
+const browser=await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL||'msedge'});
+const page=await browser.newPage({viewport:{width:1280,height:1000}}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+const source=';redcode\n;name Loop\n;assert WARRIORS == 2\njmp 0\n';
+const compiled=()=>page.waitForFunction(()=>document.querySelector('.compile-warrior').dataset.result==='ok');
+try {
+ await page.goto('http://127.0.0.1:8765/docs/');
+ await page.locator('#first').fill(source);await page.locator('#second').fill(source);
+ await page.locator('#editSettings').click();assert.equal(await page.locator('#editSettings').textContent(),'Collapse match settings');
+ await page.locator('#editSettings').click();assert(await page.locator('#settingsFields').isHidden());
+ for(const preset of ['94nop','88','nano','tiny','tinylp','94x']) {
+  await page.locator('#preset').selectOption(preset);
+  assert.equal(await page.locator('#fixedSeries').isChecked(),false);
+ }
+ await page.locator('#preset').selectOption('standard');
+ await page.locator('#editSettings').click();await page.locator('#cycles').fill('10');
+ await page.locator('#brief').check();
+ await page.getByRole('button',{name:'Compile warrior 1',exact:true}).click();await compiled();
+ assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
+ assert((await page.locator('#consoleOutput').textContent()).includes('JMP'));
+ await page.locator('#second').fill(';redcode\n;assert 1\ninvalid 0,0\n');
+ await page.getByRole('button',{name:'Compile warrior 2',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelectorAll('.compile-warrior')[1].dataset.result==='failed');
+ await page.locator('#run').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('error'));
+ assert.equal(await page.locator('.compile-warrior').nth(1).getAttribute('data-result'),'failed');
+ assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
+ await page.locator('#second').fill(source);
+ assert.equal(await page.locator('.compile-warrior').nth(1).textContent(),'Compile');
+ await page.locator('#debugStart').check();await page.locator('#run').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Paused before'));
+ assert((await page.locator('#timing').textContent()).startsWith('Cycle 0 / 10'));
+ for(const cycle of [1,1,2]) {
+  await page.locator('#step').click();
+  await page.waitForFunction(()=>document.querySelector('#step').disabled===false);
+  assert((await page.locator('#timing').textContent()).startsWith('Cycle '+cycle+' / 10'));
+ }
+ const before=await page.locator('#timing').textContent();
+ await page.getByRole('button',{name:'Compile warrior 1',exact:true}).click();await compiled();
+ assert.equal(await page.locator('#timing').textContent(),before);
+ await page.locator('#run').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Battle complete.'));
+ assert((await page.locator('#timing').textContent()).startsWith('Cycle 10 / 10'));
+ const pixels=await page.evaluate(async()=>{
+  const {CoreDisplay}=await import('./display.mjs');
+  const host=document.createElement('div'),c=document.createElement('canvas');host.append(c);document.body.append(host);
+  const d=new CoreDisplay(c);d.configure(80);d.setCellSize(24);d.apply(new Uint32Array([2,0,0,0]));
+  const ctx=c.getContext('2d'),ratio=devicePixelRatio;
+  const pixel=(x,y)=>Array.from(ctx.getImageData(x*ratio,y*ratio,1,1).data);
+  const result={center:pixel(12,12),quarter:pixel(6,6),empty:pixel(36,12)};
+  const rect=c.getBoundingClientRect();
+  result.padding=d.addressAt({clientX:rect.left+14*24+12,clientY:rect.top+5*24+12});
+  d.observer.disconnect();host.remove();return result;
+ });
+ assert.deepEqual(pixels.center,pixels.quarter,'Full execution has no internal gap');
+ assert.notDeepEqual(pixels.empty,pixels.center);
+ assert.equal(pixels.padding,null,'Padding beyond core is not a memory address');
+ assert.deepEqual(errors,[]);
+ console.log('PASS: cell marks, cycle progress, preset flags, settings collapse, compilation success/failure and live-match preservation.');
+} catch(error) { console.log(await page.locator('#consoleOutput').textContent());console.log(await page.locator('.compile-warrior').allTextContents());throw error;} finally {await browser.close();}

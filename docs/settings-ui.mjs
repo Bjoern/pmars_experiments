@@ -41,7 +41,7 @@ export function setupSettings(changed) {
  $('fixedPosition').addEventListener('input',()=>{if($('fixedPosition').value)$('fixedSeries').checked=false;});
  $('preset').onchange=()=>{
   const preset=presets.find(p=>p.id===$('preset').value);if(!preset)return;
-  const values={...defaults,noPspace:false,...preset.values};
+  const values={...defaults,noPspace:false,fixedSeries:false,...preset.values};
   for(const key of keys) {if($(key).type==='checkbox')$(key).checked=!!values[key];else $(key).value=values[key];}
   $('presetSource').replaceChildren();
   if(preset.source) {
@@ -50,6 +50,6 @@ export function setupSettings(changed) {
   }
   refreshSummary();changed();
  };
- $('editSettings').onclick=()=>{const panel=$('settingsFields');panel.hidden=!panel.hidden;$('editSettings').setAttribute('aria-expanded',String(!panel.hidden));};
+ $('editSettings').onclick=()=>{const panel=$('settingsFields');panel.hidden=!panel.hidden;$('editSettings').setAttribute('aria-expanded',String(!panel.hidden));$('editSettings').textContent=panel.hidden?'Edit match settings':'Collapse match settings';};
  refreshSummary();
 }

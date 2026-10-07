@@ -39,9 +39,11 @@ end
 <button id="step">Step</button><button id="reset" title="Reload current sources and pause before the first instruction">Reset</button><button id="stop" disabled>Stop</button>
 <label><input id="debugStart" type="checkbox"> Start paused (debug)</label>
 <label>Rounds (-r) <input id="rounds" type="number" min="0" max="2147483647" value="1"></label>
+<button id="showConsole" type="button">Show console output</button>
 <button id="series" title="Run a fresh series using the current sources and settings">Run series in background</button>
 <label>Instructions / second <input id="speed" type="range" min="0" max="5" value="3" step="0.1"><output id="speedValue">1,000</output></label>
 </section>
+<details id="consoleWindow"><summary>pMARS console output</summary><pre id="consoleOutput" aria-label="Native pMARS console output">Compile a warrior or run a battle to see assembly output here.</pre></details>
 <p id="changed" class="hint" role="status"></p>
 <section class="match-settings"><div class="settings-bar"><strong id="settingsSummary"></strong>
 <button id="editSettings" aria-expanded="false" aria-controls="settingsFields">Edit match settings</button>
@@ -55,7 +57,7 @@ end
 <section class="arena" aria-label="Core arena">
 <div class="arena-controls"><label for="cellSize">Cell size</label>
 <select id="cellSize"><option value="0">Fit width</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
-<span class="hint">Enlarge cells for inspection; scroll to explore the arena.</span></div>
+<span class="hint">Every square is one memory address. Dark cells still contain instructions; colored parts show activity.</span></div>
 <div class="arena-viewport" tabindex="0" role="region" aria-label="Scrollable core arena">
 <canvas id="core" aria-label="Core memory activity; use the address inspector below for text details"></canvas></div>
 </section>
@@ -89,7 +91,7 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 </details>
 </section>
 <section class="analysis-controls"><label><input id="pauseViews" type="checkbox"> Pause all charts and execution logs</label>
-<div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over executed instructions"></canvas></section>
+<div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over cycles"></canvas></section>
 <section><label><input id="pauseScores" type="checkbox"> Pause score chart</label><canvas id="scoreChart" aria-label="Cumulative score over completed battles"></canvas></section></div></section>
 <section><div class="trace-header"><h2>Executed instructions</h2><label>View <select id="traceMode">
 <option value="columns">One console per warrior</option><option value="combined">Combined console</option><option value="off">Off</option>
@@ -98,7 +100,6 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div id="execution" class="execution">Load a battle to watch executed instructions.</div></section>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
-<details id="consoleWindow"><summary>pMARS console output</summary><pre id="consoleOutput" aria-label="Native pMARS console output"></pre></details>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
 </main><script type="module" src="app.mjs"></script>
 </body></html>

@@ -53,3 +53,8 @@ body[data-theme=accessible]{background:#09131d}body[data-theme=accessible] butto
 .arena-viewport{max-width:100%;max-height:65vh;overflow:auto;border:1px solid #2a3d4d}
 .arena-viewport:focus-visible{outline:2px solid #54d8df;outline-offset:2px}
 #core{max-width:none}
+
+.editor-title{flex-wrap:wrap}
+.compile-warrior[data-result=failed]{color:#ffb9b9;border-color:#ec7777}
+.compile-warrior[data-result=ok]{color:#a7e8a3}
+#consoleWindow{margin:14px 0;padding:12px;border:1px solid #2a3d4d;border-radius:6px}

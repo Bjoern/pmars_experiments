@@ -9,7 +9,7 @@ const page = await browser.newPage({viewport:{width:1280,height:1100}});
 const errors = []; let workers = 0;
 page.on('pageerror',e=>errors.push(e.message)); page.on('worker',()=>workers++);
 const ready = text => page.waitForFunction(t=>document.querySelector('#status').textContent.includes(t),text);
-const count = async () => Number((await page.locator('#timing').textContent()).split(' instructions')[0].replaceAll(',',''));
+const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
 const command = async text => { await page.locator('#command').fill(text); await page.locator('#command').press('Enter'); };
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');

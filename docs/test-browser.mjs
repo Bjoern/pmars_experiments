@@ -14,7 +14,7 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 const ready = text => page.waitForFunction(text =>
   document.querySelector('#status').textContent.includes(text), text);
-const count = async () => Number((await page.locator('#timing').textContent()).split(' instructions')[0].replaceAll(',',''));
+const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
   await page.locator('#step').click();
@@ -24,7 +24,7 @@ try {
   assert.equal(await count(), 2);
   await page.locator('#run').click();
   await ready('Battle running');
-  await page.waitForFunction(() => Number(document.querySelector('#timing').textContent.split(' instructions')[0].replaceAll(',','')) > 50);
+  await page.waitForFunction(() => Number(document.querySelector('#timing').dataset.instructions) > 50);
   await page.locator('#pause').click();
   const paused = await count();
   await page.waitForTimeout(150);

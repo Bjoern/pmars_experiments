@@ -27,6 +27,7 @@ async function run(sources, config, budget, visual, trace = false, imported = fa
   while (!update.done) {
     update = engine.advance(budget, 4);
     assert(update.executed <= budget);
+    assert(update.cycle >= 0 && update.cycle <= config.cycles, "Cycle must stay within round limit");
     assert(update.events.length <= 8192 * 4);
     executed += update.executed;
     instructions.push(...update.trace);
@@ -60,6 +61,8 @@ for (const [sources, options] of cases) {
   const headless = await run(sources, config, 100000, false);
   assert.deepEqual(large.update.warriors, small.update.warriors);
   assert.deepEqual(headless.update.warriors, small.update.warriors);
+  assert.equal(large.update.cycle, small.update.cycle);
+  assert.equal(headless.update.cycle, small.update.cycle);
   assert.equal(large.executed, small.executed);
   assert.equal(headless.executed, small.executed);
   assert.deepEqual(large.instructions, small.instructions, 'Pre-execution trace must not depend on slice size');

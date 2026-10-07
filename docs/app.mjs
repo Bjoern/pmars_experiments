@@ -11,8 +11,52 @@ let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = 
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let sources = [$('first').value, $('second').value];
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
+let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
+function showConsole() {
+ $('consoleWindow').open=true;
+ $('consoleOutput').textContent=consoleText || 'Compile a warrior or run a battle to see assembly output here.';
+}
+function refreshCompileButtons() {
+ document.querySelectorAll('.compile-warrior').forEach((button,i)=>{
+  const result=compileStates[i] || '';
+  button.textContent=result==='busy'?'Compiling…':result==='ok'?'Compiled ✓':result==='failed'?'Compile failed — retry':'Compile';
+  button.dataset.result=result;button.disabled=result==='busy';
+ });
+}
+function cancelCompileCheck() {
+ if(compileWorker)compileWorker.terminate();
+ compileWorker=null;clearTimeout(compileTimer);
+ compileStates=compileStates.map(s=>s==='busy'?'':s);
+ refreshCompileButtons();
+}
+function checkWarrior(index) {
+ cancelCompileCheck();showConsole();
+ let config;
+ try {config={...options(),brief:false,assembleOnly:true};}
+ catch(error){compileStates[index]='failed';refreshCompileButtons();log(error.message);return;}
+ const ticket=revision;
+ log('Compiling '+draftName(sources[index],index)+'…','stdout');
+ compileStates[index]='busy';refreshCompileButtons();
+ const w=compileWorker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'});
+ const finish=(ok,message)=>{
+  if(compileWorker!==w)return;
+  w.terminate();compileWorker=null;clearTimeout(compileTimer);
+  if(ticket!==revision)return;
+  compileStates[index]=ok?'ok':'failed';refreshCompileButtons();
+  log(message,ok?'stdout':'stderr');showConsole();
+ };
+ compileTimer=setTimeout(()=>finish(false,'Compilation timed out after 15 seconds.'),15000);
+ w.onerror=e=>finish(false,e.message || 'Compiler worker failed.');
+ w.onmessage=({data})=>{
+  if(compileWorker!==w || ticket!==revision)return;
+  if(data.type==='log')log(data.text,data.channel);
+  else if(data.type==='error')finish(false,'Compilation failed: '+data.message);
+  else if(data.type==='compiled')finish(true,'Compilation succeeded: '+draftName(sources[index],index));
+ };
+ w.postMessage({type:'check',index,settings:config,sources:[...sources]});
+}
 const pausedWarriors=new Set();
-const processChart=new HistoryChart($('processChart'),'Processes / executed instructions');
+const processChart=new HistoryChart($('processChart'),'Processes / cycle in current round');
 const scoreChart=new HistoryChart($('scoreChart'),'Cumulative score / completed battles');
 const addressText = n => String(n).padStart(String((engine?.config.coreSize || 8000) - 1).length, '0');
 function status(text) { $('status').textContent = text; }
@@ -25,6 +69,7 @@ function draftName(source, i) {
   return source.match(/^\s*;name\s+([^\r\n]*)/im)?.[1].trim() || `Warrior ${i + 1}`;
 }
 function markDirty() {
+  revision++;cancelCompileCheck();compileStates=[];refreshCompileButtons();
   dirty = !!engine || state === 'loading';
   $('changed').textContent = dirty ? 'Sources or settings changed. Run applies them before instruction 1; otherwise Reset applies them and Resume keeps the loaded battle.' : '';
 }
@@ -49,7 +94,9 @@ function editors() {
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
     remove.onclick = () => { sources.splice(i,1); markDirty(); editors(); };
     const save=document.createElement('button');save.textContent='Save';save.className='save-warrior';save.setAttribute('aria-label','Save warrior '+(i+1));save.onclick=()=>saveWarrior(i);
-    top.append(label,save,remove);
+    const compile=document.createElement('button');compile.className='compile-warrior';
+    compile.setAttribute('aria-label','Compile warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
+    top.append(label,compile,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
     area.setAttribute('aria-label', `Warrior ${i+1} source`);
@@ -60,6 +107,7 @@ function editors() {
     };
     box.append(top,area); return box;
   }));
+  refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
   $('addWarrior').disabled = sources.length >= 36;
   legend();
@@ -75,6 +123,7 @@ function controls() {
   $('series').disabled = busy;
 }
 function stop() {
+  cancelCompileCheck();
   generation++; stepEpoch++; stepping = false; cancelAnimationFrame(animation);
   if (worker) worker.terminate();
   worker = null; clearTimeout(workerTimer);
@@ -87,6 +136,13 @@ function stop() {
 }
 function options() { return readSettings({warriors:sources.length}); }
 function work(type, config) {
+  cancelCompileCheck();
+  compileStates=sources.map(()=> '');refreshCompileButtons();
+  const ticket=revision;
+  const assemblyStatus=(index,ok)=>{
+    if(ticket!==revision || !Number.isInteger(index))return;
+    compileStates[index]=ok?'ok':'failed';refreshCompileButtons();
+  };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
     const w = worker = new Worker(new URL('./worker.mjs', import.meta.url), {type:'module'});
@@ -100,7 +156,8 @@ function work(type, config) {
     w.onmessage = ({data}) => {
       if(worker!==w)return;
       if (data.type === 'log') log(data.text,data.channel);
-      else if (data.type === 'error') finish(new Error(data.message));
+      else if (data.type === 'assembly') assemblyStatus(data.index,data.ok);
+      else if (data.type === 'error') {assemblyStatus(data.index,false);showConsole();finish(new Error(data.message));}
       else if (data.type === 'compiled') finish(null,data.banks);
       else if (data.type === 'progress') {
         clearTimeout(workerTimer);
@@ -183,11 +240,13 @@ function present(update) {
   }
   if (combined.length > 300) combined.splice(0,combined.length-300);
   total += update.executed;
+  $('timing').dataset.instructions=String(total);
+  if(chartRound!==update.round){processChart.clear();chartRound=update.round;}
   sampleScores(update);
-  $('timing').textContent = `${total.toLocaleString()} instructions · peak slice ${maxSlice.toFixed(1)} ms`;
+  $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round} · peak slice ${maxSlice.toFixed(1)} ms`;
   if (update.done) { state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
   if (state !== 'running' || performance.now()-lastText >= 100) {
-    if(!$('pauseViews').checked && !$('pauseProcesses').checked)processChart.add(total,update.warriors.map(w=>w.tasks));
+    if(!$('pauseViews').checked && !$('pauseProcesses').checked)processChart.add(update.cycle,update.warriors.map(w=>w.tasks));
     textViews();
   }
 }
@@ -239,7 +298,7 @@ function safe(action) {
     try { await action(); }
     catch (error) {
       if (error.name === 'AbortError') return;
-      stop(); state = 'error'; controls(); log(error.message); status(error.message);
+      stop(); state = 'error'; controls(); log(error.message); showConsole(); status(error.message);
     }
   };
 }
@@ -301,7 +360,7 @@ async function command(text) {
   else if (['mouse','mousel','mousem','mouser'].includes(verb)) { pause(); inspect(); }
   else if (['progress','p','alive','tproc','registers','reg','key-p'].includes(verb)) {
     if (!latest) return reply('Load a battle first.');
-    const output = [`Round ${latest.round}; ${total} instructions; ${latest.warriors.filter(w=>w.tasks>0).length} alive; ${latest.warriors.reduce((n,w)=>n+w.tasks,0)} processes.`];
+    const output = [`Round ${latest.round}; cycle ${latest.cycle}; ${latest.warriors.filter(w=>w.tasks>0).length} alive; ${latest.warriors.reduce((n,w)=>n+w.tasks,0)} processes.`];
     if (['registers','reg','key-p'].includes(verb)) latest.warriors.forEach((w,i)=>output.push(`${i+1} ${w.name}: next PC ${w.pc < 0 ? '—' : addressText(w.pc)}, ${w.tasks} processes`));
     return reply(output.join('\n'));
   } else if (verb === 'pause') pause();
@@ -331,8 +390,8 @@ $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount()
 $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
 $('traceMode').onchange = () => { syncTrace(); renderTrace(); };
 $('cellSize').onchange = () => display.setCellSize(Number($('cellSize').value));
-$('core').onclick = event => { pause(); showAddress(display.addressAt(event)); };
-$('core').oncontextmenu = event => { event.preventDefault(); pause(); showAddress(display.addressAt(event)-lineCount()+1); };
+$('core').onclick = event => { const address=display.addressAt(event);if(address===null)return;pause();showAddress(address); };
+$('core').oncontextmenu = event => { event.preventDefault();const address=display.addressAt(event);if(address===null)return;pause();showAddress(address-lineCount()+1); };
 $('commandForm').onsubmit = event => {
   event.preventDefault(); const text = $('command').value; $('command').value = '';
   // Invalid debugger commands must not destroy an active battle.
@@ -408,6 +467,7 @@ $('theme').onchange=()=>{
  display.redraw();legend();textViews();processChart.draw();scoreChart.draw();
 };
 $('pauseViews').onchange=syncTrace;
+$('showConsole').onclick=()=>{showConsole();$('consoleWindow').scrollIntoView({block:'nearest'});};
 $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;};
 setupSettings(markDirty);
 processChart.clear();scoreChart.clear();

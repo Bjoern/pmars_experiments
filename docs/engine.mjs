@@ -18,30 +18,37 @@ export class Engine {
     return new Engine(module, config);
   }
   constructor(module, config) { this.module = module; this.config = config; this.started = false; }
-  compile(sources) {
+  compile(sources, onCompiled = () => {}, only = null) {
     if (!Array.isArray(sources) || sources.length !== this.config.warriors) throw new Error('Source count must match settings.warriors.');
+    if (only !== null && (!Number.isInteger(only) || only < 0 || only >= sources.length)) throw new Error('Invalid warrior index.');
     const m = this.module;
-    sources.forEach((source, i) => {
-      if (typeof source !== 'string' || new TextEncoder().encode(source).length > 65536)
-        throw new Error('Each warrior source must be at most 64 KiB.');
-      m.FS.writeFile('/warrior-' + i + '.red', source);
-      check(m._web_compile(i));
-    });
-    const banks = sources.map((_, i) => {
-      const field = n => m._web_field(i, n);
-      const ptr = field(0);
-      return {
-        code: m.HEAPU8.slice(ptr, ptr + field(1) * field(5)),
-        length: field(1), offset: field(2), pinState: field(3), pin: field(4),
-        name: m.ccall('web_name', 'string', ['number', 'number'], [i, 0]),
-        author: m.ccall('web_name', 'string', ['number', 'number'], [i, 1])
-      };
-    });
-    if (this.config.noPspace) for (const bank of banks) {
-      if (bank.pinState === -2) throw new Error('This hill preset forbids PIN and P-space instructions.');
-      const stride = m._web_field(0,5);
-      for (let offset=8; offset<bank.code.length; offset+=stride)
-        if ((bank.code[offset] >>> 3) >= 17) throw new Error('This hill preset forbids LDP/STP instructions.');
+    const indices = sources.map((_,i)=>i).filter(i=>only===null || i===only);
+    const banks = [];
+    for (const i of indices) {
+      const source = sources[i];
+      try {
+        if (typeof source !== 'string' || new TextEncoder().encode(source).length > 65536)
+          throw new Error('Each warrior source must be at most 64 KiB.');
+        m.FS.writeFile('/warrior-' + i + '.red', source);
+        check(m._web_compile(i));
+
+        const field = n => m._web_field(i, n);
+        const ptr = field(0);
+        const bank = {
+          code: m.HEAPU8.slice(ptr, ptr + field(1) * field(5)),
+          length: field(1), offset: field(2), pinState: field(3), pin: field(4),
+          name: m.ccall('web_name', 'string', ['number', 'number'], [i, 0]),
+          author: m.ccall('web_name', 'string', ['number', 'number'], [i, 1])
+        };
+        if (!bank.length) throw new Error("Warrior has no instructions.");
+        if (this.config.noPspace) {
+          if (bank.pinState === -2) throw new Error('This hill preset forbids PIN and P-space instructions.');
+          const stride = m._web_field(0,5);
+          for (let offset=8; offset<bank.code.length; offset+=stride)
+            if ((bank.code[offset] >>> 3) >= 17) throw new Error('This hill preset forbids LDP/STP instructions.');
+        }
+        banks.push(bank); onCompiled(i);
+      } catch(error) { error.warriorIndex=i; throw error; }
     }
     return banks;
   }
@@ -89,7 +96,7 @@ export class Engine {
       trace, completed: m._web_completed(),
       // A copy remains valid across calls and Wasm memory growth.
       events: m.HEAPU32.slice(ptr, ptr + m._web_event_count() * 4),
-      executed: m._web_steps(), round: m._web_round(), done,
+      executed: m._web_steps(), cycle: m._web_cycle(), round: m._web_round(), done,
       warriors: Array.from({length: this.config.warriors}, (_, i) => ({
         name: m.ccall('web_name', 'string', ['number','number'], [i, 0]),
         tasks: m._web_field(i, 6), wins: m._web_field(i, 7),

@@ -9,7 +9,7 @@ const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e=>errors.push(e.message));
 const ready = text => page.waitForFunction(t=>document.querySelector('#status').textContent.includes(t),text);
-const count = async () => Number((await page.locator('#timing').textContent()).split(' instructions')[0].replaceAll(',',''));
+const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
   const loop = ';redcode-94\n;name Loop\n;assert 1\njmp 0\n';

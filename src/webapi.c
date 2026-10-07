@@ -22,9 +22,18 @@ static int completed, web_wins[MAXWARRIOR], web_ties[MAXWARRIOR], web_losses[MAX
 #define TRACE_CAPACITY 512
 typedef struct { int owner, address; char text[96]; } web_trace_entry;
 static web_trace_entry trace_entries[TRACE_CAPACITY];
-static int trace_enabled, trace_count;
+static int trace_enabled, trace_count, current_cycle;
+static unsigned long long cycle_visits;
+API int web_cycle(void) { return current_cycle; }
 void web_record_instruction(int address)
 {
+  /* A repeated warrior begins the next scheduler sweep; deaths are skipped. */
+  unsigned long long bit = 1ULL << (W - warrior);
+  if (!cycle_visits || (cycle_visits & bit)) {
+    ++current_cycle;
+    cycle_visits = 0;
+  }
+  cycle_visits |= bit;
   if (trace_enabled) {
     web_trace_entry *entry = &trace_entries[trace_count++];
     entry->owner = W - warrior;
@@ -54,6 +63,7 @@ API int web_outcome(int index, int outcome) {
 
 void web_event(int kind, int address, int owner, int value)
 {
+  if (kind == WEB_RESET) { current_cycle = 0; cycle_visits = 0; }
   if (!web_visual) return;
   /* advance reserves 64 slots before executing an instruction; initial
      load is limited to MAXWARRIOR 100-instruction warriors. Never drop events. */

@@ -58,7 +58,7 @@ export class CoreDisplay {
         this.pcs = [];
         dirty.clear();
         this.context.fillStyle = '#101d29';
-        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.redraw();
       } else if (kind === 8) {
         if (this.pcs[owner] >= 0) dirty.add(this.pcs[owner]);
         this.pcs[owner] = -1;
@@ -78,11 +78,12 @@ export class CoreDisplay {
     const x=(address%this.columns)*this.cellSize,y=Math.floor(address/this.columns)*this.cellSize;
     const c=this.context,pad=Math.min(0.7,this.cellSize/10),half=this.cellSize/2;
     c.fillStyle='#101d29';c.fillRect(x,y,this.cellSize,this.cellSize);
+    c.fillStyle='#192b39';c.fillRect(x+pad,y+pad,this.cellSize-2*pad,this.cellSize-2*pad);
     for(let q=0;q<4;q++){
       const owner=this.cells[address*4+q];
       if(!owner)continue;
       c.fillStyle=warriorColor(owner-1);
-      c.fillRect(x+(q%2)*half+pad,y+Math.floor(q/2)*half+pad,Math.max(0.2,half-2*pad),Math.max(0.2,half-2*pad));
+      c.fillRect(x+(q%2)*half+(q%2?0:pad),y+Math.floor(q/2)*half+(q<2?pad:0),half-pad,half-pad);
     }
     if(this.pcs.includes(address)){
       c.strokeStyle='#ffffff';c.lineWidth=Math.max(0.4,this.cellSize/12);
@@ -91,8 +92,9 @@ export class CoreDisplay {
   }
   addressAt(event) {
     const rect = this.canvas.getBoundingClientRect();
-    return Math.min(this.size - 1, Math.max(0,
-      Math.floor((event.clientY - rect.top) / this.cellSize) * this.columns +
-      Math.floor((event.clientX - rect.left) / this.cellSize)));
+    const row=Math.floor((event.clientY-rect.top)/this.cellSize);
+    const col=Math.floor((event.clientX-rect.left)/this.cellSize);
+    const address=row*this.columns+col;
+    return row>=0 && col>=0 && col<this.columns && address<this.size ? address : null;
   }
 }

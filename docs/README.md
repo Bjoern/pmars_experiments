@@ -41,7 +41,8 @@ the full form; rounds and **Run series in background** remain outside it.
 The form supports the native options `-r -s -b -c -V -p -k -l -8 -d -f -F -o -S -P -A -=`.
 Native parsing, assembly, positioning, scoring, and output are shared with pMARS.
 Filesystem options are deliberately unavailable. Fixed-series placement
-(`-f`) defaults on for reproducibility; entering `-F` disables it.
+(`-f`) defaults on initially for reproducibility; every predefined preset
+turns it off. Entering `-F` also disables it.
 Permutation requires two warriors. Zero rounds and assemble-only both assemble
 without running a battle.
 
@@ -51,7 +52,12 @@ These are historical rule references, with source links in the UI, not claims
 about currently operating servers. The no-P-space preset rejects PIN, LDP,
 and STP after assembly.
 
-The native console is collapsed by default and includes assembly listings,
+The native console sits below the battle controls and is collapsed by default.
+Show console output opens it; per-warrior Compile and compilation failures
+open it automatically. Compile checks just that warrior with the current match
+settings (including warrior count), always prints its listing, and preserves
+the active battle. Buttons show success/failure and reset when inputs change.
+Run battle also reports the failing warrior. The console includes assembly listings,
 diagnostics, and final native results. Brief, verbose, KotH output, sorting,
 and score formula settings affect this output. Its retained text is bounded
 to 256 KiB; diagnostics retain 64 KiB.
@@ -117,7 +123,10 @@ The display uses native pMARS quadrant markers in warrior colors: read marks
 the top-left quarter, write marks the top-right and bottom-left quarters,
 decrement marks the top half, increment marks the left half, and execution
 marks the whole cell. Unaffected quarters retain their previous owner.
-The legend illustrates these shapes. A white outline marks each warrior's
+Full-cell marks are solid, without internal quadrant gaps. Every address has
+a faint background: dark cells still contain memory (initially DAT 0, 0);
+activity markers do not indicate whether memory is empty. Padding after the
+last address is not selectable. The legend illustrates these shapes. A white outline marks each warrior's
 last execution address. Modern, pMARS classic, and accessible palettes are
 selectable. It redraws only
 dirty cells except when initializing a round or resizing. All activity events
@@ -127,7 +136,8 @@ individual instructions. This prototype does not animate the separate operand
 operations within one instruction across multiple frames.
 
 Process history and cumulative series-score charts retain at most 300 samples.
-The process chart samples at most ten times a second. Each chart and each
+The process chart uses the current round’s cycle number, resets each round,
+and samples at most ten times a second. Each chart and each
 warrior execution log can be paused independently; **Pause live views** pauses
 both charts and execution logging while simulation continues. Turning execution
 logs off, or pausing all of them, disables native trace capture. Series runs
@@ -256,6 +266,7 @@ node docs/test-browser.mjs
 node docs/test-debugger.mjs
 node docs/test-controls.mjs
 node docs/test-features.mjs
+node docs/test-feedback.mjs
 ```
 
 The engine suite checks native deterministic score parity, exact ordered event
@@ -282,3 +293,9 @@ Cycle limits use native pMARS semantics: a cycle gives each living warrior an
 instruction. With two survivors, a limit of 10 ends after 20 total instructions.
 Changing settings after execution begins requires Reset; changing them before
 the first instruction is applied by Run.
+
+The main readout shows the current cycle: zero before execution, one while
+each living warrior takes its first turn, and so on. Cycle counting follows
+the scheduler and resets each round, including after warrior elimination.
+Step and execution-log sequence numbers still count individual instructions.
+The speed control also retains its explicit instructions/second unit.
