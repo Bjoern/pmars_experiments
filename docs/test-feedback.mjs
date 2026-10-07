@@ -8,8 +8,8 @@ const source=';redcode\n;name Loop\n;assert WARRIORS == 2\njmp 0\n';
 const compiled=()=>page.waitForFunction(()=>document.querySelector('.compile-warrior').dataset.result==='ok');
 try {
  await page.goto('http://127.0.0.1:8765/docs/');
- assert(await page.getByRole('button',{name:'Compile warrior 1',exact:true}).isVisible());
- assert(await page.getByRole('button',{name:'Compile warrior 2',exact:true}).isVisible());
+ assert(await page.getByRole('button',{name:'Validate warrior 1',exact:true}).isVisible());
+ assert(await page.getByRole('button',{name:'Validate warrior 2',exact:true}).isVisible());
  await page.locator('#cellSize').selectOption('24');
  await page.locator('#arenaExpand').click();
  assert.equal(await page.locator('#arenaExpand').getAttribute('aria-pressed'),'true');
@@ -27,18 +27,18 @@ try {
  await page.locator('#preset').selectOption('standard');
  await page.locator('#editSettings').click();await page.locator('#cycles').fill('10');
  await page.locator('#brief').check();
- await page.getByRole('button',{name:'Compile warrior 1',exact:true}).click();await compiled();
+ await page.getByRole('button',{name:'Validate warrior 1',exact:true}).click();await compiled();
  assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
  assert((await page.locator('#consoleOutput').textContent()).includes('JMP'));
  await page.locator('#second').fill(';redcode\n;assert 1\ninvalid 0,0\n');
- await page.getByRole('button',{name:'Compile warrior 2',exact:true}).click();
+ await page.getByRole('button',{name:'Validate warrior 2',exact:true}).click();
  await page.waitForFunction(()=>document.querySelectorAll('.compile-warrior')[1].dataset.result==='failed');
  await page.locator('#run').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('error'));
  assert.equal(await page.locator('.compile-warrior').nth(1).getAttribute('data-result'),'failed');
  assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
  await page.locator('#second').fill(source);
- assert.equal(await page.locator('.compile-warrior').nth(1).textContent(),'Compile');
+ assert.equal(await page.locator('.compile-warrior').nth(1).textContent(),'Validate');
  await page.locator('#debugStart').check();await page.locator('#run').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Paused before'));
  assert((await page.locator('#timing').textContent()).startsWith('Cycle 0 / 10'));
@@ -48,11 +48,25 @@ try {
   assert((await page.locator('#timing').textContent()).startsWith('Cycle '+cycle+' / 10'));
  }
  const before=await page.locator('#timing').textContent();
- await page.getByRole('button',{name:'Compile warrior 1',exact:true}).click();await compiled();
+ await page.getByRole('button',{name:'Validate warrior 1',exact:true}).click();await compiled();
  assert.equal(await page.locator('#timing').textContent(),before);
  await page.locator('#run').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Battle complete.'));
  assert((await page.locator('#timing').textContent()).startsWith('Cycle 10 / 10'));
+ await page.locator('#clearConsole').click();
+ assert.equal(await page.locator('#consoleOutput').textContent(),'');
+ await page.locator('#rounds').fill('10000000');
+ await page.locator('#cycles').fill('1000');
+ await page.locator('#series').click();
+ await page.waitForFunction(()=>document.querySelector('#progress').value>0);
+ await page.locator('#pause').click();
+ await page.waitForFunction(()=>document.querySelector('#run').textContent==='Resume series');
+ const pausedRounds=await page.locator('#progress').evaluate(e=>e.value);
+ await page.waitForTimeout(250);
+ assert.equal(await page.locator('#progress').evaluate(e=>e.value),pausedRounds);
+ await page.locator('#run').click();
+ await page.waitForFunction(n=>document.querySelector('#progress').value>n,pausedRounds);
+ await page.locator('#stop').click();
  const pixels=await page.evaluate(async()=>{
   const {CoreDisplay}=await import('./display.mjs');
   const host=document.createElement('div'),c=document.createElement('canvas');host.append(c);document.body.append(host);
@@ -66,7 +80,7 @@ try {
  });
  assert.deepEqual(pixels.center,pixels.quarter,'Full execution has no internal gap');
  assert.notDeepEqual(pixels.empty,pixels.center);
- assert.deepEqual(pixels.boundary,pixels.center,'Adjacent cells have no gap');
+ assert.notDeepEqual(pixels.boundary,pixels.center,'Cell borders separate adjacent cells');
  assert.equal(pixels.padding,null,'Padding beyond core is not a memory address');
  assert.deepEqual(errors,[]);
  console.log('PASS: cell marks, cycle progress, preset flags, settings collapse, compilation success/failure and live-match preservation.');

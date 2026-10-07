@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>pMARS • Core War in your browser</title>
-<link rel="stylesheet" href="style.css?v=20261007-layout">
+<link rel="stylesheet" href="style.css?v=20261007-series">
 </head>
 <body>
 <header><div class="eyebrow">pMARS / BROWSER LAB</div><h1>Watch code compete.</h1>
@@ -34,16 +34,16 @@ bomb dat.f #0, #0
 end
 </textarea></label>
 </section>
+<p class="hint">Validate is optional. Running a battle automatically assembles the warriors.</p>
 <section class="controls" aria-label="Battle controls">
 <button id="run" class="primary">Run battle</button><button id="pause" disabled>Pause</button>
 <button id="step">Step</button><button id="reset" title="Reload current sources and pause before the first instruction">Reset</button><button id="stop" disabled>Stop</button>
 <label><input id="debugStart" type="checkbox"> Start paused (debug)</label>
-<label>Rounds (-r) <input id="rounds" type="number" min="0" max="2147483647" value="1"></label>
-<button id="showConsole" type="button">Show console output</button>
-<button id="series" title="Run a fresh series using the current sources and settings">Run series in background</button>
+<div class="series-controls"><label>Rounds (-r) <input id="rounds" type="number" min="0" max="2147483647" value="1"></label>
+<button id="series" title="Run a fresh series using the current sources and settings">Run series in background</button></div>
 <label>Instructions / second <input id="speed" type="range" min="0" max="5" value="3" step="0.1"><output id="speedValue">1,000</output></label>
 </section>
-<details id="consoleWindow"><summary>pMARS console output</summary><pre id="consoleOutput" aria-label="Native pMARS console output">Compile a warrior or run a battle to see assembly output here.</pre></details>
+<details id="consoleWindow"><summary>pMARS console output — click to show / hide</summary><button id="clearConsole" type="button">Clear output</button><pre id="consoleOutput" aria-label="Native pMARS console output">Validate a warrior or run a battle to see assembly output here.</pre></details>
 <p id="changed" class="hint" role="status"></p>
 <section class="match-settings"><div class="settings-bar"><strong id="settingsSummary"></strong>
 <button id="editSettings" aria-expanded="false" aria-controls="settingsFields">Edit match settings</button>
@@ -102,5 +102,5 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=20261007-layout"></script>
+</main><script type="module" src="app.mjs?v=20261007-series"></script>
 </body></html>

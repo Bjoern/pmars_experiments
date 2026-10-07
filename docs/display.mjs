@@ -85,6 +85,9 @@ export class CoreDisplay {
       c.fillStyle=warriorColor(owner-1);
       c.fillRect(x+(q%2)*half+(q%2?0:pad),y+Math.floor(q/2)*half+(q<2?pad:0),half-pad,half-pad);
     }
+    c.strokeStyle='#101d29';c.lineWidth=Math.min(1,this.cellSize/8);
+    const border=c.lineWidth/2;
+    c.strokeRect(x+border,y+border,this.cellSize-2*border,this.cellSize-2*border);
     if(this.pcs.includes(address)){
       c.strokeStyle='#ffffff';c.lineWidth=Math.max(0.4,this.cellSize/12);
       const inset=c.lineWidth/2;

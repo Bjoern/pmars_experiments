@@ -53,8 +53,9 @@ about currently operating servers. The no-P-space preset rejects PIN, LDP,
 and STP after assembly.
 
 The native console sits below the battle controls and is collapsed by default.
-Show console output opens it; per-warrior Compile and compilation failures
-open it automatically. Compile checks just that warrior with the current match
+Click its heading to show/hide it; per-warrior Validate and compilation failures
+open it automatically. Clear output clears the console; starting a new battle
+or series also clears it. Validation is optional: Run assembles automatically. Validate checks just that warrior with the current match
 settings (including warrior count), always prints its listing, and preserves
 the active battle. Buttons show success/failure and reset when inputs change.
 Run battle also reports the failing warrior. The console includes assembly listings,
@@ -95,7 +96,10 @@ to 256 KiB; diagnostics retain 64 KiB.
 - Run series is available from idle, paused, running, or completed visual battles.
   It replaces the visual battle with a fresh series using current sources/settings,
   with progress and cumulative scores about every 100 ms. P-space persists
-  between rounds within the series.
+  between rounds within the series. Pause suspends the worker at a bounded
+  execution boundary; Resume series continues the same match, preserving
+  scores and P-space. Rounds sit beside the series button, with no demo cap
+  beyond native pMARS’s 2,147,483,647-round integer limit.
 
 ### Classic display macros
 
@@ -124,7 +128,8 @@ The display uses native pMARS quadrant markers in warrior colors: read marks
 the top-left quarter, write marks the top-right and bottom-left quarters,
 decrement marks the top half, increment marks the left half, and execution
 marks the whole cell. Unaffected quarters retain their previous owner.
-Full-cell marks are solid, with no gaps between quadrants or adjacent cells. Every address has
+Full-cell marks are solid. A border separates neighboring cells, but there
+are no internal gaps between a cell’s four quadrants. Every address has
 a faint background: dark cells still contain memory (initially DAT 0, 0);
 activity markers do not indicate whether memory is empty. Padding after the
 last address is not selectable. The legend illustrates these shapes. A white outline marks each warrior's

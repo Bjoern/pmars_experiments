@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import {Engine} from './engine.mjs';
-let busy = false;
+let busy = false, paused = false, wake = null;
 self.onmessage = async ({data}) => {
+  if(data.type==='pause'){paused=true;return;}
+  if(data.type==='resume'){paused=false;if(wake){wake();wake=null;}return;}
   if (busy) return;
   busy = true;
   // Buffer native output so verbose assembly cannot flood the main thread.
@@ -34,6 +36,10 @@ self.onmessage = async ({data}) => {
     } else if (data.type === 'series') {
       let update = engine.start(), last = performance.now();
       while (!update.done) {
+        if(paused){
+          self.postMessage({type:'paused',update});
+          await new Promise(resolve=>{wake=resolve;});
+        }
         update = engine.advance(100000, 8);
         if (performance.now() - last >= 100 || update.done) {
           flush();

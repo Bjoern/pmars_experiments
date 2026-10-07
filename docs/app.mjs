@@ -14,12 +14,12 @@ let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
 let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
 function showConsole() {
  $('consoleWindow').open=true;
- $('consoleOutput').textContent=consoleText || 'Compile a warrior or run a battle to see assembly output here.';
+ $('consoleOutput').textContent=consoleText || 'Validate a warrior or run a battle to see assembly output here.';
 }
 function refreshCompileButtons() {
  document.querySelectorAll('.compile-warrior').forEach((button,i)=>{
   const result=compileStates[i] || '';
-  button.textContent=result==='busy'?'Compiling…':result==='ok'?'Compiled ✓':result==='failed'?'Compile failed — retry':'Compile';
+  button.textContent=result==='busy'?'Validating…':result==='ok'?'Valid ✓':result==='failed'?'Invalid — retry':'Validate';
   button.dataset.result=result;button.disabled=result==='busy';
  });
 }
@@ -95,7 +95,7 @@ function editors() {
     remove.onclick = () => { sources.splice(i,1); markDirty(); editors(); };
     const save=document.createElement('button');save.textContent='Save';save.className='save-warrior';save.setAttribute('aria-label','Save warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
-    compile.setAttribute('aria-label','Compile warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
+    compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
     top.append(label);
     const actions=document.createElement("div");actions.className="warrior-actions";actions.append(compile,save,remove);
     const area = document.createElement('textarea');
@@ -113,11 +113,12 @@ function editors() {
   $('addWarrior').disabled = sources.length >= 36;
   legend();
 }
+function seriesActive() { return state.startsWith("series"); }
 function controls() {
-  const busy = state === 'loading' || state === 'series' || stepping;
-  $('run').disabled = busy || state === 'running' || state === 'done';
-  $('run').textContent = state === 'paused' && total > 0 ? 'Resume battle' : state === 'done' ? 'Battle complete' : 'Run battle';
-  $('pause').disabled = state !== 'running';
+  const busy = state === 'loading' || seriesActive() || stepping;
+  $('run').disabled = (busy && state !== 'series-paused') || state === 'running' || state === 'done';
+  $('run').textContent = state === 'series-paused' ? 'Resume series' : state === 'paused' && total > 0 ? 'Resume battle' : state === 'done' ? 'Battle complete' : 'Run battle';
+  $('pause').disabled = state !== 'running' && state !== 'series';
   $('step').disabled = busy || state === 'running' || state === 'done';
   $('reset').disabled = state === 'loading';
   $('stop').disabled = state === 'idle';
@@ -160,7 +161,11 @@ function work(type, config) {
       else if (data.type === 'assembly') assemblyStatus(data.index,data.ok);
       else if (data.type === 'error') {assemblyStatus(data.index,false);showConsole();finish(new Error(data.message));}
       else if (data.type === 'compiled') finish(null,data.banks);
-      else if (data.type === 'progress') {
+      else if (data.type === 'paused') {
+        clearTimeout(workerTimer);state='series-paused';
+        $('progress').value=data.update.completed;scores(data.update);sampleScores(data.update);
+        status('Series paused at '+data.update.completed+' completed rounds. Resume series to continue.');controls();
+      } else if (data.type === 'progress') {
         clearTimeout(workerTimer);
         $('progress').value = data.update.completed;
         status(`Series: ${data.update.completed} / ${config.rounds} rounds completed.`);
@@ -271,6 +276,7 @@ async function load() {
   return true;
 }
 function pause() {
+  if(state==='series'){state='series-pausing';worker?.postMessage({type:'pause'});status('Pausing series…');controls();return;}
   if (state !== 'running') return;
   cancelAnimationFrame(animation); state = 'paused'; status('Paused. Step or Resume battle.'); controls(); textViews();
 }
@@ -304,7 +310,7 @@ function safe(action) {
   };
 }
 async function step(n = 1) {
-  if (stepping || state === 'loading' || state === 'series') return;
+  if (stepping || state === 'loading' || seriesActive()) return;
   pause();
   if (!engine && !(await load())) return;
   if (state === 'done') return;
@@ -323,6 +329,7 @@ async function step(n = 1) {
   }
 }
 async function run() {
+  if(state==='series-paused'){state='series';worker?.postMessage({type:'resume'});status('Resuming series…');controls();return;}
   if (engine) {
     if (state === 'paused') {
       // Before instruction one, Run applies edits made since Reset/loading.
@@ -335,7 +342,7 @@ async function run() {
   if (await load()) { if (!$('debugStart').checked) resume(); }
 }
 async function command(text) {
-  if (state === 'loading' || state === 'series') return log('Stop the current operation before entering debugger commands.');
+  if (state === 'loading' || seriesActive()) return log('Stop the current operation before entering debugger commands.');
   const reply = message => { log(message); return message; };
   const parts = text.trim().toLowerCase().replace(/^(l|s)(?=[0-9.-])/,'$1 ').split(/\s+/), verb = parts.shift(), rest = parts.join(' ');
   if (['m','macro'].includes(verb)) return command(rest);
@@ -478,7 +485,7 @@ $('theme').onchange=()=>{
  display.redraw();legend();textViews();processChart.draw();scoreChart.draw();
 };
 $('pauseViews').onchange=syncTrace;
-$('showConsole').onclick=()=>{showConsole();$('consoleWindow').scrollIntoView({block:'nearest'});};
+$('clearConsole').onclick=()=>{consoleText='';$('consoleOutput').textContent='';};
 $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;};
 setupSettings(markDirty);
 processChart.clear();scoreChart.clear();
