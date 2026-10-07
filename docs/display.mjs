@@ -76,7 +76,7 @@ export class CoreDisplay {
   }
   draw(address) {
     const x=(address%this.columns)*this.cellSize,y=Math.floor(address/this.columns)*this.cellSize;
-    const c=this.context,pad=Math.min(0.7,this.cellSize/10),half=this.cellSize/2;
+    const c=this.context,pad=0,half=this.cellSize/2;
     c.fillStyle='#101d29';c.fillRect(x,y,this.cellSize,this.cellSize);
     c.fillStyle='#192b39';c.fillRect(x+pad,y+pad,this.cellSize-2*pad,this.cellSize-2*pad);
     for(let q=0;q<4;q++){
@@ -87,7 +87,8 @@ export class CoreDisplay {
     }
     if(this.pcs.includes(address)){
       c.strokeStyle='#ffffff';c.lineWidth=Math.max(0.4,this.cellSize/12);
-      c.strokeRect(x+pad,y+pad,this.cellSize-2*pad,this.cellSize-2*pad);
+      const inset=c.lineWidth/2;
+      c.strokeRect(x+inset,y+inset,this.cellSize-2*inset,this.cellSize-2*inset);
     }
   }
   addressAt(event) {

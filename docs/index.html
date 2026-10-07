@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>pMARS • Core War in your browser</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261007-layout">
 </head>
 <body>
 <header><div class="eyebrow">pMARS / BROWSER LAB</div><h1>Watch code compete.</h1>
@@ -57,6 +57,7 @@ end
 <section class="arena" aria-label="Core arena">
 <div class="arena-controls"><label for="cellSize">Cell size</label>
 <select id="cellSize"><option value="0">Fit width</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
+<div class="arena-layout" role="group" aria-label="Arena layout"><button id="arenaScroll" type="button" aria-pressed="true">Scroll</button><button id="arenaExpand" type="button" aria-pressed="false">Expand</button></div>
 <span class="hint">Every square is one memory address. Dark cells still contain instructions; colored parts show activity.</span></div>
 <div class="arena-viewport" tabindex="0" role="region" aria-label="Scrollable core arena">
 <canvas id="core" aria-label="Core memory activity; use the address inspector below for text details"></canvas></div>
@@ -101,5 +102,5 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs"></script>
+</main><script type="module" src="app.mjs?v=20261007-layout"></script>
 </body></html>

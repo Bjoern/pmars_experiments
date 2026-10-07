@@ -58,3 +58,9 @@ body[data-theme=accessible]{background:#09131d}body[data-theme=accessible] butto
 .compile-warrior[data-result=failed]{color:#ffb9b9;border-color:#ec7777}
 .compile-warrior[data-result=ok]{color:#a7e8a3}
 #consoleWindow{margin:14px 0;padding:12px;border:1px solid #2a3d4d;border-radius:6px}
+
+.warrior-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.warrior-actions .compile-warrior{border-color:#54d8df}
+.arena-layout{display:flex;gap:4px}
+.arena-layout [aria-pressed=true]{background:#24505b;border-color:#54d8df}
+.arena-viewport.expanded{max-height:none;overflow:visible}

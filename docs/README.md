@@ -82,8 +82,9 @@ to 256 KiB; diagnostics retain 64 KiB.
 - Stop cancels assembly/series work or releases the visual engine.
 - Instructions / second: choose 1–100,000; this is a target, not a guarantee.
 - Cell size defaults to 8 CSS pixels. Choose 12, 16, or 24 pixels for larger
-  markers, or Fit width for the compact overview. The arena scrolls within a
-  bounded viewport. Changing size preserves memory marks and battle state.
+  markers, or Fit width for the compact overview. Scroll keeps the arena within a
+  bounded viewport; Expand shows its full size on the page (wide cores may
+  extend beyond the page width). Changing size preserves memory marks and battle state.
 - Click the arena to pause and list from that address. Right-click lists up to
   the clicked address. Listings default to ten lines, with addresses, wraparound,
   paging, and next-PC markers. Follow selects a warrior's next instruction.
@@ -123,7 +124,7 @@ The display uses native pMARS quadrant markers in warrior colors: read marks
 the top-left quarter, write marks the top-right and bottom-left quarters,
 decrement marks the top half, increment marks the left half, and execution
 marks the whole cell. Unaffected quarters retain their previous owner.
-Full-cell marks are solid, without internal quadrant gaps. Every address has
+Full-cell marks are solid, with no gaps between quadrants or adjacent cells. Every address has
 a faint background: dark cells still contain memory (initially DAT 0, 0);
 activity markers do not indicate whether memory is empty. Padding after the
 last address is not selectable. The legend illustrates these shapes. A white outline marks each warrior's

@@ -96,7 +96,8 @@ function editors() {
     const save=document.createElement('button');save.textContent='Save';save.className='save-warrior';save.setAttribute('aria-label','Save warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.setAttribute('aria-label','Compile warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
-    top.append(label,compile,save,remove);
+    top.append(label);
+    const actions=document.createElement("div");actions.className="warrior-actions";actions.append(compile,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
     area.setAttribute('aria-label', `Warrior ${i+1} source`);
@@ -105,7 +106,7 @@ function editors() {
       label.textContent = `${String(i+1).padStart(2,'0')} / ${draftName(area.value,i)}`;
       legend(); markDirty();
     };
-    box.append(top,area); return box;
+    box.append(top,actions,area); return box;
   }));
   refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
@@ -389,6 +390,16 @@ $('lines').oninput = inspect; $('follow').onchange = inspect;
 $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());
 $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
 $('traceMode').onchange = () => { syncTrace(); renderTrace(); };
+for(const [id,expanded] of [['arenaScroll',false],['arenaExpand',true]]) {
+ $(id).onclick=()=>{
+  const viewport=document.querySelector('.arena-viewport');
+  viewport.classList.toggle('expanded',expanded);
+  viewport.setAttribute('aria-label',expanded?'Expanded core arena':'Scrollable core arena');
+  $('arenaScroll').setAttribute('aria-pressed',String(!expanded));
+  $('arenaExpand').setAttribute('aria-pressed',String(expanded));
+  display.redraw();
+ };
+}
 $('cellSize').onchange = () => display.setCellSize(Number($('cellSize').value));
 $('core').onclick = event => { const address=display.addressAt(event);if(address===null)return;pause();showAddress(address); };
 $('core').oncontextmenu = event => { event.preventDefault();const address=display.addressAt(event);if(address===null)return;pause();showAddress(address-lineCount()+1); };
