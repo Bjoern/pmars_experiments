@@ -70,7 +70,9 @@ to 256 KiB; diagnostics retain 64 KiB.
 
 - Add/remove warriors: supports 1–36, including solo debugging. Create a new
   editable warrior, upload one or multiple files, or drop files on the upload
-  area or Add warrior dialog. Each editor has a Save download button. Editor headings
+  area or Add warrior dialog. Each editor has a Download button. Collapse hides its source textarea, and Edit
+  opens it again. Collapse all / Expand all control every editor without changing
+  sources or validation status. Editor headings
   update from the source's `;name` directive while typing. An active battle's
   legend and traces retain the loaded names until Reset.
   Changes to loaded sources/settings are marked as pending until Reset.
@@ -92,6 +94,8 @@ to 256 KiB; diagnostics retain 64 KiB.
   markers, or Fit width for the compact overview. Scroll keeps the arena within a
   bounded viewport; Expand shows its full size on the page (wide cores may
   extend beyond the page width). Changing size preserves memory marks and battle state.
+- Hover over the arena to see the address under the pointer beside the size
+  selector. Leaving or scrolling clears the indicator.
 - Click the arena to pause and list from that address. Right-click lists up to
   the clicked address. Listings default to ten lines, with addresses, wraparound,
   paging, and next-PC markers. Follow selects a warrior's next instruction.
@@ -148,6 +152,9 @@ individual instructions. This prototype does not animate the separate operand
 operations within one instruction across multiple frames.
 
 Process history and cumulative series-score charts retain at most 300 samples.
+Per-warrior process counts sit below the process chart and share its pause
+control, including the global pause. Pausing skips process-count DOM updates;
+score rows also avoid rebuilding when their values are unchanged.
 The process chart uses the current round’s cycle number, resets each round,
 and samples at most ten times a second. Each chart and each
 warrior execution log can be paused independently; **Pause live views** pauses

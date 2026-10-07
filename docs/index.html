@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>pMARS • Core War in your browser</title>
-<link rel="stylesheet" href="style.css?v=20261007-validation">
+<link rel="stylesheet" href="style.css?v=20261007-editors">
 </head>
 <body>
 <header><div class="eyebrow">pMARS / BROWSER LAB</div><h1>Watch code compete.</h1>
 <p>One shared core. One or many warriors. Follow every instruction, or run a match series.</p></header>
 <main>
-<div class="roster"><span id="warriorCount">2 warriors</span><div><button id="addWarrior">Add warrior</button> <button id="uploadWarriors">Upload files</button></div></div>
+<div class="roster"><span id="warriorCount">2 warriors</span><div><button id="collapseEditors">Collapse all</button> <button id="expandEditors">Expand all</button> <button id="addWarrior">Add warrior</button> <button id="uploadWarriors">Upload files</button></div></div>
 <div id="dropZone" tabindex="0" role="button" aria-label="Drop warrior files or open file picker">Drop one or more warrior files here, or click to upload</div>
 <input id="warriorFiles" type="file" multiple accept=".red,.rc,.txt" hidden>
 <dialog id="addDialog"><h2>Add warriors</h2><p>Create an editable warrior, upload files, or drop files onto the drop area.</p>
@@ -58,6 +58,7 @@ end
 <div class="arena-controls"><label for="cellSize">Cell size</label>
 <select id="cellSize"><option value="0">Fit width</option><option value="4">Classic · 2×2 mark</option><option value="6">Compact · 4×4 mark</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
 <div class="arena-layout" role="group" aria-label="Arena layout"><button id="arenaScroll" type="button" aria-pressed="true">Scroll</button><button id="arenaExpand" type="button" aria-pressed="false">Expand</button></div>
+<output id="hoverAddress" aria-label="Hovered memory address">Cell: —</output>
 <span class="hint">Every square is one memory address. Dark cells still contain instructions; colored parts show activity.</span></div>
 <div class="arena-viewport" tabindex="0" role="region" aria-label="Scrollable core arena">
 <canvas id="core" aria-label="Core memory activity; use the address inspector below for text details"></canvas></div>
@@ -92,7 +93,7 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 </details>
 </section>
 <section class="analysis-controls"><label><input id="pauseViews" type="checkbox"> Pause all charts and execution logs</label>
-<div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over cycles"></canvas></section>
+<div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over cycles"></canvas><div id="processCounts" aria-label="Processes per warrior">Load a battle to see process counts.</div></section>
 <section><label><input id="pauseScores" type="checkbox"> Pause score chart</label><canvas id="scoreChart" aria-label="Cumulative score over completed battles"></canvas></section></div></section>
 <section><div class="trace-header"><h2>Executed instructions</h2><label>View <select id="traceMode">
 <option value="columns">One console per warrior</option><option value="combined">Combined console</option><option value="off">Off</option>
@@ -102,5 +103,5 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=20261007-validation"></script>
+</main><script type="module" src="app.mjs?v=20261007-editors"></script>
 </body></html>

@@ -9,6 +9,18 @@ const ready=t=>page.waitForFunction(t=>document.querySelector('#status').textCon
 const code=name=>';redcode\n;name '+name+'\n;assert 1\njmp 0\n';
 try{
  await page.goto(process.env.PMARS_URL||'http://127.0.0.1:8765/docs/');
+ await page.locator('#collapseEditors').click();
+ assert(await page.locator('#first').isHidden());assert(await page.locator('#second').isHidden());
+ await page.getByRole('button',{name:'Edit or collapse warrior 1',exact:true}).click();
+ assert(await page.locator('#first').isVisible());assert(await page.locator('#second').isHidden());
+ await page.locator('#expandEditors').click();assert(await page.locator('#second').isVisible());
+ await page.locator('#core').evaluate(c=>{
+  const r=c.getBoundingClientRect();
+  c.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+20,clientY:r.top+28}));
+ });
+ assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: 0428');
+ await page.locator('#core').dispatchEvent('pointerleave');
+ assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: —');
  assert(await page.locator('#series').isVisible());
  assert(await page.locator('#rounds').isVisible());
  assert(await page.locator('#settingsSummary').isVisible());
@@ -19,7 +31,7 @@ try{
  const dt=await page.evaluateHandle(text=>{const d=new DataTransfer();d.items.add(new File([text],'Dropped.red',{type:'text/plain'}));return d;},code('Dropped'));
  await page.locator('#dropZone').dispatchEvent('drop',{dataTransfer:dt});
  await page.waitForFunction(()=>document.querySelectorAll('#editors textarea').length===5);
- const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'Save warrior 5',exact:true}).click();
+ const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'Download warrior 5',exact:true}).click();
  const download=await downloadPromise,stream=await download.createReadStream(),chunks=[];
  for await(const chunk of stream)chunks.push(chunk);
  assert.equal(Buffer.concat(chunks).toString(),code('Dropped'));

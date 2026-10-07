@@ -70,3 +70,6 @@ body[data-theme=accessible]{background:#09131d}body[data-theme=accessible] butto
 #clearConsole{font-size:12px;padding:5px 10px}
 
 .revalidate{padding:2px 8px;font-size:20px;font-weight:400;background:transparent;border-color:transparent}
+
+#processCounts{font-size:13px;line-height:1.8;margin-top:8px}
+#hoverAddress{font:13px Consolas,monospace;min-width:100px}

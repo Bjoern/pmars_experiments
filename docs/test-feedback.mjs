@@ -65,6 +65,19 @@ try {
   await page.waitForFunction(()=>document.querySelector('#step').disabled===false);
   assert((await page.locator('#timing').textContent()).startsWith('Cycle '+cycle+' / 10'));
  }
+ assert((await page.locator('#processCounts').textContent()).includes('processes'));
+ assert(!(await page.locator('#scores').textContent()).includes('processes'));
+ await page.locator('#pauseProcesses').check();
+ await page.evaluate(()=>{
+  window.processMutations=0;
+  window.processObserver=new MutationObserver(list=>window.processMutations+=list.length);
+  window.processObserver.observe(document.querySelector('#processCounts'),{subtree:true,childList:true,characterData:true});
+ });
+ await page.locator('#step').click();
+ await page.waitForFunction(()=>document.querySelector('#step').disabled===false);
+ assert.equal(await page.evaluate(()=>window.processMutations),0);
+ await page.evaluate(()=>window.processObserver.disconnect());
+ await page.locator('#pauseProcesses').uncheck();
  const before=await page.locator('#timing').textContent();
  await page.getByRole('button',{name:'Validate warrior 1',exact:true}).click();await compiled();
  assert.equal(await page.locator('#timing').textContent(),before);

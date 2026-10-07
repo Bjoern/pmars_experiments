@@ -9,6 +9,7 @@ let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
+let collapsedEditors=[], scoreViewKey=null;
 let sources = [$('first').value, $('second').value];
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
 let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
@@ -104,14 +105,17 @@ function editors() {
     remove.textContent = 'Remove'; remove.className = 'remove-warrior';
     remove.disabled = sources.length === 1;
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
-    remove.onclick = () => { sources.splice(i,1); markDirty(); editors(); };
-    const save=document.createElement('button');save.textContent='Save';save.className='save-warrior';save.setAttribute('aria-label','Save warrior '+(i+1));save.onclick=()=>saveWarrior(i);
+    remove.onclick = () => { sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); editors(); };
+    const save=document.createElement('button');save.textContent='Download';save.className='save-warrior';save.setAttribute('aria-label','Download warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
     const revalidate=document.createElement('button');revalidate.className='revalidate';revalidate.textContent='↻';
     revalidate.title='Revalidate warrior';revalidate.setAttribute('aria-label','Revalidate warrior '+(i+1));
     revalidate.onclick=()=>checkWarrior(i);
-    top.append(label,revalidate);
+    const edit=document.createElement('button');edit.className='edit-warrior';
+    edit.setAttribute('aria-controls',label.htmlFor);edit.setAttribute('aria-label','Edit or collapse warrior '+(i+1));
+    edit.onclick=()=>{collapsedEditors[i]=!collapsedEditors[i];editorVisibility();if(!collapsedEditors[i])$(label.htmlFor).focus();};
+    top.append(label,revalidate,edit);
     const actions=document.createElement("div");actions.className="warrior-actions";actions.append(compile,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
@@ -123,10 +127,27 @@ function editors() {
     };
     box.append(top,actions,area); return box;
   }));
-  refreshCompileButtons();
+  editorVisibility();refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
   $('addWarrior').disabled = sources.length >= 36;
   legend();
+}
+function editorVisibility(){
+ document.querySelectorAll('#editors textarea').forEach((area,i)=>{
+  area.hidden=!!collapsedEditors[i];
+  const button=document.querySelectorAll('.edit-warrior')[i];
+  button.textContent=area.hidden?'Edit':'Collapse';
+  button.setAttribute('aria-expanded',String(!area.hidden));
+ });
+}
+$('collapseEditors').onclick=()=>{collapsedEditors=sources.map(()=>true);editorVisibility();};
+$('expandEditors').onclick=()=>{collapsedEditors=sources.map(()=>false);editorVisibility();};
+function processIndicators(update){
+ if($('pauseViews').checked || $('pauseProcesses').checked)return;
+ $('processCounts').replaceChildren(...update.warriors.map((w,i)=>{
+  const row=document.createElement('div');row.style.color=warriorColor(i);
+  row.textContent=w.name+' · '+w.tasks.toLocaleString()+' processes';return row;
+ }));
 }
 function seriesActive() { return state.startsWith("series"); }
 function controls() {
@@ -178,27 +199,31 @@ function work(type, config) {
       else if (data.type === 'compiled') finish(null,data.banks);
       else if (data.type === 'paused') {
         clearTimeout(workerTimer);state='series-paused';
-        $('progress').value=data.update.completed;scores(data.update);sampleScores(data.update);
+        $('progress').value=data.update.completed;latest=data.update;scores(data.update);sampleScores(data.update);
         status('Series paused at '+data.update.completed+' completed rounds. Resume series to continue.');controls();
       } else if (data.type === 'progress') {
         clearTimeout(workerTimer);
         $('progress').value = data.update.completed;
         status(`Series: ${data.update.completed} / ${config.rounds} rounds completed.`);
-        scores(data.update); sampleScores(data.update);
+        latest=data.update;scores(data.update); sampleScores(data.update);
       } else if (data.type === 'done') finish(null,data.update);
     };
     w.postMessage({type, settings:config, sources:[...sources]});
   });
 }
 function scores(update) {
+  processIndicators(update);
   const order=update.warriors.map((w,i)=>({w,i}));
   if($('sort').checked)order.sort((a,b)=>b.w.score-a.w.score);
+  const key=JSON.stringify(order.map(({w,i})=>[w.name,w.wins,w.ties,w.losses,w.score,warriorColor(i)]));
+  if(key===scoreViewKey)return;
+  scoreViewKey=key;
   $('scores').replaceChildren(...order.map(({w,i}) => {
     const row = document.createElement('div'); row.className = 'score'; row.style.color = warriorColor(i);
     const outcome = update.warriors.length === 1
       ? `${w.wins} survived / ${w.losses} terminated`
       : `${w.wins} wins / ${w.ties} ties / ${w.losses} losses · score ${w.score}`;
-    row.textContent = `${w.name} · ${w.tasks} processes · ${outcome}`;
+    row.textContent = `${w.name} · ${outcome}`;
     return row;
   }));
 }
@@ -262,12 +287,15 @@ function present(update) {
   if (combined.length > 300) combined.splice(0,combined.length-300);
   total += update.executed;
   $('timing').dataset.instructions=String(total);
-  if(chartRound!==update.round){processChart.clear();chartRound=update.round;}
+
   sampleScores(update);
   $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round} · peak slice ${maxSlice.toFixed(1)} ms`;
   if (update.done) { state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
   if (state !== 'running' || performance.now()-lastText >= 100) {
-    if(!$('pauseViews').checked && !$('pauseProcesses').checked)processChart.add(update.cycle,update.warriors.map(w=>w.tasks));
+    if(!$('pauseViews').checked && !$('pauseProcesses').checked){
+      if(chartRound!==update.round){processChart.clear();chartRound=update.round;}
+      processChart.add(update.cycle,update.warriors.map(w=>w.tasks));
+    }
     textViews();
   }
 }
@@ -281,7 +309,7 @@ async function load() {
   if (token !== generation) return false;
   next.import(banks);
   engine = next; total = 0; maxSlice = 0; credit = 0; history = []; combined = [];
-  display.configure(config.coreSize); $('address').max = config.coreSize-1; $('address').value = 0;
+  display.configure(config.coreSize);clearHover(); $('address').max = config.coreSize-1; $('address').value = 0;
   $('follow').replaceChildren(new Option('Fixed address','-1'), ...banks.map((b,i) => new Option(b.name,String(i))));
   traceControls(banks.map(b=>b.name));
   const initial=engine.start();present(initial);legend();
@@ -422,7 +450,14 @@ for(const [id,expanded] of [['arenaScroll',false],['arenaExpand',true]]) {
   display.redraw();
  };
 }
-$('cellSize').onchange = () => display.setCellSize(Number($('cellSize').value));
+function clearHover(){ $('hoverAddress').textContent='Cell: —'; }
+$('cellSize').onchange = () => {clearHover();display.setCellSize(Number($('cellSize').value));};
+$('core').onpointermove=event=>{
+ const address=display.addressAt(event),text=address===null?'Cell: —':'Cell: '+String(address).padStart(String(display.size-1).length,'0');
+ if($('hoverAddress').textContent!==text)$('hoverAddress').textContent=text;
+};
+$('core').onpointerleave=clearHover;
+document.querySelector('.arena-viewport').addEventListener('scroll',clearHover);
 $('core').onclick = event => { const address=display.addressAt(event);if(address===null)return;pause();showAddress(address); };
 $('core').oncontextmenu = event => { event.preventDefault();const address=display.addressAt(event);if(address===null)return;pause();showAddress(address-lineCount()+1); };
 $('commandForm').onsubmit = event => {
@@ -499,7 +534,8 @@ $('theme').onchange=()=>{
  for(const selector of ['#tracePauses label','#editors .warrior']) document.querySelectorAll(selector).forEach((label,i)=>{label.style.color=warriorColor(i);});
  display.redraw();legend();textViews();processChart.draw();scoreChart.draw();
 };
-$('pauseViews').onchange=syncTrace;
+$('pauseProcesses').onchange=()=>{if(latest)processIndicators(latest);};
+$('pauseViews').onchange=()=>{syncTrace();if(latest)processIndicators(latest);};
 $('clearConsole').onclick=()=>{consoleText='';$('consoleOutput').textContent='';};
 $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;};
 setupSettings(markDirty);
