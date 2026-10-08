@@ -10,9 +10,8 @@ export const presets = [
  {id:'94',name:"KotH ’94",values:{...koth94},sourceUrl:kothSource},
  {id:'94m',name:"KotH ’94 Multiwarrior",values:{...koth94},sourceUrl:kothSource},
  {id:'icws',name:'KotH ICWS Tournament',values:{coreSize:8192,cycles:100000,tasks:8000,maxLength:300,distance:300,rules88:true,rounds:100},sourceUrl:kothSource},
- {id:'94xm',name:"KotH ’94 Multiwarrior X",values:{...kothBig},sourceUrl:kothSource},
  {id:'nano',name:'SAL Nano',values:{coreSize:80,tasks:80,cycles:800,maxLength:5,distance:5,pspace:5,rounds:100},source:'nano'},
  {id:'tiny',name:'SAL Tiny',values:{coreSize:800,tasks:800,cycles:8000,maxLength:20,distance:20,pspace:50,rounds:100},source:'tiny'},
  {id:'tinylp',name:'SAL Tiny LP',values:{coreSize:800,tasks:8,cycles:8000,maxLength:50,distance:50,pspace:50,rounds:100},source:'tinylp'},
- {id:'94x',name:'KotH Experimental / Big',values:{...kothBig},sourceUrl:kothSource}
+ {id:'94x',name:'KotH ’94 Experimental / Multiwarrior X',values:{...kothBig},sourceUrl:kothSource}
 ];

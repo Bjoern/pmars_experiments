@@ -49,7 +49,7 @@ try {
  await page.locator('#arenaLayout').selectOption('vertical');
  await page.locator('#cellSize').selectOption('8');
  await page.locator('#first').fill(source);await page.locator('#second').fill(source);
- await page.locator('#editSettings').click();assert.equal(await page.locator('#editSettings').textContent(),'Collapse match settings');
+ await page.locator('#editSettings').click();assert.equal(await page.locator('#editSettings').getAttribute('aria-expanded'),'true');
  await page.locator('#editSettings').click();assert(await page.locator('#settingsFields').isHidden());
  for(const preset of ['94nop','88','nano','tiny','tinylp','94x']) {
   await page.locator('#preset').selectOption(preset);

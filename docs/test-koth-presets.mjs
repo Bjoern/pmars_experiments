@@ -10,8 +10,7 @@ const cases={
  '94nop':[8000,80000,8000,100,100,false,true],
  '94x':[55440,500000,10000,200,200,false,false],
  '94m':[8000,80000,8000,100,100,false,false],
- 'icws':[8192,100000,8000,300,300,true,false],
- '94xm':[55440,500000,10000,200,200,false,false]
+ 'icws':[8192,100000,8000,300,300,true,false]
 };
 try{
  await page.goto('http://127.0.0.1:8765/docs/');await page.locator('#editSettings').click();
@@ -24,5 +23,5 @@ try{
  // Explicit hill distance must survive a later edit to maximum warrior length.
  await page.locator('#preset').selectOption('94nop');await page.locator('#maxLength').fill('50');
  assert.equal(await page.locator('#distance').inputValue(),'100');
- console.log('PASS: all seven KotH presets match supplied table, -f stays off, explicit distance survives length edits.');
+ console.log('PASS: all seven KotH hills (six distinct presets) match supplied table, -f stays off, explicit distance survives length edits.');
 }finally{await browser.close();}

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=6299bb2f937235b7';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=6299bb2f937235b7';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=6299bb2f937235b7';
-import {HistoryChart} from './charts.mjs?v=6299bb2f937235b7';
+import {Engine, settings} from './engine.mjs?v=08290d5a2154571e';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=08290d5a2154571e';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=08290d5a2154571e';
+import {HistoryChart} from './charts.mjs?v=08290d5a2154571e';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -51,7 +51,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=6299bb2f937235b7',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=08290d5a2154571e',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -203,7 +203,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=6299bb2f937235b7', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=08290d5a2154571e', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;

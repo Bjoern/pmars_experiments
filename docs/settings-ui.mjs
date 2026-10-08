@@ -1,5 +1,5 @@
-import {defaults,settings} from './settings.mjs?v=6299bb2f937235b7';
-import {presets} from './presets.mjs?v=6299bb2f937235b7';
+import {defaults,settings} from './settings.mjs?v=08290d5a2154571e';
+import {presets} from './presets.mjs?v=08290d5a2154571e';
 const $ = id=>document.getElementById(id);
 const numbers = [['coreSize','-s Core size',80,65536],['cycles','-c Cycles per warrior',1,10000000],
  ['tasks','-p Processes',1,65536],['maxLength','-l Maximum length',1,1000],
@@ -50,6 +50,12 @@ export function setupSettings(changed) {
   }
   refreshSummary();changed();
  };
- $('editSettings').onclick=()=>{const panel=$('settingsFields');panel.hidden=!panel.hidden;$('editSettings').setAttribute('aria-expanded',String(!panel.hidden));$('editSettings').textContent=panel.hidden?'Edit match settings':'Collapse match settings';};
+ $('editSettings').onclick=()=>{
+  const panel=$('settingsDetails');panel.hidden=!panel.hidden;
+  $('editSettings').setAttribute('aria-expanded',String(!panel.hidden));
+  $('editSettings').setAttribute('aria-label',(panel.hidden?'Expand':'Collapse')+' match settings');
+  $('settingsArrow').textContent=panel.hidden?'▸':'▾';
+ };
+
  refreshSummary();
 }

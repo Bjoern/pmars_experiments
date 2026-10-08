@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import createModule from './dist/pmars.mjs?v=6299bb2f937235b7';
+import createModule from './dist/pmars.mjs?v=08290d5a2154571e';
 
-import {settings, argumentsFor} from './settings.mjs?v=6299bb2f937235b7';
-export {settings, defaults} from './settings.mjs?v=6299bb2f937235b7';
+import {settings, argumentsFor} from './settings.mjs?v=08290d5a2154571e';
+export {settings, defaults} from './settings.mjs?v=08290d5a2154571e';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }

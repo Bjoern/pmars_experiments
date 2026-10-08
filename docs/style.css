@@ -137,3 +137,10 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .warrior-import{flex-wrap:wrap}.warrior-import #dropZone{flex-basis:180px}.warrior-import #demo{flex-shrink:0}
 
 .speed-control output{min-width:9ch}
+
+.match-settings{padding:8px 12px}
+.settings-bar{gap:10px;justify-content:space-between}
+.settings-disclosure{display:flex;align-items:center;gap:7px;padding:5px 0;border:0;background:transparent;text-align:left;min-width:0;font-weight:400}
+#settingsArrow{font-size:16px;color:#aec0ce}
+.settings-bar>label{display:flex;align-items:center;gap:6px}
+#presetSource:empty{display:none}
