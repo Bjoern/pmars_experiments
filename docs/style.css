@@ -99,7 +99,7 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 
 
 .arena-viewport{width:100%;min-width:0}
-.arena-viewport[data-layout=vertical]{max-height:65vh;overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable}
+.arena-viewport[data-layout=vertical]{max-height:65vh;overflow-x:hidden;overflow-y:auto}
 .arena-viewport[data-layout=horizontal]{--arena-flow:columns;height:min(60vh,480px);max-height:none;overflow-x:scroll;overflow-y:hidden}
 .arena-viewport[data-layout=fill]{max-height:none;overflow:hidden}
 
