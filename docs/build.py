@@ -21,6 +21,31 @@ subprocess.run([emcc, "-O2", "-std=gnu99", "-Wno-deprecated-non-prototype",
     "-sEXPORTED_RUNTIME_METHODS=['ccall','FS','HEAPU8','HEAPU32']",
     "-o", str(out / "pmars.mjs")], check=True)
 
+# Version the complete module graph, workers, stylesheet, and Wasm fetch together.
+# Normalize old versions before hashing so rebuilding unchanged sources is stable.
+import hashlib
+import re
+web = ROOT / "docs"
+modules = sorted(p for p in web.glob("*.mjs") if not p.name.startswith("test-"))
+text_paths = modules + [web / "index.html", web / "style.css"]
+normalized = {p: re.sub(r"\?v=[A-Za-z0-9_-]+", "", p.read_text(encoding="utf-8")) for p in text_paths}
+digest = hashlib.sha256()
+for p, text in normalized.items():
+    digest.update(p.name.encode())
+    digest.update(text.encode())
+for p in [out / "pmars.mjs", out / "pmars.wasm"]:
+    digest.update(p.read_bytes())
+version = digest.hexdigest()[:16]
+for p, text in normalized.items():
+    if p.suffix == ".mjs":
+        text = re.sub(r"(['\"])(\./[^'\"]+\.mjs)(['\"])",
+                      lambda m: m[1] + m[2] + "?v=" + version + m[3], text)
+    elif p.name == "index.html":
+        text = text.replace('style.css"', 'style.css?v=' + version + '"')
+        text = text.replace('app.mjs"', 'app.mjs?v=' + version + '"')
+    p.write_text(text, encoding="utf-8", newline="\n")
+print("Browser release:", version)
+
 # A /docs Pages deployment must contain its runtime and corresponding sources.
 import zipfile
 shutil.copyfile(ROOT / "COPYING", ROOT / "docs" / "COPYING")

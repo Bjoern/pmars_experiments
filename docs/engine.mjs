@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import createModule from './dist/pmars.mjs';
+import createModule from './dist/pmars.mjs?v=72cea387c69abd5b';
 
-import {settings, argumentsFor} from './settings.mjs';
-export {settings, defaults} from './settings.mjs';
+import {settings, argumentsFor} from './settings.mjs?v=72cea387c69abd5b';
+export {settings, defaults} from './settings.mjs?v=72cea387c69abd5b';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }
@@ -12,7 +12,10 @@ function check(code) {
 export class Engine {
   static async create(options, {visual = true, log = () => {}} = {}) {
     const config = settings(options);
-    const module = await createModule({noInitialRun: true, print: line => log(line,'stdout'), printErr: line => log(line,'stderr')});
+    // Carry this release's URL version into the Wasm fetch, including in workers.
+    const browserFiles = typeof window !== 'undefined' || typeof WorkerGlobalScope !== 'undefined'
+      ? {locateFile: path => new URL('./dist/'+path+new URL(import.meta.url).search,import.meta.url).href} : {};
+    const module = await createModule({...browserFiles,noInitialRun: true, print: line => log(line,'stdout'), printErr: line => log(line,'stderr')});
     check(module.ccall('web_configure','number',['string','number','number'],[argumentsFor(config).join('\n'),+visual,config.warriors]));
     config.rounds = module._web_round_limit();
     return new Engine(module, config);

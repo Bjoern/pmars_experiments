@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs';
-import {readSettings,setupSettings} from './settings-ui.mjs';
-import {HistoryChart} from './charts.mjs';
+import {Engine, settings} from './engine.mjs?v=72cea387c69abd5b';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=72cea387c69abd5b';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=72cea387c69abd5b';
+import {HistoryChart} from './charts.mjs?v=72cea387c69abd5b';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -50,7 +50,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=72cea387c69abd5b',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -190,7 +190,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=72cea387c69abd5b', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
