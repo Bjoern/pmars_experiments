@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Serve repository root; install Playwright or set PLAYWRIGHT_MODULE to its index.mjs.
 // BROWSER_CHANNEL=msedge node web/test-browser.mjs
@@ -17,6 +18,7 @@ const ready = text => page.waitForFunction(text =>
 const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
  await page.locator('#toggleEditors').click();
   await page.locator('#step').click();
   await ready('Paused after');

@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
 const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
@@ -8,6 +9,7 @@ const source=';redcode\n;name Loop\n;assert WARRIORS == 2\njmp 0\n';
 const compiled=()=>page.waitForFunction(()=>document.querySelector('.compile-warrior').dataset.result==='ok');
 try {
  await page.goto('http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
  await page.locator('#toggleEditors').click();
  await page.waitForFunction(()=>Array.from(document.querySelectorAll('.compile-warrior')).every(e=>e.dataset.result==='ok'));
  assert.equal(await page.locator('#consoleWindow').evaluate(e=>e.open),false);

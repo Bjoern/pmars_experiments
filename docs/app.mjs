@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=351ae617e5a90c87';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=351ae617e5a90c87';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=351ae617e5a90c87';
-import {HistoryChart} from './charts.mjs?v=351ae617e5a90c87';
+import {Engine, settings} from './engine.mjs?v=321d0ad08764c2d1';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=321d0ad08764c2d1';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=321d0ad08764c2d1';
+import {HistoryChart} from './charts.mjs?v=321d0ad08764c2d1';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -11,8 +11,8 @@ let fastMode = false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let collapsedEditors=[], scoreViewKey=null;
-const demoSources = [$('first').value, $('second').value];
-let sources = [...demoSources];
+const demoSources = [";redcode-94\n;name Imp\n;author A. K. Dewdney\n;assert 1\nmov.i 0, 1\nend\n", ";redcode-94\n;name Dwarf\n;author A. K. Dewdney\n;assert 1\nadd.ab #4, bomb\nmov.i bomb, @bomb\njmp -2\nbomb dat.f #0, #0\nend\n"];
+let sources = [];
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
 let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
 let validationTimer=null, validationQueue=[];
@@ -51,7 +51,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=351ae617e5a90c87',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=321d0ad08764c2d1',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -203,7 +203,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=351ae617e5a90c87', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=321d0ad08764c2d1', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -586,4 +586,4 @@ $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').t
 setupSettings(markDirty);
 processChart.clear();scoreChart.clear();
 
-editors(); controls();scheduleValidation();
+editors(); clearBattle();

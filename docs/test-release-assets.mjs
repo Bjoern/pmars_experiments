@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Ensure a release never requests unversioned runtime assets, even from workers.
 import assert from 'node:assert/strict';
@@ -9,6 +10,7 @@ context.on('request',r=>{if(/\.(mjs|wasm|css)$/.test(new URL(r.url()).pathname))
 page.on('pageerror',e=>errors.push(e.message));
 try{
  await page.goto(process.env.PMARS_URL||'http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
  const version=await page.locator('script[type=module]').evaluate(e=>new URL(e.src).searchParams.get('v'));
  assert.match(version,/^[a-f0-9]{16}$/);
  await page.locator('#run').click();

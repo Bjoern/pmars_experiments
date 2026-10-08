@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 // SPDX-License-Identifier: GPL-2.0-or-later
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
@@ -12,6 +13,7 @@ const ready = text => page.waitForFunction(t=>document.querySelector('#status').
 const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
  await page.locator('#toggleEditors').click();
   const loop = ';redcode-94\n;name Loop\n;assert 1\njmp 0\n';
   await page.locator('#first').fill(loop); await page.locator('#second').fill(loop);

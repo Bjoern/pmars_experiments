@@ -7,7 +7,10 @@ const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(
 const empty=async()=>{while(await page.locator('.remove-warrior').count())await page.locator('.remove-warrior').last().click();};
 try{
  await page.goto('http://127.0.0.1:8765/docs/');
- await page.locator('#run').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
+ assert.equal(await page.locator('#editors textarea').count(),0);
+ assert(await page.locator('#demo').isVisible());
+ assert(await page.locator('#run').isDisabled());
+ await page.locator('#demo').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
  await empty();
  assert.equal(await page.locator('#warriorCount').textContent(),'0 warriors');
  assert(await page.locator('#demo').isVisible());assert(await page.locator('#toggleEditors').isHidden());

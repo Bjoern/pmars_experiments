@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
 const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
@@ -7,6 +8,7 @@ try {
   const page=await browser.newPage({viewport:{width:1280,height:900},deviceScaleFactor:scale});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
   for(const width of [1280,390]){
    await page.setViewportSize({width,height:900});
    for(const layout of ['vertical','horizontal','fill','fill-horizontal']){

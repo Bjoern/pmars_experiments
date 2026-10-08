@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 // SPDX-License-Identifier: GPL-2.0-or-later
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
@@ -22,6 +23,7 @@ const ready=t=>page.waitForFunction(t=>document.querySelector('#status').textCon
 const count=()=>page.locator('#timing').evaluate(e=>Number(e.dataset.instructions));
 try {
  await page.goto('http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
  assert.equal(await page.locator('#diagnostics').evaluate(e=>e.open),false);
  assert.equal(await page.locator('#series,#stop').count(),0);
  await page.locator('#toggleEditors').click();

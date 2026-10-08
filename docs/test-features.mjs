@@ -1,3 +1,4 @@
+import {loadTestWarriors} from './test-fixtures.mjs';
 // SPDX-License-Identifier: GPL-2.0-or-later
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
@@ -9,6 +10,7 @@ const ready=t=>page.waitForFunction(t=>document.querySelector('#status').textCon
 const code=name=>';redcode\n;name '+name+'\n;assert 1\njmp 0\n';
 try{
  await page.goto(process.env.PMARS_URL||'http://127.0.0.1:8765/docs/');
+ await loadTestWarriors(page);
  assert(await page.locator('#first').isHidden());assert(await page.locator('#second').isHidden());
  await page.getByRole('button',{name:'Edit or collapse warrior 1',exact:true}).click();
  assert(await page.locator('#first').isVisible());assert(await page.locator('#second').isHidden());
