@@ -66,13 +66,13 @@ and STP after assembly.
 
 The native console sits below the battle controls and is collapsed by default.
 Click its heading to show/hide it; per-warrior Validate and compilation failures
-open it automatically. Clear output clears the console; starting a new battle
+open it automatically. Clear output beside the console heading clears the console without toggling it; starting a new battle
 or series also clears it. Validation is optional: Run assembles automatically. Validate checks just that warrior with the current match
 settings (including warrior count), always prints its listing, and preserves
 the active battle. Buttons show success/failure and reset when inputs change.
 All warriors are validated on page load and one second after the latest source
 or settings edit, one worker at a time. Editing cancels stale checks. Automatic
-validation updates labels without opening the console; the ↻ icon revalidates
+validation updates labels without opening the console; the ↻ Validate/Valid button revalidates
 immediately and opens the output. Run battle also reports the failing warrior. The console includes assembly listings,
 diagnostics, and final native results. Brief, verbose, KotH output, sorting,
 and score formula settings affect this output. Its retained text is bounded
@@ -82,7 +82,8 @@ to 256 KiB; diagnostics retain 64 KiB.
 
 - Add/remove warriors: supports 1–36, including solo debugging. Use New warrior below the editors to create an
   editable warrior, upload one or multiple files, or drop files on the upload
-  area below the editors. Each editor has a Download button. The arrow before its name hides or opens
+  area below the editors. Each editor has a Download button. Existing and imported editors start collapsed; New warrior opens its editor.
+  The arrow before its name hides or opens
   its source textarea. One Collapse all / Expand all toggle controls every editor without changing
   sources or validation status. Editor headings
   update from the source's `;name` directive while typing. An active battle's

@@ -9,7 +9,6 @@ const ready=t=>page.waitForFunction(t=>document.querySelector('#status').textCon
 const code=name=>';redcode\n;name '+name+'\n;assert 1\njmp 0\n';
 try{
  await page.goto(process.env.PMARS_URL||'http://127.0.0.1:8765/docs/');
- await page.locator('#toggleEditors').click();
  assert(await page.locator('#first').isHidden());assert(await page.locator('#second').isHidden());
  await page.getByRole('button',{name:'Edit or collapse warrior 1',exact:true}).click();
  assert(await page.locator('#first').isVisible());assert(await page.locator('#second').isHidden());
@@ -31,6 +30,17 @@ try{
  assert(await page.locator('#rounds').isVisible());
  assert(await page.locator('#settingsSummary').isVisible());
  assert(await page.locator('#settingsFields').isHidden());
+ await page.locator('#newWarrior').click();
+ assert(await page.locator('#warrior-2').isVisible(),'New warriors open for editing');
+ await page.getByRole('button',{name:'Remove warrior 3',exact:true}).click();
+ const compact=await page.evaluate(()=>{
+  const row=document.querySelector('.editor-title').getBoundingClientRect();
+  const actions=[...document.querySelectorAll('.editor-title:first-child button')].slice(0,4).map(e=>e.getBoundingClientRect());
+  const toolbar=document.querySelector('.arena-controls').getBoundingClientRect(),theme=document.querySelector('.arena-theme').getBoundingClientRect();
+  const summary=document.querySelector('#consoleWindow summary').getBoundingClientRect(),clear=document.querySelector('#clearConsole').getBoundingClientRect();
+  return {oneRow:actions.every(r=>r.top>=row.top && r.bottom<=row.bottom+1),themeRight:Math.abs(theme.right-toolbar.right)<2,clearInline:clear.top>=summary.top && clear.bottom<=summary.bottom+1};
+ });
+ assert.deepEqual(compact,{oneRow:true,themeRight:true,clearInline:true});
  await page.locator('#warriorFiles').setInputFiles(['Uploaded A','Uploaded B'].map(n=>({name:n+'.red',mimeType:'text/plain',buffer:Buffer.from(code(n))})));
  await page.waitForFunction(()=>document.querySelectorAll('#editors textarea').length===4);
  assert((await page.locator('#editors').textContent()).includes('Uploaded A'));

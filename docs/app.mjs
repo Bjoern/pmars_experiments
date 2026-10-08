@@ -30,7 +30,7 @@ function showConsole() {
 function refreshCompileButtons() {
  document.querySelectorAll('.compile-warrior').forEach((button,i)=>{
   const result=compileStates[i] || '';
-  button.textContent=result==='busy'?'Validating…':result==='ok'?'Valid ✓':result==='failed'?'Invalid — retry':'Validate';
+  button.textContent='↻ '+(result==='busy'?'Validating…':result==='ok'?'Valid ✓':result==='failed'?'Invalid — retry':'Validate');
   button.dataset.result=result;button.disabled=result==='busy';
  });
 }
@@ -102,21 +102,17 @@ function editors() {
     label.className = 'warrior'; label.style.color = warriorColor(i);
     label.textContent = `${String(i+1).padStart(2,'0')} / ${draftName(source,i)}`;
     const remove = document.createElement('button');
-    remove.textContent = 'Remove'; remove.className = 'remove-warrior';
+    remove.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>';remove.title='Remove warrior'; remove.className = 'remove-warrior';
     remove.disabled = sources.length === 1;
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
     remove.onclick = () => { sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); editors(); };
     const save=document.createElement('button');save.textContent='Download';save.className='save-warrior';save.setAttribute('aria-label','Download warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
-    compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
-    const revalidate=document.createElement('button');revalidate.className='revalidate';revalidate.textContent='↻';
-    revalidate.title='Revalidate warrior';revalidate.setAttribute('aria-label','Revalidate warrior '+(i+1));
-    revalidate.onclick=()=>checkWarrior(i);
+    compile.title='Revalidate warrior and show assembly output';compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
     const edit=document.createElement('button');edit.className='edit-warrior';
     edit.setAttribute('aria-controls',label.htmlFor);edit.setAttribute('aria-label','Edit or collapse warrior '+(i+1));
-    edit.onclick=()=>{collapsedEditors[i]=!collapsedEditors[i];editorVisibility();if(!collapsedEditors[i])$(label.htmlFor).focus();};
-    top.append(edit,label,revalidate);
-    const actions=document.createElement("div");actions.className="warrior-actions";actions.append(compile,save,remove);
+    edit.onclick=()=>{collapsedEditors[i]=collapsedEditors[i]===false;editorVisibility();if(!collapsedEditors[i])$(label.htmlFor).focus();};
+    top.append(edit,label,compile,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
     area.setAttribute('aria-label', `Warrior ${i+1} source`);
@@ -125,7 +121,7 @@ function editors() {
       label.textContent = `${String(i+1).padStart(2,'0')} / ${draftName(area.value,i)}`;
       legend(); markDirty();
     };
-    box.append(top,actions,area); return box;
+    box.append(top,area); return box;
   }));
   editorVisibility();refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
@@ -134,18 +130,18 @@ function editors() {
 }
 function editorVisibility(){
  document.querySelectorAll('#editors textarea').forEach((area,i)=>{
-  area.hidden=!!collapsedEditors[i];
+  area.hidden=collapsedEditors[i]!==false;
   const button=document.querySelectorAll('.edit-warrior')[i];
   button.textContent=area.hidden?'▸':'▾';
   button.title=area.hidden?'Edit warrior':'Collapse editor';
   button.setAttribute('aria-expanded',String(!area.hidden));
  });
- const allClosed=sources.every((_,i)=>collapsedEditors[i]);
+ const allClosed=sources.every((_,i)=>collapsedEditors[i]!==false);
  $('toggleEditors').textContent=allClosed?'▸ Expand all':'▾ Collapse all';
  $('toggleEditors').setAttribute('aria-expanded',String(!allClosed));
 }
 $('toggleEditors').onclick=()=>{
- const collapse=!sources.every((_,i)=>collapsedEditors[i]);
+ const collapse=!sources.every((_,i)=>collapsedEditors[i]!==false);
  collapsedEditors=sources.map(()=>collapse);editorVisibility();
 };
 function processIndicators(update){
@@ -521,6 +517,7 @@ async function importFiles(files){
 }
 $('newWarrior').onclick=()=>{
  if(sources.length>=36)return;
+ collapsedEditors[sources.length]=false;
  sources.push(';redcode-94\n;name Warrior '+(sources.length+1)+'\n;assert 1\nmov.i 0, 1\nend\n');
  markDirty();editors();
 };
@@ -540,7 +537,7 @@ $('theme').onchange=()=>{
 };
 $('pauseProcesses').onchange=()=>{if(latest)processIndicators(latest);};
 $('pauseViews').onchange=()=>{syncTrace();if(latest)processIndicators(latest);};
-$('clearConsole').onclick=()=>{consoleText='';$('consoleOutput').textContent='';};
+$('clearConsole').onclick=event=>{event.preventDefault();event.stopPropagation();consoleText='';$('consoleOutput').textContent='';};
 $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;};
 setupSettings(markDirty);
 processChart.clear();scoreChart.clear();

@@ -84,3 +84,14 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .warrior-import #dropZone{flex:1;min-width:0;margin:0}
 .warrior-import #newWarrior{flex-shrink:0}
 @media(max-width:480px){header{gap:8px;padding-left:16px;padding-right:16px}header h1{font-size:28px}header p{font-size:12px}.warrior-import{gap:8px}.warrior-import #newWarrior{padding:8px;font-size:12px}}
+
+.editor-title{margin-bottom:6px}
+.editor-title .warrior{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-title .compile-warrior,.editor-title .save-warrior,.editor-title .remove-warrior{flex-shrink:0;font-size:12px;font-weight:400;padding:4px 6px;background:transparent}
+.editor-title .remove-warrior{display:flex;align-items:center}
+.arena-theme{margin-left:auto;display:flex;align-items:center;gap:8px}
+#consoleWindow summary{display:flex;align-items:center;gap:8px;margin-bottom:0}
+#consoleWindow summary::before{content:'▸'}
+#consoleWindow[open] summary::before{content:'▾'}
+#consoleWindow summary::-webkit-details-marker{display:none}
+#clearConsole{margin-left:auto}

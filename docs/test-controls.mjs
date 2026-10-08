@@ -12,6 +12,7 @@ const ready = text => page.waitForFunction(t=>document.querySelector('#status').
 const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
+ await page.locator('#toggleEditors').click();
   const loop = ';redcode-94\n;name Loop\n;assert 1\njmp 0\n';
   await page.locator('#first').fill(loop); await page.locator('#second').fill(loop);
   await page.locator('#editSettings').click();

@@ -8,6 +8,7 @@ const source=';redcode\n;name Loop\n;assert WARRIORS == 2\njmp 0\n';
 const compiled=()=>page.waitForFunction(()=>document.querySelector('.compile-warrior').dataset.result==='ok');
 try {
  await page.goto('http://127.0.0.1:8765/docs/');
+ await page.locator('#toggleEditors').click();
  await page.waitForFunction(()=>Array.from(document.querySelectorAll('.compile-warrior')).every(e=>e.dataset.result==='ok'));
  assert.equal(await page.locator('#consoleWindow').evaluate(e=>e.open),false);
  let validationWorkers=0;page.on('worker',()=>validationWorkers++);
@@ -19,7 +20,7 @@ try {
  await page.waitForFunction(()=>Array.from(document.querySelectorAll('.compile-warrior')).every(e=>e.dataset.result==='ok'));
  assert.equal(validationWorkers,2,'One validation per warrior after the editing pause');
  assert.equal(await page.locator('#consoleWindow').evaluate(e=>e.open),false);
- await page.getByRole('button',{name:'Revalidate warrior 1',exact:true}).click();await compiled();
+ await page.getByRole('button',{name:'Validate warrior 1',exact:true}).click();await compiled();
  assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
  await page.locator('#cellSize').selectOption('4');
  assert.equal(await page.locator('#core').evaluate(c=>c.clientWidth),142*4);
@@ -56,7 +57,7 @@ try {
  assert.equal(await page.locator('.compile-warrior').nth(1).getAttribute('data-result'),'failed');
  assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
  await page.locator('#second').fill(source);
- assert.equal(await page.locator('.compile-warrior').nth(1).textContent(),'Validate');
+ assert.equal(await page.locator('.compile-warrior').nth(1).textContent(),'↻ Validate');
  await page.locator('#debugStart').check();await page.locator('#run').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Paused before'));
  assert((await page.locator('#timing').textContent()).startsWith('Cycle 0 / 10'));
