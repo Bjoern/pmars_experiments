@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=0b6769244c541a67';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=0b6769244c541a67';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=0b6769244c541a67';
-import {HistoryChart} from './charts.mjs?v=0b6769244c541a67';
+import {Engine, settings} from './engine.mjs?v=351ae617e5a90c87';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=351ae617e5a90c87';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=351ae617e5a90c87';
+import {HistoryChart} from './charts.mjs?v=351ae617e5a90c87';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -51,7 +51,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=0b6769244c541a67',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=351ae617e5a90c87',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -203,7 +203,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=0b6769244c541a67', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=351ae617e5a90c87', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -351,13 +351,14 @@ function pause() {
 function frame(now) {
   if (state !== 'running') return;
   if (document.hidden) { previous = now; animation = requestAnimationFrame(frame); return; }
-  const rate = Math.round(10 ** Number($('speed').value));
+  const unthrottled = fastMode || Number($('speed').value) > 5;
+  const rate = Math.round(10 ** Math.min(5,Number($('speed').value)));
   credit = Math.min(credit + Math.min(now-previous,50)*rate/1000,rate/20+1); previous = now;
-  if (fastMode || credit >= 1) {
+  if (unthrottled || credit >= 1) {
     const before = performance.now();
-    const update = engine.advance(fastMode?100000:Math.min(100000,Math.floor(credit)),4);
+    const update = engine.advance(unthrottled?100000:Math.min(100000,Math.floor(credit)),4);
     maxSlice = Math.max(maxSlice,performance.now()-before);
-    if(!fastMode)credit -= update.executed; present(update);
+    if(!unthrottled)credit -= update.executed; present(update);
   }
   if (state === 'running') animation = requestAnimationFrame(frame);
 }
@@ -467,7 +468,13 @@ $('diagnostics').ontoggle=()=>{if($('diagnostics').open)$('sliceTiming').textCon
 $('run').onclick = safe(run);
 $('step').onclick = safe(() => step());
 $('reset').onclick = safe(load);
-$('speed').oninput = () => { $('speedValue').textContent = Math.round(10 ** Number($('speed').value)).toLocaleString(); };
+$('speed').oninput = () => {
+ const unlimited=Number($('speed').value)>5;
+ const label=unlimited?'Unlimited':Math.round(10 ** Number($('speed').value)).toLocaleString();
+ $('speedValue').textContent=label;
+ $('speed').setAttribute('aria-valuetext',unlimited?'Unlimited, with graphics':label+' instructions per second');
+ credit=0;
+};
 $('address').oninput = () => { $('follow').value = '-1'; inspect(); };
 $('lines').oninput = inspect; $('follow').onchange = inspect;
 $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());

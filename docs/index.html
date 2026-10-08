@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=0b6769244c541a67">
+<link rel="stylesheet" href="style.css?v=351ae617e5a90c87">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -54,7 +54,7 @@ end
 </div>
 <label class="rounds-control">Rounds <input id="rounds" aria-label="Rounds (-r)" type="number" min="0" max="2147483647" value="1"></label>
 <span id="timing">Cycle —</span>
-<label class="speed-control" title="Instructions per second">Speed <input id="speed" aria-label="Instructions per second" type="range" min="0" max="5" value="3" step="0.1"><output id="speedValue">1,000</output></label>
+<label class="speed-control" title="Instructions per second">Speed <input id="speed" aria-label="Instructions per second" aria-valuetext="1,000 instructions per second" type="range" min="0" max="5.1" value="3" step="0.1"><output id="speedValue">1,000</output></label>
 <output id="hoverAddress" aria-label="Hovered memory address">Cell: —</output>
 </div>
 <div class="arena-space"><div class="arena-viewport" data-layout="vertical" tabindex="0" role="region" aria-label="Scrollable core arena">
@@ -100,5 +100,5 @@ macro loops, interactive breakpoint editing, and operand-pointer macros are not 
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <details id="diagnostics"><summary id="diagnosticsTitle">Show diagnostics</summary><p id="sliceTiming">Peak simulation slice: 0.0 ms</p><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></details></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=0b6769244c541a67"></script>
+</main><script type="module" src="app.mjs?v=351ae617e5a90c87"></script>
 </body></html>
