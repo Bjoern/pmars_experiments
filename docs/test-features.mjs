@@ -17,7 +17,7 @@ try{
   const r=c.getBoundingClientRect();
   c.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+20,clientY:r.top+28}));
  });
- assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: 0428');
+ assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: '+String(3*Number(await page.locator('#core').getAttribute('data-columns'))+2).padStart(4,'0'));
  await page.locator('#core').dispatchEvent('pointerleave');
  assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: —');
  const layout=await page.evaluate(()=>{

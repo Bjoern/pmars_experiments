@@ -444,9 +444,9 @@ $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount()
 $('traceMode').onchange = () => { syncTrace(); renderTrace(); };
 $('arenaLayout').onchange=()=>{
  const layout=$('arenaLayout').value,viewport=document.querySelector('.arena-viewport');
- viewport.classList.toggle('expanded',layout==='expanded');
- viewport.classList.toggle('wrapped',layout==='wrap');
- viewport.setAttribute('aria-label',layout==='wrap'?'Core arena fitted to available width':layout==='expanded'?'Expanded core arena':'Scrollable core arena');
+ viewport.dataset.layout=layout;
+ viewport.scrollLeft=0;viewport.scrollTop=0;
+ viewport.setAttribute('aria-label',{'vertical':'Core arena scrolling vertically','horizontal':'Core arena scrolling horizontally','fill':'Core arena filling vertically'}[layout]);
  clearHover();display.setLayout(layout);
 };
 function clearHover(){ $('hoverAddress').textContent='Cell: —'; }

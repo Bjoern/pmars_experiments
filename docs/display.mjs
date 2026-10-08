@@ -12,15 +12,27 @@ export function warriorColor(i) {
 export class CoreDisplay {
   constructor(canvas) {
     this.canvas = canvas;
+    this.viewport = canvas.parentElement;
+    this.offsetX = this.offsetY = 0;
+    this.surface = null;
     this.context = canvas.getContext('2d', {alpha: false});
     this.columns = Math.ceil(Math.sqrt(8000 * 2.5));
     this.size = 8000;
     this.preferredCellSize = 8;
-    this.layout = "scroll";
+    this.layout = "vertical";
     this.pcs = [];
     this.cells = new Uint8Array(this.size*4);
     this.observer = new ResizeObserver(() => this.redraw());
-    this.observer.observe(canvas.parentElement || canvas);
+    this.observer.observe(this.viewport || canvas);
+    this.onScroll = () => {
+      if (!this.surface) return;
+      cancelAnimationFrame(this.scrollFrame);
+      this.scrollFrame=requestAnimationFrame(()=>this.redraw());
+    };
+    this.viewport?.addEventListener('scroll',this.onScroll);
+    window.addEventListener('scroll',this.onScroll,{passive:true});
+    this.onWindowResize = () => this.redraw();
+    window.addEventListener("resize",this.onWindowResize);
     this.redraw();
   }
   configure(size) {
@@ -36,30 +48,55 @@ export class CoreDisplay {
     this.redraw();
   }
   setLayout(layout) {
-    if (!['scroll','wrap','expanded'].includes(layout)) return;
+    if (!['vertical','horizontal','fill'].includes(layout)) return;
     this.layout = layout;
     this.redraw();
   }
   redraw() {
     const ratio = window.devicePixelRatio || 1;
-    const available = Math.max(1, (this.canvas.parentElement || this.canvas).clientWidth);
+    const available = Math.max(1, (this.viewport || this.canvas).clientWidth);
     const naturalColumns = Math.ceil(Math.sqrt(this.size * 2.5));
     // Even CSS pixel sizes keep quarter-cell boundaries on whole pixels.
     this.cellSize = this.preferredCellSize || Math.max(2,2*Math.floor(available/naturalColumns/2));
-    this.columns = this.layout==='wrap' ? Math.max(1,Math.floor(available/this.cellSize)) : naturalColumns;
-    this.columns = Math.min(this.size,this.columns);
-    // Keep very large cores within conservative canvas backing-store limits.
-    const maxRows = Math.max(1,Math.floor(16384/(this.cellSize*ratio)));
-    this.columns = Math.max(this.columns,Math.ceil(this.size/maxRows));
+    const panelHeight = Math.max(this.cellSize,Math.floor(window.innerHeight*0.6));
+    if (this.layout==='horizontal') {
+      const rows = Math.max(1,Math.floor(panelHeight/this.cellSize));
+      this.columns = Math.ceil(this.size/rows);
+    } else {
+      this.columns = Math.min(this.size,Math.max(1,Math.floor(available/this.cellSize)));
+    }
     const width = this.columns*this.cellSize;
-    this.canvas.style.width = width + 'px';
-    this.canvas.title = this.layout==='wrap' && width>available
-      ? 'This core exceeds the canvas height limit; some horizontal scrolling is needed.'
-      : 'Memory cells wrap in address order, left to right.';
+    this.canvas.title = 'Memory cells run left to right in address order.';
     const height = Math.ceil(this.size / this.columns) * this.cellSize;
-    this.canvas.style.height = height + 'px';
-    this.canvas.width = Math.round(width * ratio);
-    this.canvas.height = Math.round(height * ratio);
+    this.offsetX=this.offsetY=0;
+    let paintWidth=width,paintHeight=height;
+    // Large arenas keep their full CSS extent but draw only a movable window.
+    // This avoids oversized canvas allocations without changing the layout.
+    const tile = Math.max(this.cellSize,Math.floor(4096/ratio/this.cellSize)*this.cellSize);
+    if (width*ratio>8192 || height*ratio>8192) {
+      if(!this.surface){
+        this.surface=document.createElement('div');
+        this.surface.style.position='relative';
+        this.viewport.insertBefore(this.surface,this.canvas);
+        this.surface.append(this.canvas);
+      }
+      this.surface.style.width=width+'px';this.surface.style.height=height+'px';
+      const rect=this.viewport.getBoundingClientRect();
+      const visibleX=this.viewport.scrollLeft+Math.max(0,-rect.left);
+      const visibleY=this.viewport.scrollTop+Math.max(0,-rect.top);
+      this.offsetX=Math.min(Math.max(0,width-tile),Math.max(0,Math.floor((visibleX-tile/4)/this.cellSize)*this.cellSize));
+      this.offsetY=Math.min(Math.max(0,height-tile),Math.max(0,Math.floor((visibleY-tile/4)/this.cellSize)*this.cellSize));
+      paintWidth=Math.min(width,tile);paintHeight=Math.min(height,tile);
+      this.canvas.style.position='absolute';
+      this.canvas.style.left=this.offsetX+'px';this.canvas.style.top=this.offsetY+'px';
+    } else {
+      if(this.surface){this.viewport.insertBefore(this.canvas,this.surface);this.surface.remove();this.surface=null;}
+      this.canvas.style.position='';this.canvas.style.left='';this.canvas.style.top='';
+    }
+    this.canvas.dataset.columns=String(this.columns);this.canvas.dataset.cellSize=String(this.cellSize);
+    this.paintWidth=paintWidth;this.paintHeight=paintHeight;
+    this.canvas.style.width=paintWidth+'px';this.canvas.style.height=paintHeight+'px';
+    this.canvas.width=Math.round(paintWidth*ratio);this.canvas.height=Math.round(paintHeight*ratio);
     this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
     this.context.fillStyle = '#101d29';
     this.context.fillRect(0, 0, width, height);
@@ -91,7 +128,8 @@ export class CoreDisplay {
     for (const address of dirty) this.draw(address);
   }
   draw(address) {
-    const x=(address%this.columns)*this.cellSize,y=Math.floor(address/this.columns)*this.cellSize;
+    const x=(address%this.columns)*this.cellSize-this.offsetX,y=Math.floor(address/this.columns)*this.cellSize-this.offsetY;
+    if(x<0 || y<0 || x>=this.paintWidth || y>=this.paintHeight)return;
     const classic=this.preferredCellSize===4 || this.preferredCellSize===6;
     const c=this.context,pad=classic?1:0,half=(this.cellSize-2*pad)/2;
     c.fillStyle='#101d29';c.fillRect(x,y,this.cellSize,this.cellSize);
@@ -115,8 +153,8 @@ export class CoreDisplay {
   }
   addressAt(event) {
     const rect = this.canvas.getBoundingClientRect();
-    const row=Math.floor((event.clientY-rect.top)/this.cellSize);
-    const col=Math.floor((event.clientX-rect.left)/this.cellSize);
+    const row=Math.floor((event.clientY-rect.top+this.offsetY)/this.cellSize);
+    const col=Math.floor((event.clientX-rect.left+this.offsetX)/this.cellSize);
     const address=row*this.columns+col;
     return row>=0 && col>=0 && col<this.columns && address<this.size ? address : null;
   }

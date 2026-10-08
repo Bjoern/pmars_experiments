@@ -104,11 +104,15 @@ to 256 KiB; diagnostics retain 64 KiB.
   of inter-cell spacing (4-pixel pitch), matching native SDL modes 0/1.
   Compact uses a 4×4 mark with 2-pixel spacing (6-pixel pitch, native mode 3).
   These are CSS pixels, scaled by the browser/device pixel ratio. Choose 12, 16, or 24 pixels for larger
-  markers, or Auto for an overview using even whole-pixel cell sizes. Layout offers Scroll in panel (bounded viewport), Fit available width
-  (reflows columns at the chosen cell size and grows vertically), and Full size
-  (the original column count without a bounded viewport). Automatic sizing
-  redraws the canvas rather than stretching it. Very large cores may need
-  horizontal scrolling even in Fit available width to respect canvas height limits. Changing size preserves memory marks and battle state.
+  markers, or Auto for an overview using even whole-pixel cell sizes. Layout offers:
+  Scroll vertically (fit columns to width, scroll inside a bounded-height panel),
+  Scroll horizontally (fit rows to a bounded height, scroll sideways inside the
+  panel), and Fill vertically (fit columns to width and grow down the page).
+  Cell-size and window-size changes recompute the grid without changing memory.
+  Automatic sizing redraws using even whole CSS pixels rather than stretching.
+  Very large arenas retain their full scroll extent but paint a movable canvas
+  window to avoid oversized bitmap allocations; no horizontal fallback is used.
+  Changing size preserves memory marks and battle state.
 - Hover over the arena to see the address under the pointer beside the size
   selector. Leaving or scrolling clears the indicator.
 - Click the arena to pause and list from that address. Right-click lists up to
@@ -301,6 +305,7 @@ node docs/test-debugger.mjs
 node docs/test-controls.mjs
 node docs/test-features.mjs
 node docs/test-feedback.mjs
+node docs/test-layout.mjs
 ```
 
 The engine suite checks native deterministic score parity, exact ordered event

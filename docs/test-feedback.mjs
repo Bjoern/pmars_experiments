@@ -23,19 +23,19 @@ try {
  await page.getByRole('button',{name:'Validate warrior 1',exact:true}).click();await compiled();
  assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
  await page.locator('#cellSize').selectOption('4');
- assert.equal(await page.locator('#core').evaluate(c=>c.clientWidth),142*4);
+ assert.equal(await page.locator('#core').evaluate(c=>Number(c.dataset.cellSize)),4);
  await page.locator('#cellSize').selectOption('6');
- assert.equal(await page.locator('#core').evaluate(c=>c.clientWidth),142*6);
+ assert.equal(await page.locator('#core').evaluate(c=>Number(c.dataset.cellSize)),6);
 
  assert(await page.getByRole('button',{name:'Validate warrior 1',exact:true}).isVisible());
  assert(await page.getByRole('button',{name:'Validate warrior 2',exact:true}).isVisible());
  await page.locator('#cellSize').selectOption('24');
- await page.locator('#arenaLayout').selectOption('expanded');
- assert(await page.locator('.arena-viewport').evaluate(e=>e.classList.contains('expanded')));
+ await page.locator('#arenaLayout').selectOption('fill');
+ assert(await page.locator('.arena-viewport').evaluate(e=>e.dataset.layout==='fill'));
  assert(await page.locator('.arena-viewport').evaluate(e=>e.clientHeight>innerHeight*.65));
- await page.locator('#arenaLayout').selectOption('scroll');
+ await page.locator('#arenaLayout').selectOption('vertical');
  assert(await page.locator('.arena-viewport').evaluate(e=>e.clientHeight<=innerHeight*.65));
- await page.locator('#arenaLayout').selectOption('wrap');
+ await page.locator('#arenaLayout').selectOption('fill');
  assert(await page.locator('#core').evaluate(c=>c.clientWidth<=c.parentElement.clientWidth));
  assert(await page.locator('#core').evaluate(c=>c.clientHeight>1000));
  const wrapAddress=await page.locator('#core').evaluate(c=>{
@@ -44,7 +44,7 @@ try {
   return String(columns+1).padStart(4,'0');
  });
  assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: '+wrapAddress);
- await page.locator('#arenaLayout').selectOption('scroll');
+ await page.locator('#arenaLayout').selectOption('vertical');
  await page.locator('#cellSize').selectOption('8');
  await page.locator('#first').fill(source);await page.locator('#second').fill(source);
  await page.locator('#editSettings').click();assert.equal(await page.locator('#editSettings').textContent(),'Collapse match settings');

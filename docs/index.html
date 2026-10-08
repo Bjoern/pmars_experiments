@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=20261008-layout">
+<link rel="stylesheet" href="style.css?v=20261008-directions">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -56,11 +56,11 @@ end
 <section class="arena" aria-label="Core arena">
 <div class="arena-controls"><label for="cellSize">Cell size</label>
 <select id="cellSize"><option value="0">Auto · whole pixels</option><option value="4">Classic · 2×2 mark</option><option value="6">Compact · 4×4 mark</option><option value="8" selected>8 px</option><option value="12">12 px</option><option value="16">16 px</option><option value="24">24 px</option></select>
-<label>Layout <select id="arenaLayout"><option value="scroll">Scroll in panel</option><option value="wrap">Fit available width</option><option value="expanded">Full size</option></select></label>
+<label>Layout <select id="arenaLayout"><option value="vertical">Scroll vertically</option><option value="horizontal">Scroll horizontally</option><option value="fill">Fill vertically</option></select></label>
 <output id="hoverAddress" aria-label="Hovered memory address">Cell: —</output>
 <label class="arena-theme">Theme <select id="theme"><option value="modern">Modern</option><option value="classic">pMARS classic</option><option value="accessible">pMARS accessible</option></select></label></div>
 <p class="hint">Every square is one memory address. Dark cells still contain instructions; colored parts show activity.</p>
-<div class="arena-viewport" tabindex="0" role="region" aria-label="Scrollable core arena">
+<div class="arena-viewport" data-layout="vertical" tabindex="0" role="region" aria-label="Scrollable core arena">
 <canvas id="core" aria-label="Core memory activity; use the address inspector below for text details"></canvas></div>
 </section>
 <div class="legend"><span id="legendNames"></span><span><span class="glyph read"></span> Read (top-left)
@@ -103,5 +103,5 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=20261008-layout"></script>
+</main><script type="module" src="app.mjs?v=20261008-directions"></script>
 </body></html>
