@@ -80,10 +80,10 @@ to 256 KiB; diagnostics retain 64 KiB.
 
 ## Controls
 
-- Add/remove warriors: supports 1–36, including solo debugging. Create a new
+- Add/remove warriors: supports 1–36, including solo debugging. Use New warrior below the editors to create an
   editable warrior, upload one or multiple files, or drop files on the upload
-  area or Add warrior dialog. Each editor has a Download button. Collapse hides its source textarea, and Edit
-  opens it again. Collapse all / Expand all control every editor without changing
+  area below the editors. Each editor has a Download button. The arrow before its name hides or opens
+  its source textarea. One Collapse all / Expand all toggle controls every editor without changing
   sources or validation status. Editor headings
   update from the source's `;name` directive while typing. An active battle's
   legend and traces retain the loaded names until Reset.

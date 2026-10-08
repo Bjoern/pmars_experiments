@@ -9,11 +9,11 @@ const ready=t=>page.waitForFunction(t=>document.querySelector('#status').textCon
 const code=name=>';redcode\n;name '+name+'\n;assert 1\njmp 0\n';
 try{
  await page.goto(process.env.PMARS_URL||'http://127.0.0.1:8765/docs/');
- await page.locator('#collapseEditors').click();
+ await page.locator('#toggleEditors').click();
  assert(await page.locator('#first').isHidden());assert(await page.locator('#second').isHidden());
  await page.getByRole('button',{name:'Edit or collapse warrior 1',exact:true}).click();
  assert(await page.locator('#first').isVisible());assert(await page.locator('#second').isHidden());
- await page.locator('#expandEditors').click();assert(await page.locator('#second').isVisible());
+ await page.locator('#toggleEditors').click();await page.locator('#toggleEditors').click();assert(await page.locator('#second').isVisible());
  await page.locator('#core').evaluate(c=>{
   const r=c.getBoundingClientRect();
   c.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+20,clientY:r.top+28}));
@@ -21,6 +21,12 @@ try{
  assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: 0428');
  await page.locator('#core').dispatchEvent('pointerleave');
  assert.equal(await page.locator('#hoverAddress').textContent(),'Cell: —');
+ const layout=await page.evaluate(()=>{
+  const editors=document.querySelector('#editors').getBoundingClientRect(),drop=document.querySelector('#dropZone').getBoundingClientRect(),button=document.querySelector('#newWarrior').getBoundingClientRect();
+  const h=document.querySelector('header h1').getBoundingClientRect(),p=document.querySelector('header p').getBoundingClientRect();
+  return {below:drop.top>=editors.bottom,sameRow:button.left>=drop.right,inline:p.left>=h.right};
+ });
+ assert.deepEqual(layout,{below:true,sameRow:true,inline:true});
  assert(await page.locator('#series').isVisible());
  assert(await page.locator('#rounds').isVisible());
  assert(await page.locator('#settingsSummary').isVisible());

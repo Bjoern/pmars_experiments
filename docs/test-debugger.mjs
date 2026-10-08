@@ -83,7 +83,7 @@ try {
   assert.match(await page.locator('#instruction').textContent(),/ADD.AB\s+#\s*1,\s*\$\s*1/);
   assert((await page.locator('#scores').textContent()).includes('survived'));
 
-  await page.locator('#addWarrior').click(); await page.locator('#newWarrior').click(); await page.locator('#addWarrior').click(); await page.locator('#newWarrior').click();
+  await page.locator('#newWarrior').click(); await page.locator('#newWarrior').click();
   await page.locator('#traceMode').selectOption('columns');
   await page.locator('#reset').click(); await ready('Paused before');
   assert.equal(await page.locator('#execution section').count(),3);

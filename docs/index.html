@@ -5,17 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=20261007-editors">
+<link rel="stylesheet" href="style.css?v=20261007-compact">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
 <p>based on pmars</p></header>
 <main>
-<div class="roster"><span id="warriorCount">2 warriors</span><div><button id="collapseEditors">Collapse all</button> <button id="expandEditors">Expand all</button> <button id="addWarrior">Add warrior</button> <button id="uploadWarriors">Upload files</button></div></div>
-<div id="dropZone" tabindex="0" role="button" aria-label="Drop warrior files or open file picker">Drop one or more warrior files here, or click to upload</div>
-<input id="warriorFiles" type="file" multiple accept=".red,.rc,.txt" hidden>
-<dialog id="addDialog"><h2>Add warriors</h2><p>Create an editable warrior, upload files, or drop files onto the drop area.</p>
-<button id="newWarrior">New / edit warrior</button> <button id="dialogUpload">Upload files</button> <button id="closeAdd">Close</button></dialog>
+<div class="roster"><span id="warriorCount">2 warriors</span><button id="toggleEditors" class="disclosure-all" aria-expanded="true" aria-controls="editors">▾ Collapse all</button></div>
 <section id="editors" class="editors" aria-label="Warrior source code">
 <label><span class="warrior first">01 / Imp</span><textarea id="first" spellcheck="false" aria-label="First warrior source">;redcode-94
 ;name Imp
@@ -35,6 +31,8 @@ bomb dat.f #0, #0
 end
 </textarea></label>
 </section>
+<div class="warrior-import"><div id="dropZone" tabindex="0" role="button" aria-label="Drop warrior files or open file picker">Drop warrior files here, or click to upload</div><button id="newWarrior">New warrior</button></div>
+<input id="warriorFiles" type="file" multiple accept=".red,.rc,.txt" hidden>
 <p class="hint">Validation runs after a one-second editing pause; ↻ revalidates immediately. Validate is optional. Running a battle automatically assembles the warriors.</p>
 <section class="controls" aria-label="Battle controls">
 <button id="run" class="primary">Run battle</button><button id="pause" disabled>Pause</button>
@@ -104,5 +102,5 @@ macro loops, breakpoints, and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <section><h2 id="diagnosticsTitle">Diagnostics</h2><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></section></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=20261007-editors"></script>
+</main><script type="module" src="app.mjs?v=20261007-compact"></script>
 </body></html>

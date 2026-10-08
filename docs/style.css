@@ -73,3 +73,14 @@ body[data-theme=accessible]{background:#09131d}body[data-theme=accessible] butto
 
 #processCounts{font-size:13px;line-height:1.8;margin-top:8px}
 #hoverAddress{font:13px Consolas,monospace;min-width:100px}
+
+header{display:flex;align-items:baseline;gap:14px;padding-top:24px;padding-bottom:4px}
+header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
+.editor-title{justify-content:flex-start;gap:6px;flex-wrap:nowrap}
+.editor-title .warrior{margin:0;flex:1}
+.edit-warrior,.disclosure-all{padding:3px 5px;border:0;background:transparent;font-weight:400;font-size:13px;color:#aec0ce}
+.edit-warrior{font-size:16px}
+.warrior-import{display:flex;align-items:center;gap:12px;margin-top:16px}
+.warrior-import #dropZone{flex:1;min-width:0;margin:0}
+.warrior-import #newWarrior{flex-shrink:0}
+@media(max-width:480px){header{gap:8px;padding-left:16px;padding-right:16px}header h1{font-size:28px}header p{font-size:12px}.warrior-import{gap:8px}.warrior-import #newWarrior{padding:8px;font-size:12px}}

@@ -115,7 +115,7 @@ function editors() {
     const edit=document.createElement('button');edit.className='edit-warrior';
     edit.setAttribute('aria-controls',label.htmlFor);edit.setAttribute('aria-label','Edit or collapse warrior '+(i+1));
     edit.onclick=()=>{collapsedEditors[i]=!collapsedEditors[i];editorVisibility();if(!collapsedEditors[i])$(label.htmlFor).focus();};
-    top.append(label,revalidate,edit);
+    top.append(edit,label,revalidate);
     const actions=document.createElement("div");actions.className="warrior-actions";actions.append(compile,save,remove);
     const area = document.createElement('textarea');
     area.id = label.htmlFor; area.value = source; area.spellcheck = false;
@@ -129,19 +129,25 @@ function editors() {
   }));
   editorVisibility();refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
-  $('addWarrior').disabled = sources.length >= 36;
+  $('newWarrior').disabled = sources.length >= 36;
   legend();
 }
 function editorVisibility(){
  document.querySelectorAll('#editors textarea').forEach((area,i)=>{
   area.hidden=!!collapsedEditors[i];
   const button=document.querySelectorAll('.edit-warrior')[i];
-  button.textContent=area.hidden?'Edit':'Collapse';
+  button.textContent=area.hidden?'▸':'▾';
+  button.title=area.hidden?'Edit warrior':'Collapse editor';
   button.setAttribute('aria-expanded',String(!area.hidden));
  });
+ const allClosed=sources.every((_,i)=>collapsedEditors[i]);
+ $('toggleEditors').textContent=allClosed?'▸ Expand all':'▾ Collapse all';
+ $('toggleEditors').setAttribute('aria-expanded',String(!allClosed));
 }
-$('collapseEditors').onclick=()=>{collapsedEditors=sources.map(()=>true);editorVisibility();};
-$('expandEditors').onclick=()=>{collapsedEditors=sources.map(()=>false);editorVisibility();};
+$('toggleEditors').onclick=()=>{
+ const collapse=!sources.every((_,i)=>collapsedEditors[i]);
+ collapsedEditors=sources.map(()=>collapse);editorVisibility();
+};
 function processIndicators(update){
  if($('pauseViews').checked || $('pauseProcesses').checked)return;
  $('processCounts').replaceChildren(...update.warriors.map((w,i)=>{
@@ -510,20 +516,18 @@ async function importFiles(files){
  if(list.some(f=>f.size>65536))throw new Error('Warrior files must be at most 64 KiB each.');
  const texts=await Promise.all(list.map(f=>f.text()));
  if(sources.length+texts.length>36)throw new Error('Too many warriors after concurrent imports.');
- sources.push(...texts);markDirty();editors();$('addDialog').close();
+ sources.push(...texts);markDirty();editors();
  status('Imported '+list.length+' warrior files. Edit them below or Reset to load them.');
 }
-$('addWarrior').onclick=()=>$('addDialog').showModal();
 $('newWarrior').onclick=()=>{
  if(sources.length>=36)return;
  sources.push(';redcode-94\n;name Warrior '+(sources.length+1)+'\n;assert 1\nmov.i 0, 1\nend\n');
- markDirty();editors();$('addDialog').close();
+ markDirty();editors();
 };
-for(const id of ['uploadWarriors','dialogUpload','dropZone']) $(id).onclick=()=>$('warriorFiles').click();
+$('dropZone').onclick=()=>$('warriorFiles').click();
 $('dropZone').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('warriorFiles').click();}};
-$('closeAdd').onclick=()=>$('addDialog').close();
 $('warriorFiles').onchange=()=>{importFiles($('warriorFiles').files).catch(e=>status(e.message));$('warriorFiles').value='';};
-for(const id of ['dropZone','addDialog']){
+for(const id of ['dropZone']){
  const zone=$(id);
  zone.ondragover=e=>{e.preventDefault();zone.classList.add('dragging');};
  zone.ondragleave=()=>zone.classList.remove('dragging');
