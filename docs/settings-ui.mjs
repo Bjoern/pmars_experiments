@@ -1,5 +1,5 @@
-import {defaults,settings} from './settings.mjs?v=c9656d812cc984b2';
-import {presets} from './presets.mjs?v=c9656d812cc984b2';
+import {defaults,settings} from './settings.mjs?v=6299bb2f937235b7';
+import {presets} from './presets.mjs?v=6299bb2f937235b7';
 const $ = id=>document.getElementById(id);
 const numbers = [['coreSize','-s Core size',80,65536],['cycles','-c Cycles per warrior',1,10000000],
  ['tasks','-p Processes',1,65536],['maxLength','-l Maximum length',1,1000],
@@ -44,8 +44,8 @@ export function setupSettings(changed) {
   const values={...defaults,noPspace:false,fixedSeries:false,...preset.values};
   for(const key of keys) {if($(key).type==='checkbox')$(key).checked=!!values[key];else $(key).value=values[key];}
   $('presetSource').replaceChildren();
-  if(preset.source) {
-   const a=document.createElement('a');a.href='https://www.corewar.info/hills/'+preset.source+'.htm';a.target='_blank';a.rel='noopener';a.textContent='Published hill specification';
+  if(preset.sourceUrl || preset.source) {
+   const a=document.createElement('a');a.href=preset.sourceUrl || 'https://www.corewar.info/hills/'+preset.source+'.htm';a.target='_blank';a.rel='noopener';a.textContent='Published hill specification';
    $('presetSource').append(a,' · historical parameters; round count is editable.');
   }
   refreshSummary();changed();
