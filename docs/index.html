@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=08290d5a2154571e">
+<link rel="stylesheet" href="style.css?v=070aea45cfb7b7e6">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -52,7 +52,7 @@
 <label>Follow <select id="follow"><option value="-1">Fixed address</option></select></label>
 <button id="prevPage" aria-label="Previous page">↑ Page</button><button id="nextPage" aria-label="Next page">↓ Page</button></div>
 <pre id="instruction" aria-label="Core instruction listing">Load a battle to inspect its core.</pre>
-<form id="commandForm"><label for="command">Debugger command</label><input id="command" placeholder="list 0,9 · step · macro f5 · alive" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre>
+<form id="commandForm"><label for="command">Debugger command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f5 · alive" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre>
 <details id="debugHelp"><summary>Browser debugger commands</summary>
 <p>Click a core cell to pause and list from that address; right-click lists up to it.
 Choose the line count, page through memory, or follow a warrior's next instruction.</p>
@@ -80,5 +80,5 @@ macro loops, interactive breakpoint editing, and operand-pointer macros are not 
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <details id="diagnostics"><summary id="diagnosticsTitle">Show diagnostics</summary><p id="sliceTiming">Peak simulation slice: 0.0 ms</p><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></details></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=08290d5a2154571e"></script>
+</main><script type="module" src="app.mjs?v=070aea45cfb7b7e6"></script>
 </body></html>
