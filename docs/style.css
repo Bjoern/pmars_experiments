@@ -127,3 +127,7 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .speed-control{margin-left:auto}.speed-control input{width:85px;padding:0}.speed-control output{min-width:42px}
 #timing{white-space:nowrap;font-size:12px}#hoverAddress{min-width:78px;font-size:12px}
 @media(max-width:650px){.page-layout{justify-content:flex-start}.speed-control{margin-left:0}}
+
+/* Run/Pause and growing cycle values must not shift neighboring controls. */
+#run{width:72px;justify-content:center}
+#timing{flex:none;width:32ch;max-width:100%;font-variant-numeric:tabular-nums}

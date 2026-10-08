@@ -73,7 +73,10 @@ const pausedWarriors=new Set();
 const processChart=new HistoryChart($('processChart'),'Processes / cycle in current round');
 const scoreChart=new HistoryChart($('scoreChart'),'Cumulative score / completed battles');
 const addressText = n => String(n).padStart(String((engine?.config.coreSize || 8000) - 1).length, '0');
-function status(text) { $('status').textContent = text; }
+function status(text) {
+  $('status').textContent = text;
+  $('status').parentElement.hidden = /^Paused(?:[. ]|$)/.test(text);
+}
 function log(text,channel='stderr') {
  consoleText=(consoleText+text+'\n').slice(-262144);
  if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;
@@ -314,6 +317,8 @@ async function load() {
   const next = await Engine.create(config,{log});
   if (token !== generation) return false;
   next.import(banks);
+  // Reserve the widest counter for this match so digit changes cannot reflow the toolbar.
+  $('timing').style.width = (('Cycle '+config.cycles.toLocaleString()+' / '+config.cycles.toLocaleString()+' · round '+next.config.rounds.toLocaleString()).length)+'ch';
   engine = next; total = 0; maxSlice = 0; credit = 0; history = []; combined = [];
   display.configure(config.coreSize);clearHover(); $('address').max = config.coreSize-1; $('address').value = 0;
   $('follow').replaceChildren(new Option('Fixed address','-1'), ...banks.map((b,i) => new Option(b.name,String(i))));
