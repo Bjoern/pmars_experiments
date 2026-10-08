@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=1249b285016dfa13';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=1249b285016dfa13';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=1249b285016dfa13';
-import {HistoryChart} from './charts.mjs?v=1249b285016dfa13';
+import {Engine, settings} from './engine.mjs?v=0b6769244c541a67';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=0b6769244c541a67';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=0b6769244c541a67';
+import {HistoryChart} from './charts.mjs?v=0b6769244c541a67';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -11,7 +11,8 @@ let fastMode = false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let collapsedEditors=[], scoreViewKey=null;
-let sources = [$('first').value, $('second').value];
+const demoSources = [$('first').value, $('second').value];
+let sources = [...demoSources];
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
 let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
 let validationTimer=null, validationQueue=[];
@@ -50,7 +51,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=1249b285016dfa13',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=0b6769244c541a67',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -106,9 +107,8 @@ function editors() {
     label.textContent = `${String(i+1).padStart(2,'0')} / ${draftName(source,i)}`;
     const remove = document.createElement('button');
     remove.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>';remove.title='Remove warrior'; remove.className = 'remove-warrior';
-    remove.disabled = sources.length === 1;
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
-    remove.onclick = () => { sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); editors(); };
+    remove.onclick = () => { sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
     const save=document.createElement('button');save.textContent='Download';save.className='save-warrior';save.setAttribute('aria-label','Download warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.title='Revalidate warrior and show assembly output';compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
@@ -129,6 +129,9 @@ function editors() {
   editorVisibility();refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
   $('newWarrior').disabled = sources.length >= 36;
+  $('demo').hidden = sources.length !== 0;
+  $('toggleEditors').hidden = sources.length === 0;
+  controls();
   legend();
 }
 function editorVisibility(){
@@ -156,14 +159,15 @@ function processIndicators(update){
 }
 function seriesActive() { return state.startsWith("series"); }
 function controls() {
+  const empty = sources.length === 0;
   const busy = state === 'loading' || seriesActive() || stepping;
-  $('run').disabled = (busy && !['series','series-paused'].includes(state)) || state==='done';
+  $('run').disabled = empty || (busy && !['series','series-paused'].includes(state)) || state==='done';
   const running=['running','series'].includes(state), done=state==='done';
   $('run').innerHTML='<span class="control-icon" aria-hidden="true">'+(running?'Ⅱ':done?'✓':'▶')+'</span> '+(running?'Pause':done?'Done':'Run');
-  $('debugRun').disabled=busy || state==='done';
-  $('fast').disabled=busy || state==='done';
-  $('step').disabled = busy || state === 'running' || state === 'done';
-  $('reset').disabled = state === 'loading';
+  $('debugRun').disabled=empty || busy || state==='done';
+  $('fast').disabled=empty || busy || state==='done';
+  $('step').disabled = empty || busy || state === 'running' || state === 'done';
+  $('reset').disabled = empty || state === 'loading';
 }
 function stop() {
   setFast(false);
@@ -178,6 +182,16 @@ function stop() {
   state = 'idle'; dirty = false; $('changed').textContent = ''; $('activeSettings').textContent = ''; legend();
   $('progress').hidden = true; status('Stopped. Ready for another battle.'); controls();
 }
+function clearBattle() {
+  stop();display.configure(display.size);clearHover();
+  $('timing').textContent='Cycle —';$('timing').dataset.instructions='0';
+  $('scores').textContent='Add warriors or try the demo.';
+  $('instruction').textContent='Load a battle to inspect its core.';
+  $('processCounts').textContent='Load a battle to see process counts.';
+  $('tracePauses').replaceChildren();$('follow').replaceChildren(new Option('Fixed address','-1'));
+  $('battleTotals').textContent='Warriors · 0 battles this run';
+  status('No warriors loaded. Add a warrior, upload files, or try Demo.');
+}
 function options() { return readSettings({warriors:sources.length}); }
 function work(type, config) {
   cancelAutoValidation();cancelCompileCheck();
@@ -189,7 +203,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=1249b285016dfa13', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=0b6769244c541a67', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -308,6 +322,7 @@ function present(update) {
   }
 }
 async function load() {
+  if(!sources.length)return false;
   stop(); const token = generation;
   state = 'loading'; controls(); $('log').textContent = ''; consoleText='';$('consoleOutput').textContent='';
   status('Assembling warriors in a background worker…');
@@ -534,6 +549,15 @@ $('newWarrior').onclick=()=>{
  sources.push(';redcode-94\n;name Warrior '+(sources.length+1)+'\n;assert 1\nmov.i 0, 1\nend\n');
  markDirty();editors();
 };
+$('demo').onclick=safe(async()=>{
+ if(sources.length)return;
+ sources=[...demoSources];collapsedEditors=[];
+ $('preset').value='standard';$('preset').onchange();
+ $('rounds').value='1';$('debugStart').checked=false;$('debugEnabled').checked=false;
+ $('speed').value='3';$('speed').oninput();
+ markDirty();editors();
+ if(await load())resume();
+});
 $('dropZone').onclick=()=>$('warriorFiles').click();
 $('dropZone').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('warriorFiles').click();}};
 $('warriorFiles').onchange=()=>{importFiles($('warriorFiles').files).catch(e=>status(e.message));$('warriorFiles').value='';};
