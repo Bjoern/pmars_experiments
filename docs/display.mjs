@@ -16,6 +16,7 @@ export class CoreDisplay {
     this.columns = Math.ceil(Math.sqrt(8000 * 2.5));
     this.size = 8000;
     this.preferredCellSize = 8;
+    this.layout = "scroll";
     this.pcs = [];
     this.cells = new Uint8Array(this.size*4);
     this.observer = new ResizeObserver(() => this.redraw());
@@ -34,12 +35,27 @@ export class CoreDisplay {
     this.preferredCellSize = size;
     this.redraw();
   }
+  setLayout(layout) {
+    if (!['scroll','wrap','expanded'].includes(layout)) return;
+    this.layout = layout;
+    this.redraw();
+  }
   redraw() {
     const ratio = window.devicePixelRatio || 1;
     const available = Math.max(1, (this.canvas.parentElement || this.canvas).clientWidth);
-    const width = this.preferredCellSize ? this.columns * this.preferredCellSize : available;
+    const naturalColumns = Math.ceil(Math.sqrt(this.size * 2.5));
+    // Even CSS pixel sizes keep quarter-cell boundaries on whole pixels.
+    this.cellSize = this.preferredCellSize || Math.max(2,2*Math.floor(available/naturalColumns/2));
+    this.columns = this.layout==='wrap' ? Math.max(1,Math.floor(available/this.cellSize)) : naturalColumns;
+    this.columns = Math.min(this.size,this.columns);
+    // Keep very large cores within conservative canvas backing-store limits.
+    const maxRows = Math.max(1,Math.floor(16384/(this.cellSize*ratio)));
+    this.columns = Math.max(this.columns,Math.ceil(this.size/maxRows));
+    const width = this.columns*this.cellSize;
     this.canvas.style.width = width + 'px';
-    this.cellSize = width / this.columns;
+    this.canvas.title = this.layout==='wrap' && width>available
+      ? 'This core exceeds the canvas height limit; some horizontal scrolling is needed.'
+      : 'Memory cells wrap in address order, left to right.';
     const height = Math.ceil(this.size / this.columns) * this.cellSize;
     this.canvas.style.height = height + 'px';
     this.canvas.width = Math.round(width * ratio);

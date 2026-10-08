@@ -442,16 +442,13 @@ $('lines').oninput = inspect; $('follow').onchange = inspect;
 $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());
 $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
 $('traceMode').onchange = () => { syncTrace(); renderTrace(); };
-for(const [id,expanded] of [['arenaScroll',false],['arenaExpand',true]]) {
- $(id).onclick=()=>{
-  const viewport=document.querySelector('.arena-viewport');
-  viewport.classList.toggle('expanded',expanded);
-  viewport.setAttribute('aria-label',expanded?'Expanded core arena':'Scrollable core arena');
-  $('arenaScroll').setAttribute('aria-pressed',String(!expanded));
-  $('arenaExpand').setAttribute('aria-pressed',String(expanded));
-  display.redraw();
- };
-}
+$('arenaLayout').onchange=()=>{
+ const layout=$('arenaLayout').value,viewport=document.querySelector('.arena-viewport');
+ viewport.classList.toggle('expanded',layout==='expanded');
+ viewport.classList.toggle('wrapped',layout==='wrap');
+ viewport.setAttribute('aria-label',layout==='wrap'?'Core arena fitted to available width':layout==='expanded'?'Expanded core arena':'Scrollable core arena');
+ clearHover();display.setLayout(layout);
+};
 function clearHover(){ $('hoverAddress').textContent='Cell: —'; }
 $('cellSize').onchange = () => {clearHover();display.setCellSize(Number($('cellSize').value));};
 $('core').onpointermove=event=>{

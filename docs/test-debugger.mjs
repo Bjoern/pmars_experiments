@@ -39,7 +39,7 @@ try {
   await page.mouse.click(point.x,point.y);
   assert.equal(Number(await page.locator('#address').inputValue()),12*142+12);
   await page.locator('#cellSize').selectOption('0');
-  assert(await page.locator('#core').evaluate(c=>Math.abs(c.clientWidth-c.parentElement.clientWidth)<=1));
+  assert(await page.locator('#core').evaluate(c=>c.clientWidth<=c.parentElement.clientWidth && (c.clientWidth/142)%2===0));
   await page.locator('#cellSize').selectOption('8');
 
   assert((await page.locator('#execution pre').first().textContent()).includes('0000  MOV.I'));

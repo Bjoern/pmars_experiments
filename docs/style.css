@@ -95,3 +95,5 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 #consoleWindow[open] summary::before{content:'▾'}
 #consoleWindow summary::-webkit-details-marker{display:none}
 #clearConsole{margin-left:auto}
+
+.arena-viewport.wrapped{max-height:none;overflow:auto}

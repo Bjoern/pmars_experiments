@@ -104,9 +104,11 @@ to 256 KiB; diagnostics retain 64 KiB.
   of inter-cell spacing (4-pixel pitch), matching native SDL modes 0/1.
   Compact uses a 4×4 mark with 2-pixel spacing (6-pixel pitch, native mode 3).
   These are CSS pixels, scaled by the browser/device pixel ratio. Choose 12, 16, or 24 pixels for larger
-  markers, or Fit width for the compact overview. Scroll keeps the arena within a
-  bounded viewport; Expand shows its full size on the page (wide cores may
-  extend beyond the page width). Changing size preserves memory marks and battle state.
+  markers, or Auto for an overview using even whole-pixel cell sizes. Layout offers Scroll in panel (bounded viewport), Fit available width
+  (reflows columns at the chosen cell size and grows vertically), and Full size
+  (the original column count without a bounded viewport). Automatic sizing
+  redraws the canvas rather than stretching it. Very large cores may need
+  horizontal scrolling even in Fit available width to respect canvas height limits. Changing size preserves memory marks and battle state.
 - Hover over the arena to see the address under the pointer beside the size
   selector. Leaving or scrolling clears the indicator.
 - Click the arena to pause and list from that address. Right-click lists up to
