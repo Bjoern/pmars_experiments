@@ -99,7 +99,7 @@ export class CoreDisplay {
     this.context.fillRect(0, 0, width, height);
     for (let i = 0; i < this.size; ++i) this.draw(i);
   }
-  apply(events) {
+  apply(events, paint = true) {
     const dirty = new Set();
     for (let i = 0; i < events.length; i += 4) {
       const [kind, address, owner] = events.subarray(i, i + 3);
@@ -108,7 +108,7 @@ export class CoreDisplay {
         this.pcs = [];
         dirty.clear();
         this.context.fillStyle = '#101d29';
-        this.redraw();
+        if(paint)this.redraw();
       } else if (kind === 8) {
         if (this.pcs[owner] >= 0) dirty.add(this.pcs[owner]);
         this.pcs[owner] = -1;
@@ -122,7 +122,7 @@ export class CoreDisplay {
         dirty.add(address);
       }
     }
-    for (const address of dirty) this.draw(address);
+    if(paint)for (const address of dirty) this.draw(address);
   }
   draw(address) {
     const x=(address%this.columns)*this.cellSize-this.offsetX,y=Math.floor(address/this.columns)*this.cellSize-this.offsetY;

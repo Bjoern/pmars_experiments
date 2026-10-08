@@ -36,7 +36,7 @@ export class Engine {
         const ptr = field(0);
         const bank = {
           code: m.HEAPU8.slice(ptr, ptr + field(1) * field(5)),
-          length: field(1), offset: field(2), pinState: field(3), pin: field(4),
+          copyDebugInfo:m._web_debug_copy(), length: field(1), offset: field(2), pinState: field(3), pin: field(4),
           name: m.ccall('web_name', 'string', ['number', 'number'], [i, 0]),
           author: m.ccall('web_name', 'string', ['number', 'number'], [i, 1])
         };
@@ -67,6 +67,7 @@ export class Engine {
         ['number','number','number','number','number','number','string','string'],
         [i, ptr, bank.length, bank.offset, bank.pinState, bank.pin, bank.name, bank.author]));
     });
+    m._web_set_debug_copy(banks.at(-1).copyDebugInfo ?? 1);
   }
   start() {
     if (this.config.assembleOnly || this.config.rounds===0) return this.update(true);
@@ -80,6 +81,7 @@ export class Engine {
     if (done && !this.printedResults) { this.module._web_print_results(); this.printedResults = true; }
     return this.update(!!done);
   }
+  setDebug(enabled) { this.module._web_set_debug(+enabled); }
   setTrace(enabled) { this.module._web_set_trace(+enabled); }
   update(done) {
     const m = this.module;
@@ -93,7 +95,7 @@ export class Engine {
         instruction: decoder.decode(text.subarray(0, text.indexOf(0)))});
     }
     return {
-      trace, completed: m._web_completed(),
+      trace, debugHit: m._web_debug_hit()-1, completed: m._web_completed(),
       // A copy remains valid across calls and Wasm memory growth.
       events: m.HEAPU32.slice(ptr, ptr + m._web_event_count() * 4),
       executed: m._web_steps(), cycle: m._web_cycle(), round: m._web_round(), done,

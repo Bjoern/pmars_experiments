@@ -7,6 +7,7 @@ const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
+let fastMode = false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let collapsedEditors=[], scoreViewKey=null;
@@ -154,15 +155,16 @@ function processIndicators(update){
 function seriesActive() { return state.startsWith("series"); }
 function controls() {
   const busy = state === 'loading' || seriesActive() || stepping;
-  $('run').disabled = (busy && state !== 'series-paused') || state === 'running' || state === 'done';
-  $('run').textContent = state === 'series-paused' ? 'Resume series' : state === 'paused' && total > 0 ? 'Resume battle' : state === 'done' ? 'Battle complete' : 'Run battle';
-  $('pause').disabled = state !== 'running' && state !== 'series';
+  $('run').disabled = (busy && !['series','series-paused'].includes(state)) || state==='done';
+  const running=['running','series'].includes(state), done=state==='done';
+  $('run').innerHTML='<span class="control-icon" aria-hidden="true">'+(running?'Ⅱ':done?'✓':'▶')+'</span> '+(running?'Pause':done?'Done':'Run');
+  $('debugRun').disabled=busy || state==='done';
+  $('fast').disabled=busy || state==='done';
   $('step').disabled = busy || state === 'running' || state === 'done';
   $('reset').disabled = state === 'loading';
-  $('stop').disabled = state === 'idle';
-  $('series').disabled = busy;
 }
 function stop() {
+  setFast(false);
   cancelAutoValidation();cancelCompileCheck();
   generation++; stepEpoch++; stepping = false; cancelAnimationFrame(animation);
   if (worker) worker.terminate();
@@ -275,7 +277,7 @@ function textViews() {
   renderTrace(); lastText = performance.now();
 }
 function present(update) {
-  latest = update; display.apply(update.events);
+  latest = update; display.apply(update.events,!fastMode);
   $('activeSettings').textContent = 'Loaded cycle limit: ' + engine.config.cycles.toLocaleString() +
     ' per warrior per round · ' + engine.config.warriors + ' warriors';
   let n = total;
@@ -290,10 +292,12 @@ function present(update) {
   total += update.executed;
   $('timing').dataset.instructions=String(total);
 
-  sampleScores(update);
-  $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round} · peak slice ${maxSlice.toFixed(1)} ms`;
-  if (update.done) { state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
-  if (state !== 'running' || performance.now()-lastText >= 100) {
+  if(!fastMode)sampleScores(update);
+  $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round}`;
+  if($('diagnostics').open && !fastMode)$('sliceTiming').textContent='Peak simulation slice: '+maxSlice.toFixed(1)+' ms';
+  if(update.debugHit>=0){pause();$('follow').value=String(update.debugHit);inspect();status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
+  if (update.done) { setFast(false);sampleScores(update);state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
+  if (!fastMode && (state !== 'running' || performance.now()-lastText >= 100)) {
     if(!$('pauseViews').checked && !$('pauseProcesses').checked){
       if(chartRound!==update.round){processChart.clear();chartRound=update.round;}
       processChart.add(update.cycle,update.warriors.map(w=>w.tasks));
@@ -313,7 +317,7 @@ async function load() {
   engine = next; total = 0; maxSlice = 0; credit = 0; history = []; combined = [];
   display.configure(config.coreSize);clearHover(); $('address').max = config.coreSize-1; $('address').value = 0;
   $('follow').replaceChildren(new Option('Fixed address','-1'), ...banks.map((b,i) => new Option(b.name,String(i))));
-  traceControls(banks.map(b=>b.name));
+  traceControls(banks.map(b=>b.name));engine.setDebug($('debugEnabled').checked);
   const initial=engine.start();present(initial);legend();
   if(initial.done){state='done';status('Assembly complete. No battles run.');controls();return false;}
   state = 'paused'; controls();
@@ -323,18 +327,18 @@ async function load() {
 function pause() {
   if(state==='series'){state='series-pausing';worker?.postMessage({type:'pause'});status('Pausing series…');controls();return;}
   if (state !== 'running') return;
-  cancelAnimationFrame(animation); state = 'paused'; status('Paused. Step or Resume battle.'); controls(); textViews();
+  cancelAnimationFrame(animation);setFast(false); state = 'paused'; status('Paused. Step or Resume battle.'); controls(); textViews();
 }
 function frame(now) {
   if (state !== 'running') return;
   if (document.hidden) { previous = now; animation = requestAnimationFrame(frame); return; }
   const rate = Math.round(10 ** Number($('speed').value));
   credit = Math.min(credit + Math.min(now-previous,50)*rate/1000,rate/20+1); previous = now;
-  if (credit >= 1) {
+  if (fastMode || credit >= 1) {
     const before = performance.now();
-    const update = engine.advance(Math.min(100000,Math.floor(credit)),4);
+    const update = engine.advance(fastMode?100000:Math.min(100000,Math.floor(credit)),4);
     maxSlice = Math.max(maxSlice,performance.now()-before);
-    credit -= update.executed; present(update);
+    if(!fastMode)credit -= update.executed; present(update);
   }
   if (state === 'running') animation = requestAnimationFrame(frame);
 }
@@ -360,7 +364,7 @@ async function step(n = 1) {
   if (!engine && !(await load())) return;
   if (state === 'done') return;
   const token = generation, ticket = ++stepEpoch;
-  stepping = true; controls();
+  stepping = true;engine.setDebug(false);controls();
   try {
     while (n > 0 && state === 'paused' && token === generation && ticket === stepEpoch) {
       const update = engine.advance(Math.min(n,100000),4);
@@ -370,10 +374,11 @@ async function step(n = 1) {
     if (state === 'paused' && token === generation && ticket === stepEpoch)
       status('Paused after stepping. Step or Resume battle.');
   } finally {
-    if (ticket === stepEpoch) { stepping = false; controls(); }
+    if (ticket === stepEpoch) {engine?.setDebug($('debugEnabled').checked);stepping = false; controls(); }
   }
 }
 async function run() {
+  if(state==='running' || state==='series'){pause();return;}
   if(state==='series-paused'){state='series';worker?.postMessage({type:'resume'});status('Resuming series…');controls();return;}
   if (engine) {
     if (state === 'paused') {
@@ -421,21 +426,28 @@ async function command(text) {
   else if (['help','f1','?'].includes(verb)) $('debugHelp').open = true;
   else return reply('Unsupported command. Open Browser debugger commands for the supported subset.');
 }
+function setFast(enabled){
+ const wasFast=fastMode;fastMode=enabled;$('fast').setAttribute('aria-pressed',String(enabled));
+ $('speed').disabled=enabled;syncTrace();
+ if(!enabled){display.redraw();if(latest){if(wasFast)sampleScores(latest);textViews();}}
+}
+$('fast').onclick=safe(async()=>{
+ const enable=!fastMode;
+ if((!engine || (total===0 && dirty)) && !(await load()))return;
+ setFast(enable);
+ if(enable && state==='paused')resume();
+});
+$('debugRun').onclick=safe(async()=>{
+ $('debugEnabled').checked=true;
+ pause();
+ if((!engine || (total===0 && dirty)) && !(await load()))return;
+ engine.setDebug(true);resume();
+});
+$('debugEnabled').onchange=()=>engine?.setDebug($('debugEnabled').checked);
+$('diagnostics').ontoggle=()=>{if($('diagnostics').open)$('sliceTiming').textContent='Peak simulation slice: '+maxSlice.toFixed(1)+' ms';};
 $('run').onclick = safe(run);
 $('step').onclick = safe(() => step());
-$('pause').onclick = pause;
 $('reset').onclick = safe(load);
-$('stop').onclick = stop;
-$('series').onclick = safe(async () => {
-  stop(); state = 'series'; controls(); $('log').textContent = '';consoleText='';$('consoleOutput').textContent='';
-  const token = generation, config = options(true);
-  $('progress').hidden = false; $('progress').max = config.rounds; $('progress').value = 0;
-  status('Running series in a background worker…');
-  const update = await work('series',config);
-  if (token !== generation) return;
-  latest = update; scores(update); sampleScores(update);$('progress').value = update.completed;
-  state = 'done'; controls(); status(config.assembleOnly || !config.rounds ? 'Assembly complete. No battles run.' : `Series complete: ${update.completed} rounds.`);
-});
 $('speed').oninput = () => { $('speedValue').textContent = Math.round(10 ** Number($('speed').value)).toLocaleString(); };
 $('address').oninput = () => { $('follow').value = '-1'; inspect(); };
 $('lines').oninput = inspect; $('follow').onchange = inspect;
@@ -483,13 +495,13 @@ function traceControls(names) {
  syncTrace();
 }
 function syncTrace(){
- engine?.setTrace(!$('pauseViews').checked && $('traceMode').value!=='off' &&
+ engine?.setTrace(!fastMode && !$('pauseViews').checked && $('traceMode').value!=='off' &&
    pausedWarriors.size < (engine?.config.warriors || sources.length));
 }
 function battleCount(update){
  sessionBattles += Math.max(0,update.completed-countedCompleted);countedCompleted=update.completed;
  $('battleTotals').textContent='Warriors · '+update.completed.toLocaleString()+' battles this run';
- $('diagnosticsTitle').textContent='Diagnostics · '+sessionBattles.toLocaleString()+' battles this session';
+ $('diagnosticsTitle').textContent='Show diagnostics · '+sessionBattles.toLocaleString()+' battles this session';
 }
 function sampleScores(update){
  battleCount(update);

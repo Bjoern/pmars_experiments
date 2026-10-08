@@ -26,7 +26,7 @@ try{
   return {below:drop.top>=editors.bottom,sameRow:button.left>=drop.right,inline:p.left>=h.right};
  });
  assert.deepEqual(layout,{below:true,sameRow:true,inline:true});
- assert(await page.locator('#series').isVisible());
+ assert(await page.locator('#fast').isVisible());
  assert(await page.locator('#rounds').isVisible());
  assert(await page.locator('#settingsSummary').isVisible());
  assert(await page.locator('#settingsFields').isHidden());
@@ -36,7 +36,7 @@ try{
  const compact=await page.evaluate(()=>{
   const row=document.querySelector('.editor-title').getBoundingClientRect();
   const actions=[...document.querySelectorAll('.editor-title:first-child button')].slice(0,4).map(e=>e.getBoundingClientRect());
-  const toolbar=document.querySelector('.arena-controls').getBoundingClientRect(),theme=document.querySelector('.arena-theme').getBoundingClientRect();
+  const toolbar=document.querySelector('.page-layout').getBoundingClientRect(),theme=document.querySelector('.arena-theme').getBoundingClientRect();
   const summary=document.querySelector('#consoleWindow summary').getBoundingClientRect(),clear=document.querySelector('#clearConsole').getBoundingClientRect();
   return {oneRow:actions.every(r=>r.top>=row.top && r.bottom<=row.bottom+1),themeRight:Math.abs(theme.right-toolbar.right)<2,clearInline:clear.top>=summary.top && clear.bottom<=summary.bottom+1};
  });
@@ -59,7 +59,7 @@ try{
  assert.equal(await page.locator('#coreSize').inputValue(),'80');
  assert.equal(await page.locator('#maxLength').inputValue(),'5');
  await page.locator('#rounds').fill('1001');await page.locator('#cycles').fill('2');
- await page.locator('#series').click();await ready('Series complete');
+ await page.locator('#fast').click();await ready('Battle complete');
  assert((await page.locator('#battleTotals').textContent()).includes('1,001'));
  assert((await page.locator('#diagnosticsTitle').textContent()).includes('1,001'));
  await page.locator('#consoleWindow summary').click();

@@ -23,6 +23,11 @@ static int completed, web_wins[MAXWARRIOR], web_ties[MAXWARRIOR], web_losses[MAX
 typedef struct { int owner, address; char text[96]; } web_trace_entry;
 static web_trace_entry trace_entries[TRACE_CAPACITY];
 static int trace_enabled, trace_count, current_cycle;
+static int debug_enabled, debug_hit, debug_skip_owner = -1, debug_skip_address;
+API void web_set_debug(int enabled) { debug_enabled = !!enabled; if (!enabled) debug_skip_owner = -1; }
+API int web_debug_hit(void) { return debug_hit; }
+API int web_debug_copy(void) { return copyDebugInfo; }
+API void web_set_debug_copy(int enabled) { copyDebugInfo = !!enabled; }
 static unsigned long long cycle_visits;
 API int web_cycle(void) { return current_cycle; }
 void web_record_instruction(int address)
@@ -78,6 +83,15 @@ int web_should_yield(void)
 {
   if ((trace_enabled && trace_count >= TRACE_CAPACITY) || web_budget <= 0 || web_count > WEB_CAPACITY - 64) return 1;
   if ((web_executed & 63) == 0 && emscripten_get_now() >= deadline) return 1;
+  if (debug_enabled && memory[*W->taskHead].debuginfo) {
+    int owner = W - warrior, address = *W->taskHead;
+    if (debug_skip_owner != owner || debug_skip_address != address) {
+      debug_skip_owner = owner; debug_skip_address = address;
+      debug_hit = owner + 1;
+      return 1;
+    }
+  }
+  debug_skip_owner = -1;
   --web_budget;
   ++web_executed;
   return 0;
@@ -204,6 +218,7 @@ API int web_advance(int instructions, double milliseconds)
   if (!started || instructions < 1 || instructions > 100000 ||
       !(milliseconds > 0 && milliseconds <= 8)) return -1;
   web_count = 0;
+  debug_hit = 0;
   trace_count = 0;
   web_executed = 0;
   web_budget = instructions;

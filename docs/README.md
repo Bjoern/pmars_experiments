@@ -49,7 +49,7 @@ The old `/web/` preview URL redirects to `/docs/`.
 ## Match settings
 
 The visible summary describes the editable next match. **Edit settings** opens
-the full form; rounds and **Run series in background** remain outside it.
+the full form. Rounds, Run/Pause, Step, Reset, Debug, Fast, cycle count, and speed share the arena toolbar. Layout, cell size, and theme sit above the arena.
 The form supports the native options `-r -s -b -c -V -p -k -l -8 -d -f -F -o -S -P -A -=`.
 Native parsing, assembly, positioning, scoring, and output are shared with pMARS.
 Filesystem options are deliberately unavailable. Fixed-series placement
@@ -153,7 +153,7 @@ Page Up/Down, and Escape work outside editable controls. The adaptations do
 not duplicate native multi-panel switching semantics.
 
 This is a documented browser subset, not the full cdb macro interpreter:
-macro loops, breakpoints, operand-pointer expressions, shell/file operations,
+macro loops, interactive breakpoint editing, operand-pointer expressions, shell/file operations,
 and arbitrary .mac loading are not implemented. On-page command help
 lists the supported behavior.
 
@@ -342,3 +342,16 @@ each living warrior takes its first turn, and so on. Cycle counting follows
 the scheduler and resets each round, including after warrior elimination.
 Step and execution-log sequence numbers still count individual instructions.
 The speed control also retains its explicit instructions/second unit.
+
+### Compact battle controls
+
+Run and Fast both use the configured number of rounds. Fast suppresses canvas,
+charts, and instruction tracing, removes the speed throttle, and still yields
+between short simulation slices. Run changes to Pause; pausing Fast restores
+visual updates. Reset reloads edited sources/settings and pauses at instruction
+zero. A hidden tab suspends this execution; the former separate worker-series
+buttons are no longer exposed. The worker API remains available for integrations.
+
+Debug enables stopping at native `;break` / `;trace` markers (enabled with
+`;debug`) before execution. Step executes the held instruction. Diagnostics,
+including peak simulation slice time, are collapsed by default.

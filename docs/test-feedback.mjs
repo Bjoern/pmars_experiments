@@ -99,16 +99,18 @@ try {
  assert.equal(await page.locator('#consoleOutput').textContent(),'');
  await page.locator('#rounds').fill('10000000');
  await page.locator('#cycles').fill('1000');
- await page.locator('#series').click();
- await page.waitForFunction(()=>document.querySelector('#progress').value>0);
- await page.locator('#pause').click();
- await page.waitForFunction(()=>document.querySelector('#run').textContent==='Resume series');
- const pausedRounds=await page.locator('#progress').evaluate(e=>e.value);
- await page.waitForTimeout(250);
- assert.equal(await page.locator('#progress').evaluate(e=>e.value),pausedRounds);
+ await page.locator('#reset').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Paused before'));
+ await page.locator('#fast').click();
+ await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>2000);
  await page.locator('#run').click();
- await page.waitForFunction(n=>document.querySelector('#progress').value>n,pausedRounds);
- await page.locator('#stop').click();
+ const pausedInstructions=await page.locator('#timing').getAttribute('data-instructions');
+ await page.waitForTimeout(250);
+ assert.equal(await page.locator('#timing').getAttribute('data-instructions'),pausedInstructions);
+ await page.locator('#fast').click();
+ await page.waitForFunction(n=>Number(document.querySelector('#timing').dataset.instructions)>Number(n),pausedInstructions);
+ await page.locator('#reset').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Paused before'));
  const pixels=await page.evaluate(async()=>{
   const {CoreDisplay}=await import('./display.mjs');
   const host=document.createElement('div'),c=document.createElement('canvas');host.append(c);document.body.append(host);

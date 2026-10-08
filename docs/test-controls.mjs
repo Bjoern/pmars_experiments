@@ -23,8 +23,7 @@ try {
 
   await page.locator('#reset').click(); await ready('Paused before');
   assert.equal(await count(),0);
-  assert.equal(await page.locator('#run').textContent(),'Run battle');
-  assert.equal(await page.locator('#series').isEnabled(),true);
+  assert.equal(await page.locator('#run').textContent(),'▶ Run');
   await page.locator('#cycles').fill('3');
   await page.locator('#run').click(); await ready('Battle complete');
   assert.equal(await count(),6,'Run at instruction zero must apply edited cycle limit');
@@ -34,25 +33,18 @@ try {
   await page.locator('#cycles').fill('30');
   await page.locator('#reset').click(); await ready('Paused before');
   await page.locator('#step').click(); await ready('Paused after');
-  assert.equal(await page.locator('#run').textContent(),'Resume battle');
+  assert.equal(await page.locator('#run').textContent(),'▶ Run');
   await page.locator('#cycles').fill('2');
   assert((await page.locator('#activeSettings').textContent()).includes('30 per warrior'));
   await page.locator('#run').click(); await ready('Battle complete');
   assert.equal(await count(),60);
 
-  // Series must be launchable from both paused and actively running battles.
+  // Fast applies startup edits and runs every configured round.
   await page.locator('#reset').click(); await ready('Paused before');
   await page.locator('#rounds').fill('100');
-  await page.locator('#series').click(); await ready('Series complete');
+  await page.locator('#fast').click(); await ready('Battle complete');
   assert((await page.locator('#scores').textContent()).includes('100 ties'));
-  await page.locator('#cycles').fill('10000000');
-  await page.locator('#reset').click(); await ready('Paused before');
-  await page.locator('#run').click(); await ready('Battle running');
-  assert.equal(await page.locator('#series').isEnabled(),true);
-  await page.locator('#cycles').fill('2');
-  await page.locator('#series').click(); await ready('Series complete');
-  assert.equal(await page.locator('#progress').getAttribute('value'),'100');
-  assert((await page.locator('#scores').textContent()).includes('100 ties'));
+  assert.equal(await count(),400);
   assert.deepEqual(errors,[]);
-  console.log('PASS: exact cycle-limit completion, Run after Reset, edited startup settings, preserved resume settings, 100-round series from paused and running battles.');
+  console.log('PASS: exact cycle-limit completion, Run after Reset, edited startup settings, preserved resume settings, 100-round Fast match.');
 } finally { await browser.close(); }

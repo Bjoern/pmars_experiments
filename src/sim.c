@@ -1388,12 +1388,12 @@ if (IR.B_mode != (FIELD_T) IMMEDIATE)
 #endif                                /* PSPACE */
       case OP(MOV, mI):
 	display_read(addrA);
-#ifndef SERVER
+#if !defined(SERVER) || defined(BROWSER)
 	if (!copyDebugInfo)
 	  temp = memory[addrB].debuginfo;
 #endif
 	memory[addrB] = memory[addrA];
-#ifndef SERVER
+#if !defined(SERVER) || defined(BROWSER)
 	if (!copyDebugInfo)
 	  memory[addrB].debuginfo = temp;
 #endif

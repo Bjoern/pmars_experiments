@@ -26,12 +26,12 @@ try {
   await page.locator('#run').click();
   await ready('Battle running');
   await page.waitForFunction(() => Number(document.querySelector('#timing').dataset.instructions) > 50);
-  await page.locator('#pause').click();
+  await page.locator('#run').click();
   const paused = await count();
   await page.waitForTimeout(150);
   assert.equal(await count(), paused, 'Paused simulator must not advance');
-  await page.locator('#stop').click();
-  assert(await page.locator('#pause').isDisabled());
+  await page.locator('#reset').click(); await ready('Paused before');
+  assert((await page.locator('#run').textContent()).includes('Run'));
 
   // Sustained maximum-speed visualization while measuring page heartbeat.
   const imp = ';redcode-94\n;assert 1\nmov.i 0,1\n';
@@ -52,21 +52,20 @@ try {
       if (deltas.length >= 100) { clearInterval(interval); resolve(deltas); }
     }, 10);
   }));
-  await page.locator('#pause').click();
+  await page.locator('#run').click();
   assert(Math.max(...pulse) < 250, 'Visual simulation blocked page heartbeat');
   const timing = await page.locator('#timing').textContent();
   await page.screenshot({path: new URL('./test-output/browser-desktop.png', import.meta.url).pathname.replace(/^\/(\w:)/, '$1'), fullPage:true});
-  await page.locator('#stop').click();
+  await page.locator('#reset').click(); await ready('Paused before');
 
   // 100 headless matches with visible progress and scores.
   await page.locator('#cycles').fill('1000');
   await page.locator('#rounds').fill('100');
-  await page.locator('#series').click();
-  await ready('Series complete');
+  await page.locator('#fast').click();
+  await ready('Battle complete');
   assert((await page.locator('#scores').textContent()).includes('100 ties'));
-  assert.equal(await page.locator('#progress').getAttribute('value'), '100');
 
-  await page.locator('#stop').click();
+  await page.locator('#reset').click(); await ready('Paused before');
   // Malformed assembly must recover; long compilation remains cancellable.
   await page.locator('#first').fill(';redcode-94\n;assert 1\ninvalid 0,0\n');
   await page.locator('#run').click();
@@ -77,10 +76,10 @@ try {
   await ready('Paused after');
   assert.equal(await count(),1);
   await page.locator('#run').click();
-  await page.locator('#stop').click();
-  await ready('Stopped');
+  await page.locator('#reset').click(); await ready('Paused before');
+  await ready('Paused before');
   await page.waitForTimeout(150);
-  assert((await page.locator('#status').textContent()).includes('Stopped'));
+  assert((await page.locator('#status').textContent()).includes('Paused before'));
   await page.locator('#step').click();
   await ready('Paused after');
 
@@ -90,6 +89,6 @@ try {
   await page.screenshot({path: new URL('./test-output/browser-mobile.png', import.meta.url).pathname.replace(/^\/(\w:)/, '$1'), fullPage:true});
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({result:'PASS', maxHeartbeatGapMs:Math.max(...pulse), timing,
-    checks:['single step','pause/resume','stop','high-speed responsiveness','100-round worker series',
-      'assembly errors','restart','cancel loading','mobile layout','no page errors']},null,2));
+    checks:['single step','pause/resume','stop','high-speed responsiveness','100-round Fast match',
+      'assembly errors','restart','mobile layout','no page errors']},null,2));
 } finally { await browser.close(); }

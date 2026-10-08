@@ -45,7 +45,7 @@ try {
   assert((await page.locator('#execution pre').first().textContent()).includes('0000  MOV.I'));
   const beforeWorkers = workers;
   await page.locator('#run').click(); await ready('Battle running');
-  await page.waitForTimeout(100); await page.locator('#pause').click();
+  await page.waitForTimeout(100); await page.locator('#run').click();
   assert.equal(workers,beforeWorkers,'Resume must not assemble a new match');
   assert(await count()>1);
   await page.locator('#reset').click(); await ready('Paused before');
