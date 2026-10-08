@@ -9,18 +9,20 @@ try {
   await page.goto('http://127.0.0.1:8765/docs/');
   for(const width of [1280,390]){
    await page.setViewportSize({width,height:900});
-   for(const layout of ['vertical','horizontal','fill']){
+   for(const layout of ['vertical','horizontal','fill','fill-horizontal']){
     await page.locator('#arenaLayout').selectOption(layout);
     for(const size of ['24','4','0','16','6','12','8']){
      await page.locator('#cellSize').selectOption(size);
      await page.waitForTimeout(60);
      const dims=await page.evaluate(()=>{
       const v=document.querySelector('.arena-viewport'),c=document.querySelector('#core');
-      return {w:v.clientWidth,sw:v.scrollWidth,h:v.clientHeight,sh:v.scrollHeight,cell:Number(c.dataset.cellSize),pageWidth:document.documentElement.scrollWidth,windowWidth:innerWidth};
+      return {w:v.clientWidth,sw:v.scrollWidth,h:v.clientHeight,sh:v.scrollHeight,cell:Number(c.dataset.cellSize),columns:Number(c.dataset.columns),available:Math.min(v.clientWidth,v.parentElement.clientWidth),layoutOutside:!document.querySelector('.arena').contains(document.querySelector('#arenaLayout')),pageWidth:document.documentElement.scrollWidth,windowWidth:innerWidth};
      });
      assert.equal(dims.cell%2,0);
-     assert(dims.pageWidth<=dims.windowWidth,'Page horizontal overflow');
-     if(layout==='horizontal')assert(dims.sh<=dims.h+1,'Horizontal panel must not scroll vertically');
+     assert(dims.layoutOutside);
+     if(layout!=='fill-horizontal')assert(dims.pageWidth<=dims.windowWidth,'Page horizontal overflow');
+     if(layout==='horizontal'||layout==='fill-horizontal')assert(dims.columns*dims.cell>=Math.floor(dims.available/dims.cell)*dims.cell,'Use the available width even when core fits');
+     if(layout==='horizontal'||layout==='fill-horizontal')assert(dims.sh<=dims.h+1,'Horizontal panel must not scroll vertically');
      else assert(dims.sw<=dims.w+1,'Vertical modes must not scroll horizontally');
      if(layout==='fill')assert(dims.sh<=dims.h+1,'Fill must not scroll inside panel');
     }
@@ -45,5 +47,5 @@ try {
   assert.deepEqual(errors,[]);
   await page.close();
  }
- console.log('PASS: all 7 cell sizes × 3 layouts × desktop/mobile × 1x/2x displays; no unintended scroll axis; large-core windowed rendering and address mapping.');
+ console.log('PASS: all 7 cell sizes × 4 layouts × desktop/mobile × 1x/2x displays; no unintended scroll axis; large-core windowed rendering and address mapping.');
 } finally {await browser.close();}

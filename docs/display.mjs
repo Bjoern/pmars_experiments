@@ -19,11 +19,11 @@ export class CoreDisplay {
     this.columns = Math.ceil(Math.sqrt(8000 * 2.5));
     this.size = 8000;
     this.preferredCellSize = 8;
-    this.layout = "vertical";
     this.pcs = [];
     this.cells = new Uint8Array(this.size*4);
     this.observer = new ResizeObserver(() => this.redraw());
     this.observer.observe(this.viewport || canvas);
+    if(this.viewport?.parentElement)this.observer.observe(this.viewport.parentElement);
     this.onScroll = () => {
       if (!this.surface) return;
       cancelAnimationFrame(this.scrollFrame);
@@ -47,21 +47,18 @@ export class CoreDisplay {
     this.preferredCellSize = size;
     this.redraw();
   }
-  setLayout(layout) {
-    if (!['vertical','horizontal','fill'].includes(layout)) return;
-    this.layout = layout;
-    this.redraw();
-  }
   redraw() {
     const ratio = window.devicePixelRatio || 1;
-    const available = Math.max(1, (this.viewport || this.canvas).clientWidth);
+    const available = Math.max(1, Math.min(
+      (this.viewport || this.canvas).clientWidth,
+      this.viewport?.parentElement?.clientWidth || Infinity));
+    const constrainedHeight = getComputedStyle(this.viewport || this.canvas).getPropertyValue('--arena-flow').trim()==='columns';
     const naturalColumns = Math.ceil(Math.sqrt(this.size * 2.5));
     // Even CSS pixel sizes keep quarter-cell boundaries on whole pixels.
     this.cellSize = this.preferredCellSize || Math.max(2,2*Math.floor(available/naturalColumns/2));
-    const panelHeight = Math.max(this.cellSize,Math.floor(window.innerHeight*0.6));
-    if (this.layout==='horizontal') {
-      const rows = Math.max(1,Math.floor(panelHeight/this.cellSize));
-      this.columns = Math.ceil(this.size/rows);
+    if (constrainedHeight) {
+      const rows = Math.max(1,Math.floor(this.viewport.clientHeight/this.cellSize));
+      this.columns = Math.min(this.size,Math.max(Math.floor(available/this.cellSize),Math.ceil(this.size/rows)));
     } else {
       this.columns = Math.min(this.size,Math.max(1,Math.floor(available/this.cellSize)));
     }

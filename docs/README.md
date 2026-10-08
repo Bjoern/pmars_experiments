@@ -107,8 +107,12 @@ to 256 KiB; diagnostics retain 64 KiB.
   markers, or Auto for an overview using even whole-pixel cell sizes. Layout offers:
   Scroll vertically (fit columns to width, scroll inside a bounded-height panel),
   Scroll horizontally (fit rows to a bounded height, scroll sideways inside the
-  panel), and Fill vertically (fit columns to width and grow down the page).
-  Cell-size and window-size changes recompute the grid without changing memory.
+  panel), Fill vertically (fit columns to width and grow down the page), and
+  Fill horizontally (fit rows to height and extend across the page).
+  Layout is a page control above the emulator: CSS sets the container constraints,
+  and the display reads its actual inner width/height to choose rows and columns.
+  Horizontal layouts use at least the available width, even when the core fits.
+  Cell-size and container-size changes recompute the grid without changing memory.
   Automatic sizing redraws using even whole CSS pixels rather than stretching.
   Very large arenas retain their full scroll extent but paint a movable canvas
   window to avoid oversized bitmap allocations; no horizontal fallback is used.

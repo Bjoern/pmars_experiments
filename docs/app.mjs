@@ -446,8 +446,8 @@ $('arenaLayout').onchange=()=>{
  const layout=$('arenaLayout').value,viewport=document.querySelector('.arena-viewport');
  viewport.dataset.layout=layout;
  viewport.scrollLeft=0;viewport.scrollTop=0;
- viewport.setAttribute('aria-label',{'vertical':'Core arena scrolling vertically','horizontal':'Core arena scrolling horizontally','fill':'Core arena filling vertically'}[layout]);
- clearHover();display.setLayout(layout);
+ viewport.setAttribute('aria-label',{'vertical':'Core arena scrolling vertically','horizontal':'Core arena scrolling horizontally','fill':'Core arena filling vertically','fill-horizontal':'Core arena filling horizontally'}[layout]);
+ clearHover();display.redraw();
 };
 function clearHover(){ $('hoverAddress').textContent='Cell: —'; }
 $('cellSize').onchange = () => {clearHover();display.setCellSize(Number($('cellSize').value));};
