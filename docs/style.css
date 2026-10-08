@@ -144,3 +144,9 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 #settingsArrow{font-size:16px;color:#aec0ce}
 .settings-bar>label{display:flex;align-items:center;gap:6px}
 #presetSource:empty{display:none}
+
+.instruction-row{display:block;position:relative;width:max-content;min-width:100%;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;font-weight:400;text-align:left;white-space:pre;padding:0 5px 0 16px;line-height:1.6}
+.instruction-row::before{content:'○';position:absolute;left:0;color:#8cabbf}
+.instruction-row[aria-pressed=true]::before{content:'●';color:#ff7979}
+.instruction-row[aria-pressed=true]{background:#ff79791a}
+.instruction-row:hover{background:#ffffff10}

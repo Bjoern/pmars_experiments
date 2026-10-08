@@ -28,6 +28,18 @@ API void web_set_debug(int enabled) { debug_enabled = !!enabled; if (!enabled) d
 API int web_debug_hit(void) { return debug_hit; }
 API int web_debug_copy(void) { return copyDebugInfo; }
 API void web_set_debug_copy(int enabled) { copyDebugInfo = !!enabled; }
+/* Browser address breakpoints: 0 inherits source markers, 1 sets, 2 clears.
+   They stay at their address across writes/rounds and reset with the instance. */
+static unsigned char address_breakpoints[65536];
+API int web_breakpoint(int address) {
+  if (!started || address < 0 || address >= coreSize || address >= 65536) return 0;
+  return address_breakpoints[address] ? address_breakpoints[address] == 1 : !!memory[address].debuginfo;
+}
+API int web_set_breakpoint(int address, int enabled) {
+  if (!started || address < 0 || address >= coreSize || address >= 65536) return 2;
+  address_breakpoints[address] = enabled ? 1 : 2;
+  return 0;
+}
 static unsigned long long cycle_visits;
 API int web_cycle(void) { return current_cycle; }
 void web_record_instruction(int address)
@@ -83,7 +95,7 @@ int web_should_yield(void)
 {
   if ((trace_enabled && trace_count >= TRACE_CAPACITY) || web_budget <= 0 || web_count > WEB_CAPACITY - 64) return 1;
   if ((web_executed & 63) == 0 && emscripten_get_now() >= deadline) return 1;
-  if (debug_enabled && memory[*W->taskHead].debuginfo) {
+  if (debug_enabled && web_breakpoint(*W->taskHead)) {
     int owner = W - warrior, address = *W->taskHead;
     if (debug_skip_owner != owner || debug_skip_address != address) {
       debug_skip_owner = owner; debug_skip_address = address;

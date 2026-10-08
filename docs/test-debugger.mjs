@@ -70,7 +70,7 @@ try {
   await command('alive'); await command('tproc');
   assert((await page.locator('#log').textContent()).includes('2 alive; 2 processes'));
   await page.locator('#traceMode').selectOption('combined');
-  assert.equal(await page.locator('#execution pre span').count(),1);
+  assert.equal(await page.locator('#execution pre .instruction-row').count(),1);
   await page.locator('#core').click({position:{x:40,y:30}});
   assert.equal(await page.locator('#follow').inputValue(),'-1');
 
@@ -83,6 +83,7 @@ try {
   await page.locator('#step').click(); await ready('Paused after');
   const trace = await page.locator('#execution').textContent();
   assert.match(trace,/ADD.AB\s+#\s*1,\s*\$\s*0/);
+  await command('list 0');
   assert.match(await page.locator('#instruction').textContent(),/ADD.AB\s+#\s*1,\s*\$\s*1/);
   assert((await page.locator('#scores').textContent()).includes('survived'));
 
@@ -93,7 +94,7 @@ try {
   await command('step 3'); await ready('Paused after');
   assert.equal(await count(),3);
   const rows = await page.locator('#execution pre').allTextContents();
-  assert(rows.every(s=>s.includes('#')));
+  assert(rows.every(s=>/^\d{4}\s/.test(s)));
   const colors = await page.locator('#execution section').evaluateAll(nodes=>nodes.map(n=>n.style.color));
   assert.equal(new Set(colors).size,3);
   await page.screenshot({path:'docs/test-output/debugger-desktop.png',fullPage:true});

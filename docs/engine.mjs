@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import createModule from './dist/pmars.mjs?v=070aea45cfb7b7e6';
+import createModule from './dist/pmars.mjs?v=31bc34883f3e10e8';
 
-import {settings, argumentsFor} from './settings.mjs?v=070aea45cfb7b7e6';
-export {settings, defaults} from './settings.mjs?v=070aea45cfb7b7e6';
+import {settings, argumentsFor} from './settings.mjs?v=31bc34883f3e10e8';
+export {settings, defaults} from './settings.mjs?v=31bc34883f3e10e8';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }
@@ -84,6 +84,8 @@ export class Engine {
     if (done && !this.printedResults) { this.module._web_print_results(); this.printedResults = true; }
     return this.update(!!done);
   }
+  breakpoint(address) { return !!this.module._web_breakpoint(address); }
+  setBreakpoint(address, enabled) { check(this.module._web_set_breakpoint(address,+enabled)); }
   setDebug(enabled) { this.module._web_set_debug(+enabled); }
   setTrace(enabled) { this.module._web_set_trace(+enabled); }
   update(done) {

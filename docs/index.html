@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=070aea45cfb7b7e6">
+<link rel="stylesheet" href="style.css?v=31bc34883f3e10e8">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -46,7 +46,7 @@
 <span class="glyph dec"></span> Decrement (top row)
 <span class="glyph inc"></span> Increment (left column) · White outline: last execution</span></div>
 <section class="debugger" tabindex="0" aria-label="Core debugger">
-<h2>Core listing</h2><div class="debug-options"><label><input id="debugEnabled" type="checkbox"> Stop at debug markers (;break / ;trace)</label> <label><input id="debugStart" type="checkbox"> Start paused</label></div>
+<h2 id="coreViewTitle">Core listing</h2><div class="debug-options"><label><input id="debugEnabled" type="checkbox"> Stop at breakpoints and debug markers</label> <label><input id="debugStart" type="checkbox"> Start paused</label></div>
 <div class="inspect"><label>Start address <input id="address" type="number" min="0" max="7999" value="0"></label>
 <label>Lines <input id="lines" type="number" min="1" max="100" value="10"></label>
 <label>Follow <select id="follow"><option value="-1">Fixed address</option></select></label>
@@ -54,6 +54,7 @@
 <pre id="instruction" aria-label="Core instruction listing">Load a battle to inspect its core.</pre>
 <form id="commandForm"><label for="command">Debugger command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f5 · alive" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre>
 <details id="debugHelp"><summary>Browser debugger commands</summary>
+<p>Click an instruction row to toggle an address breakpoint and pause. Breakpoints stay at their addresses across writes and rounds; Reset clears them. Run shows a live combined execution log; listing commands and core clicks switch to inspection.</p>
 <p>Click a core cell to pause and list from that address; right-click lists up to it.
 Choose the line count, page through memory, or follow a warrior's next instruction.</p>
 <p><code>list / l address[,end]</code> (also <code>pc</code> and <code>.</code>),
@@ -66,7 +67,7 @@ Choose the line count, page through memory, or follow a warrior's next instructi
 <code>up / down / pgup / pgdn</code> navigate.
 F5/F7/F8/F9, arrows, Page Up/Down and Escape work outside editable controls.</p>
 <p>This is a browser subset, not the full cdb macro interpreter. Shell/file commands,
-macro loops, interactive breakpoint editing, and operand-pointer macros are not implemented.</p>
+macro loops and operand-pointer macros are not implemented.</p>
 </details>
 </section>
 <section class="analysis-controls"><label><input id="pauseViews" type="checkbox"> Pause all charts and execution logs</label>
@@ -80,5 +81,5 @@ macro loops, interactive breakpoint editing, and operand-pointer macros are not 
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <details id="diagnostics"><summary id="diagnosticsTitle">Show diagnostics</summary><p id="sliceTiming">Peak simulation slice: 0.0 ms</p><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></details></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=070aea45cfb7b7e6"></script>
+</main><script type="module" src="app.mjs?v=31bc34883f3e10e8"></script>
 </body></html>

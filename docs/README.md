@@ -153,7 +153,7 @@ Page Up/Down, and Escape work outside editable controls. The adaptations do
 not duplicate native multi-panel switching semantics.
 
 This is a documented browser subset, not the full cdb macro interpreter:
-macro loops, interactive breakpoint editing, operand-pointer expressions, shell/file operations,
+macro loops, operand-pointer expressions, shell/file operations,
 and arbitrary .mac loading are not implemented. On-page command help
 lists the supported behavior.
 
@@ -355,3 +355,18 @@ buttons are no longer exposed. The worker API remains available for integrations
 Debug enables stopping at native `;break` / `;trace` markers (enabled with
 `;debug`) before execution. Step executes the held instruction. Diagnostics,
 including peak simulation slice time, are collapsed by default.
+
+### Clickable debugger instructions
+
+Instruction rows show the core address and instruction, without execution numbers.
+Click a row in the core listing or execution logs to pause and toggle a breakpoint
+at that address. A filled dot marks a breakpoint; adding one enables debug stopping.
+Run stops before execution; Step passes through the current breakpoint. Address
+breakpoints persist across writes and rounds in the loaded match, and Reset clears
+them. Source `;break`/`;trace` markers can also be toggled for the loaded address.
+
+Run shows a combined, warrior-colored execution history in the core listing (latest
+300 snapshots). Core clicks, listing commands, and address/follow controls switch
+back to memory inspection. Step shows executions; the classic function-key macros
+still step and inspect the followed warrior. Fast and Pause all views suspend the
+live listing along with the other execution views.

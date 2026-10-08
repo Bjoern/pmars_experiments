@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=070aea45cfb7b7e6';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=070aea45cfb7b7e6';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=070aea45cfb7b7e6';
-import {HistoryChart} from './charts.mjs?v=070aea45cfb7b7e6';
+import {Engine, settings} from './engine.mjs?v=31bc34883f3e10e8';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=31bc34883f3e10e8';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=31bc34883f3e10e8';
+import {HistoryChart} from './charts.mjs?v=31bc34883f3e10e8';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let fastMode = false;
+let coreView = 'inspect', coreHistory = [];
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let collapsedEditors=[], scoreViewKey=null;
@@ -51,7 +52,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=070aea45cfb7b7e6',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=31bc34883f3e10e8',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -177,7 +178,7 @@ function stop() {
   worker = null; clearTimeout(workerTimer);
   if (pendingReject) pendingReject(new DOMException('Stopped', 'AbortError'));
   pendingReject = null; engine = null; latest = null;
-  history = []; combined = []; renderTrace(); countedCompleted=0;lastScoreSample=-1;
+  history = []; combined = []; coreHistory=[];coreView='inspect'; renderTrace(); countedCompleted=0;lastScoreSample=-1;
   processChart.clear();scoreChart.clear();
   state = 'idle'; dirty = false; $('changed').textContent = ''; $('activeSettings').textContent = ''; legend();
   $('progress').hidden = true; status('Stopped. Ready for another battle.'); controls();
@@ -186,7 +187,7 @@ function clearBattle() {
   stop();display.configure(display.size);clearHover();
   $('timing').textContent='Cycle —';$('timing').dataset.instructions='0';
   $('scores').textContent='Add warriors or try the demo.';
-  $('instruction').textContent='Load a battle to inspect its core.';
+  $('instruction').textContent='Load a battle to inspect its core.';$('coreViewTitle').textContent='Core listing';
   $('processCounts').textContent='Load a battle to see process counts.';
   $('tracePauses').replaceChildren();$('follow').replaceChildren(new Option('Fixed address','-1'));
   $('battleTotals').textContent='Warriors · 0 battles this run';
@@ -203,7 +204,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=070aea45cfb7b7e6', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=31bc34883f3e10e8', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -249,61 +250,83 @@ function scores(update) {
 }
 function wrap(n) { const size = engine?.config.coreSize || 8000; return ((n % size) + size) % size; }
 function lineCount() { return Math.max(1,Math.min(100,Number($('lines').value) || 10)); }
-function inspect() {
+function instructionRow(address, instruction, owner = null, suffix = '', listing = false) {
+  const row=document.createElement('button');row.type='button';
+  row.className='instruction-row'+(listing?' listing-line':'');row.dataset.address=String(address);
+  const active=engine?.breakpoint(address) || false;
+  row.setAttribute('aria-pressed',String(active));
+  row.title=(active?'Remove':'Set')+' breakpoint at '+addressText(address)+' (click pauses execution)';
+  row.setAttribute('aria-label',row.title);
+  if(owner!==null)row.style.color=warriorColor(owner);
+  row.textContent=addressText(address)+'  '+instruction+suffix+'\n';
+  row.onclick=()=>{
+    if(!engine?.started)return;
+    const host=row.closest('#instruction') || row.closest('#execution');
+    pause();
+    const enabled=!engine.breakpoint(address);engine.setBreakpoint(address,enabled);
+    if(enabled){$('debugEnabled').checked=true;engine.setDebug(true);}
+    textViews();
+    host?.querySelector('[data-address="'+address+'"]')?.focus({preventScroll:true});
+  };
+  return row;
+}
+function traceRow(entry) {
+  return instructionRow(entry.address,entry.instruction,entry.warrior,'  · '+latest.warriors[entry.warrior].name);
+}
+function renderListing() {
   if (!engine) return;
   const follow = Number($('follow').value);
   if (follow >= 0 && latest?.warriors[follow]?.pc >= 0) $('address').value = wrap(latest.warriors[follow].pc - Math.floor(lineCount()/2));
   const start = wrap(Number($('address').value) || 0);
   $('instruction').replaceChildren(...Array.from({length:lineCount()},(_,i) => {
-    const addr = wrap(start+i), line = document.createElement('span');
-    const owners = latest.warriors.flatMap((w,j) => w.pc === addr ? [j] : []);
-    line.className = 'listing-line';
-    if (owners.length) line.style.color = warriorColor(owners[0]);
-    line.textContent = `${addressText(addr)}  ${engine.inspect(addr)}${owners.length ? '  ← next: '+owners.map(j => latest.warriors[j].name).join(', ') : ''}\n`;
-    return line;
+    const addr=wrap(start+i),owners=latest.warriors.flatMap((w,j)=>w.pc===addr?[j]:[]);
+    return instructionRow(addr,engine.inspect(addr),owners[0]??null,
+      owners.length?'  ← next: '+owners.map(j=>latest.warriors[j].name).join(', '):'',true);
   }));
 }
-function showAddress(n) { $('follow').value = '-1'; $('address').value = wrap(n); inspect(); }
-function renderTrace() {
-  const mode = $('traceMode').value;
-  const host = $('execution');
-  host.className = mode === 'columns' ? 'execution columns' : 'execution';
-  if (mode === 'off') { host.textContent = 'Execution logging is off.'; return; }
-  if (!latest) { host.textContent = 'Load a battle to watch executed instructions.'; return; }
-  if (mode === 'combined') {
-    const pre = document.createElement('pre');
-    for (const entry of combined) {
-      const span = document.createElement('span'); span.style.color = warriorColor(entry.warrior);
-      span.textContent = `#${entry.number} ${latest.warriors[entry.warrior].name}  ${addressText(entry.address)}  ${entry.instruction}\n`;
-      pre.append(span);
-    }
-    host.replaceChildren(pre); pre.scrollTop = pre.scrollHeight;
-  } else {
-    host.replaceChildren(...latest.warriors.map((w,i) => {
-      const panel = document.createElement('section'), title = document.createElement('h3'), pre = document.createElement('pre');
-      panel.style.color = warriorColor(i); title.textContent = w.name;
-      pre.textContent = (history[i] || []).map(e => `#${e.number} ${addressText(e.address)}  ${e.instruction}`).join('\n');
-      panel.append(title,pre); return panel;
-    }));
-    for (const pre of host.querySelectorAll('pre')) pre.scrollTop = pre.scrollHeight;
+function inspect() {coreView='inspect';$('coreViewTitle').textContent='Core listing';syncTrace();renderListing();}
+function renderCoreView() {
+  $('coreViewTitle').textContent=coreView==='live'?'Executed instructions · all warriors':'Core listing';
+  if(coreView==='inspect')renderListing();
+  else if(!$('pauseViews').checked){
+    $('instruction').replaceChildren(...coreHistory.map(traceRow));
+    $('instruction').scrollTop=$('instruction').scrollHeight;
   }
 }
+function showAddress(n) { $('follow').value = '-1'; $('address').value = wrap(n); inspect();renderCoreView(); }
+function renderTrace() {
+  const mode=$('traceMode').value,host=$('execution');
+  host.className=mode==='columns'?'execution columns':'execution';
+  if(mode==='off'){host.textContent='Execution logging is off.';return;}
+  if(!latest){host.textContent='Load a battle to watch executed instructions.';return;}
+  if(mode==='combined'){
+    const pre=document.createElement('pre');pre.replaceChildren(...combined.map(traceRow));host.replaceChildren(pre);
+  }else{
+    host.replaceChildren(...latest.warriors.map((w,i)=>{
+      const panel=document.createElement('section'),title=document.createElement('h3'),pre=document.createElement('pre');
+      panel.style.color=warriorColor(i);title.textContent=w.name;
+      pre.replaceChildren(...(history[i]||[]).map(e=>instructionRow(e.address,e.instruction,i)));
+      panel.append(title,pre);return panel;
+    }));
+  }
+  for(const pre of host.querySelectorAll('pre'))pre.scrollTop=pre.scrollHeight;
+}
 function textViews() {
-  if (latest) { scores(latest); inspect(); }
-  renderTrace(); lastText = performance.now();
+  if(latest){scores(latest);renderCoreView();}
+  renderTrace();lastText=performance.now();
 }
 function present(update) {
   latest = update; display.apply(update.events,!fastMode);
   $('activeSettings').textContent = 'Loaded cycle limit: ' + engine.config.cycles.toLocaleString() +
     ' per warrior per round · ' + engine.config.warriors + ' warriors';
-  let n = total;
   for (const entry of update.trace) {
-    entry.number = ++n;
+    if(!$('pauseViews').checked)coreHistory.push(entry);
     if($('pauseViews').checked || pausedWarriors.has(entry.warrior))continue;
     (history[entry.warrior] ||= []).push(entry);
     if (history[entry.warrior].length > 100) history[entry.warrior].shift();
     combined.push(entry);
   }
+  if(coreHistory.length>300)coreHistory.splice(0,coreHistory.length-300);
   if (combined.length > 300) combined.splice(0,combined.length-300);
   total += update.executed;
   $('timing').dataset.instructions=String(total);
@@ -365,6 +388,7 @@ function frame(now) {
 function resume() {
   if (!engine || state === 'done') return;
   stepEpoch++; stepping = false;
+  coreView='live';syncTrace();
   state = 'running'; previous = performance.now(); controls();
   status('Battle running. Click the core to pause and list instructions.');
   animation = requestAnimationFrame(frame);
@@ -384,6 +408,7 @@ async function step(n = 1) {
   if (!engine && !(await load())) return;
   if (state === 'done') return;
   const token = generation, ticket = ++stepEpoch;
+  coreView='live';syncTrace();
   stepping = true;engine.setDebug(false);controls();
   try {
     while (n > 0 && state === 'paused' && token === generation && ticket === stepEpoch) {
@@ -526,8 +551,8 @@ function traceControls(names) {
  syncTrace();
 }
 function syncTrace(){
- engine?.setTrace(!fastMode && !$('pauseViews').checked && $('traceMode').value!=='off' &&
-   pausedWarriors.size < (engine?.config.warriors || sources.length));
+ engine?.setTrace(!fastMode && !$('pauseViews').checked && (coreView==='live' || ($('traceMode').value!=='off' &&
+   pausedWarriors.size < (engine?.config.warriors || sources.length))));
 }
 function battleCount(update){
  sessionBattles += Math.max(0,update.completed-countedCompleted);countedCompleted=update.completed;
