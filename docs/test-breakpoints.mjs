@@ -31,7 +31,7 @@ try{
  await page.locator('#run').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>10);
  await command('list 0,4');assert.equal(await page.locator('#coreViewTitle').textContent(),'Native pMARS debugger');assert.equal(await page.locator('#instruction .listing-line').count(),5);
  await page.locator('#step').click();assert((await page.locator('#coreViewTitle').textContent()).includes('all warriors'));
- await page.locator('#execution .instruction-row').first().click();assert.equal(await page.locator('#execution .instruction-row').first().getAttribute('aria-pressed'),'true');
+ await page.locator('.output-console').nth(1).locator('.instruction-row').first().click();assert.equal(await page.locator('.output-console').nth(1).locator('.instruction-row').first().getAttribute('aria-pressed'),'true');
  await page.locator('#reset').click();await page.waitForFunction(()=>document.querySelector('#timing').dataset.instructions==='0');assert.equal(await page.locator('#instruction [aria-pressed=true]').count(),0);
  assert.deepEqual(errors,[]);console.log('PASS: execution colors and no numbering; clickable breakpoints in both views; stop before execution, removal, step/live/list transitions, reset; native address breakpoint API.');
 }finally{await browser.close();}

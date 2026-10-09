@@ -368,6 +368,9 @@ EM_ASYNC_JS(int, browser_readline, (char *buffer, int capacity, const char *prom
   stringToUTF8(text + "\n", buffer, capacity);
   return 1;
 });
+EM_JS(void, browser_command, (const char *text), {
+  if (Module.cdbCommand) Module.cdbCommand(UTF8ToString(text));
+});
 EM_JS(void, browser_output, (const char *text), {
   if (Module.cdbOutput) Module.cdbOutput(UTF8ToString(text));
 });
@@ -1321,6 +1324,9 @@ new_input:
     /* if leading space, don't save as last command */
     else if (!isspace(inputStr[0]))
       strcpy(lastCmdStr, inputStr);
+#ifdef BROWSER
+    if (!strcmp(prompt, CDB_PROMPT)) browser_command(inputStr);
+#endif
     nextCmd = curCmd = 0;
 #ifdef CYCLE_CHECK
     macroEnd = 0;

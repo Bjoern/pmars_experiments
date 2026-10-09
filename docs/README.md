@@ -122,8 +122,9 @@ to 256 KiB; diagnostics retain 64 KiB.
 - Click the arena to pause and list from that address. Right-click lists up to
   the clicked address. Listings default to ten lines, with addresses, wraparound,
   paging, and next-PC markers. Follow selects a warrior's next instruction.
-- Executed instructions: separate warrior-colored columns, one combined console,
-  or Off. Entries contain the instruction before operand evaluation or writes.
+- Consoles: choose cdb, all warriors, or a named warrior in each panel. Add, pause,
+  or remove panels independently. Execution entries show instructions before
+  operand evaluation or writes.
   Histories retain 100 entries per warrior and 300 combined. Text refreshes
   at most 10 times per second while running; Pause/Step refresh immediately.
 - Run and Fast use the rounds field. Fast suppresses visual updates; Run/Pause
@@ -143,8 +144,10 @@ so that it reports the total process count.
 
 Native semantics apply: `step 10` executes at **address 10**, not ten instructions.
 Debugger output accumulates in a scrolling history, following the newest output.
-Commands are echoed on their own `(cdb)` line. Screen clears inside macros preserve
-the history; an explicit `cls` or loading/resetting a battle clears it.
+Commands appear in a separate, scrollable history beside the command field. Clicking
+a history entry executes it again. Empty Enter records the actual command recalled
+by native cdb, including its leading-space rules. Screen clears inside macros preserve
+the output history; an explicit `cls` or loading/resetting a battle clears it.
 Use `step~!10` or `skip 9` for ten instructions. Empty Enter recalls the last native
 command chain; leading whitespace retains cdb's no-recall behavior. `help` lists
 native commands; paged output, `edit`, and `fill` ask for their next input in the
@@ -188,7 +191,7 @@ control, including the global pause. Pausing skips process-count DOM updates;
 score rows also avoid rebuilding when their values are unchanged.
 The process chart uses the current round’s cycle number, resets each round,
 and samples at most ten times a second. Each chart and each
-warrior execution log can be paused independently; **Pause live views** pauses
+console can be paused independently; **Pause live views** pauses
 both charts and execution logging while simulation continues. Turning execution
 logs off, or pausing all of them, disables native trace capture. Series runs
 skip display events and instruction traces. Completed battle totals are shown
@@ -378,3 +381,13 @@ Run shows a combined, warrior-colored execution history in the core listing (lat
 back to memory inspection. The toolbar Step shows executions; debugger commands
 and function-key macros show the native cdb output. Fast and Pause all views suspend the
 live listing along with the other execution views.
+
+### Configurable consoles
+
+The debugger and executed-instruction views share one console grid. Each console's
+selector offers `cdb`, `All warriors`, and the loaded warriors' names. Add console
+creates another panel; its pause and remove buttons affect only that panel.
+Multiple consoles may show the same source. Panels wrap into a single column on
+small screens. Executing a debugger command or inspecting the arena creates a cdb
+panel if all cdb panels have been removed. Execution views retain warrior colors
+and clickable breakpoints. Fast mode and the global pause still suppress live views.

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import createModule from './dist/pmars.mjs?v=f79cd64ec77b5b16';
+import createModule from './dist/pmars.mjs?v=d6c75d86ede2a5bd';
 
-import {settings, argumentsFor} from './settings.mjs?v=f79cd64ec77b5b16';
-export {settings, defaults} from './settings.mjs?v=f79cd64ec77b5b16';
+import {settings, argumentsFor} from './settings.mjs?v=d6c75d86ede2a5bd';
+export {settings, defaults} from './settings.mjs?v=d6c75d86ede2a5bd';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }
@@ -84,12 +84,12 @@ export class Engine {
     if (done && !this.printedResults) { this.module._web_print_results(); this.printedResults = true; }
     return this.update(!!done);
   }
-  async debuggerCommand(text, {output=()=>{}, input=()=>Promise.resolve('')}={}) {
+  async debuggerCommand(text, {output=()=>{}, command=()=>{}, input=()=>Promise.resolve('')}={}) {
     if(this.debugBusy)throw new Error('Debugger is already processing a command.');
     if(!this.started)throw new Error('Load a battle before using cdb.');
     if(text!==undefined && new TextEncoder().encode(text).length>8192)throw new Error('Debugger command is too long.');
     const m=this.module,lines=text===undefined?[]:[text];
-    m.cdbCancelled=false;m.cdbOutput=output;
+    m.cdbCancelled=false;m.cdbOutput=output;m.cdbCommand=command;
     m.cdbReadLine=async prompt=>{
       if(m.cdbCancelled)return null;
       if(lines.length)return lines.shift();

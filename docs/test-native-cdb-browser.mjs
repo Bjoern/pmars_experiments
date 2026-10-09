@@ -14,7 +14,7 @@ try{
  const earlierOutput=await page.locator('#instruction').textContent();
  await send('macro f5');await idle();assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'2');
  assert((await page.locator('#instruction').textContent()).startsWith(earlierOutput.trimEnd()),'Macro cls must preserve earlier command output');
- assert((await page.locator('#instruction').textContent()).includes('(cdb) macro f5'));
+ assert.equal(await page.locator('#commandHistory button').last().textContent(),'macro f5');
  await send('step~!3');await idle();assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'5');
  await send('');await idle();assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'8');
  await send('trace 0~go~calc 99');await page.waitForFunction(()=>document.querySelector('#instruction').textContent.includes('\n99\n'));await idle();assert((await page.locator('#instruction').textContent()).includes('99'));

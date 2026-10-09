@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=f79cd64ec77b5b16">
+<link rel="stylesheet" href="style.css?v=d6c75d86ede2a5bd">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -46,13 +46,13 @@
 <span class="glyph dec"></span> Decrement (top row)
 <span class="glyph inc"></span> Increment (left column) · White outline: last execution</span></div>
 <section class="debugger" tabindex="0" aria-label="Core debugger">
-<h2 id="coreViewTitle">Core listing</h2><div class="debug-options"><label><input id="debugEnabled" type="checkbox"> Stop at breakpoints and debug markers</label> <label><input id="debugStart" type="checkbox"> Start paused</label></div>
+<div class="console-heading"><h2>Consoles</h2><button id="addConsole" type="button">+ Add console</button></div><span id="coreViewTitle" class="hint"></span><div class="debug-options"><label><input id="debugEnabled" type="checkbox"> Stop at breakpoints and debug markers</label> <label><input id="debugStart" type="checkbox"> Start paused</label></div>
 <div class="inspect"><label>Start address <input id="address" type="number" min="0" max="7999" value="0"></label>
 <label>Lines <input id="lines" type="number" min="1" max="100" value="10"></label>
 <label>Follow <select id="follow"><option value="-1">Fixed address</option></select></label>
 <button id="prevPage" aria-label="Previous page">↑ Page</button><button id="nextPage" aria-label="Next page">↓ Page</button></div>
-<pre id="instruction" aria-label="Core instruction listing">Load a battle to inspect its core.</pre>
-<form id="commandForm"><label for="command">Native cdb command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f7 · calc 2+3" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre>
+<div id="execution" class="console-grid"></div>
+<div class="command-workspace"><div id="commandHistory" aria-label="Command history"></div><form id="commandForm"><label for="command">Native cdb command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f7 · calc 2+3" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre></div>
 <details id="debugHelp"><summary>Native pMARS debugger help</summary>
 <p>The command line uses pMARS cdb, including expressions, command chains (<code>~</code>), loops, conditional commands, and macros. The original <code>pmars.mac</code> and <code>mw.mac</code> are preloaded. Enter <code>help</code> for native command help or <code>macro</code> to list macros.</p>
 <p><code>step</code> executes one instruction; native <code>step 10</code> changes the current program counter to address 10 before executing. To execute ten instructions, use <code>skip 9</code> or <code>step~!10</code>. Enter on an empty field recalls the last native command chain.</p>
@@ -63,13 +63,8 @@
 <section class="analysis-controls"><label><input id="pauseViews" type="checkbox"> Pause all charts and execution logs</label>
 <div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over cycles"></canvas><div id="processCounts" aria-label="Processes per warrior">Load a battle to see process counts.</div></section>
 <section><label><input id="pauseScores" type="checkbox"> Pause score chart</label><canvas id="scoreChart" aria-label="Cumulative score over completed battles"></canvas></section></div></section>
-<section><div class="trace-header"><h2>Executed instructions</h2><label>View <select id="traceMode">
-<option value="columns">One console per warrior</option><option value="combined">Combined console</option><option value="off">Off</option>
-</select></label></div>
-<div id="tracePauses" class="trace-pauses"></div><p class="hint">Instruction snapshots before execution. Latest 100 per warrior or 300 combined; text refreshes up to 10 times per second while running.</p>
-<div id="execution" class="execution">Load a battle to watch executed instructions.</div></section>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <details id="diagnostics"><summary id="diagnosticsTitle">Show diagnostics</summary><p id="sliceTiming">Peak simulation slice: 0.0 ms</p><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></details></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=f79cd64ec77b5b16"></script>
+</main><script type="module" src="app.mjs?v=d6c75d86ede2a5bd"></script>
 </body></html>

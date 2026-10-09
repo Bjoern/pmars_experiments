@@ -79,10 +79,10 @@ try{
  await page.locator('#step').click();await ready('Paused after');
  assert.equal(await page.locator('#execution').textContent(),oldTrace);
  await page.locator('#pauseViews').uncheck();
- await page.locator('#tracePauses input').first().check();
- const firstTrace=await page.locator('#execution pre').first().textContent();
+ await page.getByRole('button',{name:'Pause console 2',exact:true}).click();
+ const firstTrace=await page.locator('#execution pre').nth(1).textContent();
  await page.locator('#step').click();await ready('Paused after');
- assert.equal(await page.locator('#execution pre').first().textContent(),firstTrace);
+ assert.equal(await page.locator('#execution pre').nth(1).textContent(),firstTrace);
  await page.locator('#command').fill('l0,3');await page.locator('#command').press('Enter');
  await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent==='Ready.');
  assert.equal(await page.locator('#instruction .listing-line').count(),4);

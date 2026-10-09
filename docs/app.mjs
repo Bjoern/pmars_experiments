@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=f79cd64ec77b5b16';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=f79cd64ec77b5b16';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=f79cd64ec77b5b16';
-import {HistoryChart} from './charts.mjs?v=f79cd64ec77b5b16';
+import {Engine, settings} from './engine.mjs?v=d6c75d86ede2a5bd';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=d6c75d86ede2a5bd';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=d6c75d86ede2a5bd';
+import {HistoryChart} from './charts.mjs?v=d6c75d86ede2a5bd';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let fastMode = false;
 let coreView = 'inspect', coreHistory = [];
+const consoles=[];let consoleSerial=0;const commandHistory=[];
 let nativeBusy=false,nativeResume=false,nativeOutput='',nativeInput=null,nativeCancelled=false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
@@ -53,7 +54,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=f79cd64ec77b5b16',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=d6c75d86ede2a5bd',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -72,7 +73,6 @@ function checkWarrior(index,automatic=false) {
  };
  w.postMessage({type:'check',index,settings:config,sources:[...sources]});
 }
-const pausedWarriors=new Set();
 const processChart=new HistoryChart($('processChart'),'Processes / cycle in current round');
 const scoreChart=new HistoryChart($('scoreChart'),'Cumulative score / completed battles');
 const addressText = n => String(n).padStart(String((engine?.config.coreSize || 8000) - 1).length, '0');
@@ -191,9 +191,9 @@ function clearBattle() {
   stop();display.configure(display.size);clearHover();
   $('timing').textContent='Cycle —';$('timing').dataset.instructions='0';
   $('scores').textContent='Add warriors or try the demo.';
-  $('instruction').textContent='Load a battle to inspect its core.';$('coreViewTitle').textContent='Core listing';
+  for(const panel of consoles)panel.output.textContent='Load a battle to inspect its core.';$('coreViewTitle').textContent='Core listing';
   $('processCounts').textContent='Load a battle to see process counts.';
-  $('tracePauses').replaceChildren();$('follow').replaceChildren(new Option('Fixed address','-1'));
+  $('follow').replaceChildren(new Option('Fixed address','-1'));
   $('battleTotals').textContent='Warriors · 0 battles this run';
   status('No warriors loaded. Add a warrior, upload files, or try Demo.');
 }
@@ -208,7 +208,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=f79cd64ec77b5b16', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=d6c75d86ede2a5bd', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -265,7 +265,7 @@ function instructionRow(address, instruction, owner = null, suffix = '', listing
   row.textContent=addressText(address)+'  '+instruction+suffix+'\n';
   row.onclick=()=>{
     if(nativeBusy || !engine?.started)return;
-    const host=row.closest('#instruction') || row.closest('#execution');
+    const host=row.closest('.console-output');
     pause();
     const enabled=!engine.breakpoint(address);engine.setBreakpoint(address,enabled);
     if(enabled){$('debugEnabled').checked=true;engine.setDebug(true);}
@@ -277,44 +277,64 @@ function instructionRow(address, instruction, owner = null, suffix = '', listing
 function traceRow(entry) {
   return instructionRow(entry.address,entry.instruction,entry.warrior,'  · '+latest.warriors[entry.warrior].name);
 }
-function renderListing() {
-  if (!engine) return;
+function renderListing(host) {
+  if(!host){for(const panel of consoles.filter(p=>p.select.value==='cdb'))renderListing(panel.output);return;}
+  if (!engine) {host.textContent='Load a battle to inspect its core.';return;}
   const follow = Number($('follow').value);
   if (follow >= 0 && latest?.warriors[follow]?.pc >= 0) $('address').value = wrap(latest.warriors[follow].pc - Math.floor(lineCount()/2));
   const start = wrap(Number($('address').value) || 0);
-  $('instruction').replaceChildren(...Array.from({length:lineCount()},(_,i) => {
+  host.replaceChildren(...Array.from({length:lineCount()},(_,i) => {
     const addr=wrap(start+i),owners=latest.warriors.flatMap((w,j)=>w.pc===addr?[j]:[]);
     return instructionRow(addr,engine.inspect(addr),owners[0]??null,
       owners.length?'  ← next: '+owners.map(j=>latest.warriors[j].name).join(', '):'',true);
   }));
 }
-function inspect() {if(nativeBusy)return;coreView='inspect';$('coreViewTitle').textContent='Core listing';syncTrace();renderListing();}
+function inspect() {if(nativeBusy)return;ensureCdbConsole();coreView='inspect';$('coreViewTitle').textContent='Core listing';syncTrace();renderListing();}
 function renderCoreView() {
   if(coreView==='native'){renderNativeOutput();return;}
   $('coreViewTitle').textContent=coreView==='live'?'Executed instructions · all warriors':'Core listing';
-  if(coreView==='inspect')renderListing();
-  else if(!$('pauseViews').checked){
-    $('instruction').replaceChildren(...coreHistory.map(traceRow));
-    $('instruction').scrollTop=$('instruction').scrollHeight;
+  for(const panel of consoles.filter(p=>p.select.value==='cdb' && !p.paused)){
+    if(coreView==='inspect')renderListing(panel.output);
+    else if(!$('pauseViews').checked){
+      panel.output.replaceChildren(...coreHistory.map(traceRow));
+      panel.output.scrollTop=panel.output.scrollHeight;
+    }
   }
 }
 function showAddress(n) { $('follow').value = '-1'; $('address').value = wrap(n); inspect();renderCoreView(); }
+function consoleOptions(panel) {
+  const selected=panel.select.value || 'cdb';
+  const names=latest?.warriors.map(w=>w.name) || sources.map((source,i)=>draftName(source,i));
+  panel.select.replaceChildren(new Option('cdb','cdb'),new Option('All warriors','all'),...names.map((name,i)=>new Option(name,'warrior:'+i)));
+  panel.select.value=[...panel.select.options].some(o=>o.value===selected)?selected:'cdb';
+}
+function addConsole(kind='cdb') {
+  const id=++consoleSerial,panel={paused:false};
+  panel.element=document.createElement('section');panel.element.className='output-console';
+  const header=document.createElement('div');header.className='console-toolbar';
+  panel.select=document.createElement('select');panel.select.setAttribute('aria-label','Console '+id+' content');
+  const pauseButton=document.createElement('button');pauseButton.textContent='Ⅱ';pauseButton.title='Pause console';pauseButton.setAttribute('aria-label','Pause console '+id);pauseButton.setAttribute('aria-pressed','false');
+  pauseButton.onclick=()=>{panel.paused=!panel.paused;pauseButton.setAttribute('aria-pressed',String(panel.paused));syncTrace();renderCoreView();renderTrace();};
+  const close=document.createElement('button');close.textContent='×';close.setAttribute('aria-label','Remove console '+id);
+  close.onclick=()=>{consoles.splice(consoles.indexOf(panel),1);panel.element.remove();syncTrace();};
+  panel.output=document.createElement('pre');panel.output.className='console-output';panel.output.setAttribute('aria-label','Console '+id+' output');
+  if(id===1)panel.output.id='instruction';
+  header.append(panel.select,pauseButton,close);panel.element.append(header,panel.output);consoles.push(panel);$('execution').append(panel.element);
+  consoleOptions(panel);panel.select.value=kind;
+  panel.select.onchange=()=>{syncTrace();renderCoreView();renderTrace();};
+  syncTrace();renderCoreView();renderTrace();return panel;
+}
+function ensureCdbConsole(){if(!consoles.some(p=>p.select.value==='cdb'))addConsole('cdb');}
 function renderTrace() {
-  const mode=$('traceMode').value,host=$('execution');
-  host.className=mode==='columns'?'execution columns':'execution';
-  if(mode==='off'){host.textContent='Execution logging is off.';return;}
-  if(!latest){host.textContent='Load a battle to watch executed instructions.';return;}
-  if(mode==='combined'){
-    const pre=document.createElement('pre');pre.replaceChildren(...combined.map(traceRow));host.replaceChildren(pre);
-  }else{
-    host.replaceChildren(...latest.warriors.map((w,i)=>{
-      const panel=document.createElement('section'),title=document.createElement('h3'),pre=document.createElement('pre');
-      panel.style.color=warriorColor(i);title.textContent=w.name;
-      pre.replaceChildren(...(history[i]||[]).map(e=>instructionRow(e.address,e.instruction,i)));
-      panel.append(title,pre);return panel;
-    }));
+  if(nativeBusy || fastMode || $('pauseViews').checked)return;
+  for(const panel of consoles){
+    if(panel.paused || panel.select.value==='cdb')continue;
+    if(!latest){panel.output.textContent='Load a battle to watch executed instructions.';continue;}
+    const index=Number(panel.select.value.split(':')[1]);
+    const entries=panel.select.value==='all'?combined:(history[index]||[]);
+    panel.output.replaceChildren(...entries.map(e=>panel.select.value==='all'?traceRow(e):instructionRow(e.address,e.instruction,e.warrior)));
+    panel.output.scrollTop=panel.output.scrollHeight;
   }
-  for(const pre of host.querySelectorAll('pre'))pre.scrollTop=pre.scrollHeight;
 }
 function textViews() {
   if(nativeBusy){renderNativeOutput();return;}
@@ -327,7 +347,7 @@ function present(update) {
     ' per warrior per round · ' + engine.config.warriors + ' warriors';
   for (const entry of update.trace) {
     if(!$('pauseViews').checked)coreHistory.push(entry);
-    if($('pauseViews').checked || pausedWarriors.has(entry.warrior))continue;
+    if($('pauseViews').checked)continue;
     (history[entry.warrior] ||= []).push(entry);
     if (history[entry.warrior].length > 100) history[entry.warrior].shift();
     combined.push(entry);
@@ -450,10 +470,11 @@ function appendNativeOutput(text) {
   if(text.includes('\x1b['))text=text.replace(/\x1b\[[0-9;]*[A-Za-z]/g,'');
   nativeOutput=(nativeOutput+text).slice(-65536);
 }
-function renderNativeOutput() {
+function renderNativeOutput(host) {
+  if(!host){for(const panel of consoles.filter(p=>p.select.value==='cdb' && !p.paused))renderNativeOutput(panel.output);return;}
   $('coreViewTitle').textContent='Native pMARS debugger';
-  if(nativeBusy)$('instruction').textContent=nativeOutput;
-  else $('instruction').replaceChildren(...nativeOutput.split('\n').map(line=>{
+  if(nativeBusy)host.textContent=nativeOutput;
+  else host.replaceChildren(...nativeOutput.split('\n').map(line=>{
     const match=line.match(/^(\d{5})\s+(.*)$/);
     if(match){
       const address=Number(match[1]);
@@ -462,11 +483,11 @@ function renderNativeOutput() {
     }
     return document.createTextNode(line+'\n');
   }));
-  $('instruction').scrollTop=$('instruction').scrollHeight;
+  host.scrollTop=host.scrollHeight;
 }
 async function nativeCommand(text) {
   if(nativeBusy){
-    if(nativeInput){appendNativeOutput(text+'\n');const resolve=nativeInput;nativeInput=null;resolve(text);return;}
+    if(nativeInput){const resolve=nativeInput;nativeInput=null;resolve(text);return;}
     return 'Debugger busy. Use Cancel to interrupt the command.';
   }
   pause();nativeResume=false;
@@ -474,10 +495,10 @@ async function nativeCommand(text) {
   const instance=engine;instance.setDebugEvents(false);
   if(typeof text==='string' && text.trim().toLowerCase()==='cls')nativeOutput='';
   if(nativeOutput && !nativeOutput.endsWith('\n'))appendNativeOutput('\n');
-  if(text!==undefined)appendNativeOutput('(cdb) '+(text || '[Enter: repeat]')+'\n');
+  ensureCdbConsole();
   nativeBusy=true;nativeCancelled=false;coreView='native';$('commandOutput').textContent='Working…';controls();
   const timer=setInterval(renderNativeOutput,100);
-  const io={output:appendNativeOutput,input:prompt=>{
+  const io={output:appendNativeOutput,command:recordCommand,input:prompt=>{
     if(nativeCancelled)return Promise.resolve(null);
     $('commandOutput').textContent=prompt || 'Enter the requested instruction or expression.';
     $('command').focus();renderNativeOutput();
@@ -509,6 +530,7 @@ async function nativeCommand(text) {
     }
   }finally{
     clearInterval(timer);nativeBusy=false;nativeInput=null;
+    for(const button of $('commandHistory').querySelectorAll('button'))button.disabled=false;
     if(engine===instance){
       instance.setDebug($('debugEnabled').checked);
       latest=instance.update(state==='done');latest.events=new Uint32Array();latest.trace=[];latest.executed=0;
@@ -559,7 +581,7 @@ $('address').oninput = () => { $('follow').value = '-1'; inspect(); };
 $('lines').oninput = inspect; $('follow').onchange = inspect;
 $('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());
 $('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
-$('traceMode').onchange = () => { syncTrace(); renderTrace(); };
+$('addConsole').onclick=()=>addConsole(latest?.warriors.length?'warrior:0':'cdb');
 $('arenaLayout').onchange=()=>{
  const layout=$('arenaLayout').value,viewport=document.querySelector('.arena-viewport');
  viewport.dataset.layout=layout;
@@ -589,19 +611,24 @@ document.addEventListener('keydown',event => {
 });
 document.addEventListener('visibilitychange',() => { previous = performance.now(); credit = 0; });
 
-function traceControls(names) {
- pausedWarriors.clear();
- $('tracePauses').replaceChildren(...names.map((name,i)=>{
-  const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';
-  check.onchange=()=>{check.checked?pausedWarriors.add(i):pausedWarriors.delete(i);syncTrace();};
-  label.style.color=warriorColor(i);label.append(check,' Pause '+name);return label;
- }));
+function traceControls() {
+ for(const panel of consoles)consoleOptions(panel);
  syncTrace();
 }
 function syncTrace(){
  if(nativeBusy)return;
- engine?.setTrace(!fastMode && !$('pauseViews').checked && (coreView==='live' || ($('traceMode').value!=='off' &&
-   pausedWarriors.size < (engine?.config.warriors || sources.length))));
+ engine?.setTrace(!fastMode && !$('pauseViews').checked && consoles.some(p=>!p.paused && (p.select.value!=='cdb' || coreView==='live')));
+}
+function recordCommand(text){
+ if(!text)return;
+ commandHistory.push(text);if(commandHistory.length>100)commandHistory.shift();
+ $('commandHistory').replaceChildren(...commandHistory.map(cmd=>{
+   const button=document.createElement('button');button.type='button';button.textContent=cmd;button.title='Execute again: '+cmd;
+   button.disabled=nativeBusy && !nativeInput;
+   button.onclick=()=>{if(nativeBusy)return;command(cmd).catch(e=>{$('commandOutput').textContent=e.message;});};
+   return button;
+ }));
+ $('commandHistory').scrollTop=$('commandHistory').scrollHeight;
 }
 function battleCount(update){
  sessionBattles += Math.max(0,update.completed-countedCompleted);countedCompleted=update.completed;
@@ -655,7 +682,7 @@ for(const id of ['dropZone']){
 }
 $('theme').onchange=()=>{
  setTheme($('theme').value);
- for(const selector of ['#tracePauses label','#editors .warrior']) document.querySelectorAll(selector).forEach((label,i)=>{label.style.color=warriorColor(i);});
+ for(const selector of ['#editors .warrior']) document.querySelectorAll(selector).forEach((label,i)=>{label.style.color=warriorColor(i);});
  display.redraw();legend();textViews();processChart.draw();scoreChart.draw();
 };
 $('pauseProcesses').onchange=()=>{if(latest)processIndicators(latest);};
@@ -666,3 +693,5 @@ setupSettings(markDirty);
 processChart.clear();scoreChart.clear();
 
 editors(); clearBattle();
+
+addConsole('cdb');addConsole('all');
