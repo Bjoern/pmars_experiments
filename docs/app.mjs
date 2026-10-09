@@ -1,10 +1,10 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=4dc6829468d6d5e0';
-import {createEditor} from './dist/editor.mjs?v=4dc6829468d6d5e0';
+import {bundledWarriors} from './demo-warriors.mjs?v=f66f135e4e412452';
+import {createEditor} from './dist/editor.mjs?v=f66f135e4e412452';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=4dc6829468d6d5e0';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=4dc6829468d6d5e0';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=4dc6829468d6d5e0';
-import {HistoryChart} from './charts.mjs?v=4dc6829468d6d5e0';
+import {Engine, settings} from './engine.mjs?v=f66f135e4e412452';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=f66f135e4e412452';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=f66f135e4e412452';
+import {HistoryChart} from './charts.mjs?v=f66f135e4e412452';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -15,7 +15,7 @@ const consoles=[];let consoleSerial=0;const commandHistory=[];
 let nativeBusy=false,nativeResume=false,nativeOutput='',nativeInput=null,nativeCancelled=false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
-let collapsedEditors=[], scoreViewKey=null;
+let collapsedEditors=[], wideEditors=[], scoreViewKey=null;
 let sourceEditors=[], compileIssues=[];
 const demoSources = [";redcode-94\n;name Imp\n;author A. K. Dewdney\n;assert 1\nmov.i 0, 1\nend\n", ";redcode-94\n;name Dwarf\n;author A. K. Dewdney\n;assert 1\nadd.ab #4, bomb\nmov.i bomb, @bomb\njmp -2\nbomb dat.f #0, #0\nend\n"];
 let sources = [];
@@ -58,7 +58,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=4dc6829468d6d5e0',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=f66f135e4e412452',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -127,7 +127,7 @@ function editors() {
     const remove = document.createElement('button');
     remove.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>';remove.title='Remove warrior'; remove.className = 'remove-warrior';
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
-    remove.onclick = () => { if(nativeBusy)return; sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
+    remove.onclick = () => { if(nativeBusy)return; sources.splice(i,1);collapsedEditors.splice(i,1);wideEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
     const save=document.createElement('button');save.textContent='Download';save.className='save-warrior';save.setAttribute('aria-label','Download warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.title='Revalidate warrior and show assembly output';compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
@@ -136,9 +136,11 @@ function editors() {
     edit.onclick=()=>{collapsedEditors[i]=collapsedEditors[i]===false;editorVisibility();if(!collapsedEditors[i])sourceEditors[i].focus();};
     const pencil=document.createElement('button');pencil.className='edit-source';pencil.title='Edit warrior';pencil.setAttribute('aria-label','Edit warrior '+(i+1));
     pencil.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 15z"/></svg>';
-    pencil.onclick=()=>{collapsedEditors[i]=false;editorVisibility();sourceEditors[i].focus();};
+    pencil.onclick=edit.onclick;pencil.setAttribute('aria-controls',label.htmlFor);
     const nameGroup=document.createElement('div');nameGroup.className='warrior-name-group';nameGroup.append(label,pencil);
-    top.append(edit,nameGroup,compile,save,remove);
+    const widen=document.createElement('button');widen.className='widen-editor';widen.textContent='↔';
+    widen.onclick=()=>{wideEditors[i]=!wideEditors[i];editorVisibility();sourceEditors[i].view.requestMeasure();};
+    top.append(edit,nameGroup,widen,compile,save,remove);
     const area=document.createElement('div');area.className='source-editor';
     const editor=createEditor(area,{theme:$('editorTheme').value,syntax:$('editorSyntax').value,value:source,id:label.htmlFor,label:`Warrior ${i+1} source`,onChange:value=>{
       sources[i]=value;
@@ -162,6 +164,10 @@ function editorVisibility(){
   button.textContent=area.hidden?'▸':'▾';
   button.title=area.hidden?'Edit warrior':'Collapse editor';
   button.setAttribute('aria-expanded',String(!area.hidden));
+  const pencil=area.parentElement.querySelector('.edit-source');pencil.title=button.title;pencil.setAttribute('aria-expanded',String(!area.hidden));
+  const widen=area.parentElement.querySelector('.widen-editor');widen.hidden=area.hidden;
+  widen.title=wideEditors[i]?'Restore editor width':'Widen editor';widen.setAttribute('aria-label',widen.title+' '+(i+1));widen.setAttribute('aria-pressed',String(!!wideEditors[i]));
+  area.parentElement.classList.toggle('wide-editor',!!wideEditors[i]&&!area.hidden);
  });
  const allClosed=sources.every((_,i)=>collapsedEditors[i]!==false);
  $('toggleEditors').textContent=allClosed?'▸ Expand all':'▾ Collapse all';
@@ -244,7 +250,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=4dc6829468d6d5e0', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=f66f135e4e412452', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -691,7 +697,7 @@ $('newWarrior').onclick=()=>{
 };
 async function startDemo(selected){
  if(sources.length)return;
- sources=[...selected];collapsedEditors=[];
+ sources=[...selected];collapsedEditors=[];wideEditors=[];
  $('preset').value='standard';$('preset').onchange();
  $('rounds').value='1';$('debugStart').checked=false;$('debugEnabled').checked=false;
  $('speed').value='3';$('speed').oninput();

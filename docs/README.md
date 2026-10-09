@@ -417,6 +417,6 @@ chooses two distinct entries from `warriors/*.red`; Multiwarrior loads all entri
 `validate.red` is excluded. `docs/build.py` regenerates `docs/demo-warriors.mjs`
 from that directory, so the demos also work on a static GitHub Pages deployment.
 
-The Editor theme selector above the warriors offers Dark, Light, and High contrast palettes, independently of arena colors. The choice persists in local browser storage; switching it preserves source, selections, and undo history. The pencil beside a warrior name opens and focuses its editor; the disclosure arrow still toggles it.
+The Editor theme selector above the warriors offers Dark, Light, and High contrast palettes, independently of arena colors. The choice persists in local browser storage; switching it preserves source, selections, and undo history. Both the pencil beside a warrior name and the disclosure arrow toggle its editor. The ↔ control expands an open editor across the full roster width and restores it; drag its bottom-right resize handle to change its height.
 
 Syntax colors (Ocean, Warm, Monochrome) are selected independently of the editor background. Palettes adapt to light/dark backgrounds, and both choices are remembered locally.

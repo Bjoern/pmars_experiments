@@ -32,6 +32,16 @@ try{
 
  await page.getByRole('button',{name:'Edit or collapse warrior 1',exact:true}).click();assert(await page.locator('#first').isHidden());
  await page.getByRole('button',{name:'Edit warrior 1',exact:true}).click();assert(await page.locator('#first').isVisible());
+ await page.getByRole('button',{name:'Edit warrior 1',exact:true}).click();assert(await page.locator('#first').isHidden());
+ await page.getByRole('button',{name:'Edit warrior 1',exact:true}).click();
+ await page.locator('#newWarrior').click();
+ const area=page.locator('.source-editor').first(),narrow=await area.boundingBox();
+ await page.getByRole('button',{name:'Widen editor 1',exact:true}).click();assert((await area.boundingBox()).width>narrow.width*1.5);
+ await page.getByRole('button',{name:'Restore editor width 1',exact:true}).click();assert.equal((await area.boundingBox()).width,narrow.width);
+ await area.scrollIntoViewIfNeeded();const bounds=await area.boundingBox();
+ await page.mouse.move(bounds.x+bounds.width-3,bounds.y+bounds.height-3);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width-3,bounds.y+bounds.height+97,{steps:5});await page.mouse.up();assert((await area.boundingBox()).height>bounds.height+50);
+ await page.getByRole('button',{name:'Remove warrior 2',exact:true}).click();
+
 
  await page.locator('#first').press('Control+End');await page.locator('#first').press('End');await page.keyboard.type('; undo me');
  await page.locator('#first').press('Control+z');assert(!(await page.locator('#first').textContent()).includes('undo me'));
