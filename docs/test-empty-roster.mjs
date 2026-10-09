@@ -25,6 +25,14 @@ try{
  await page.locator('#demo').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
  assert.equal(await page.locator('#editors .cm-content').count(),2);
  assert((await page.locator('#editors').textContent()).includes('Imp'));assert((await page.locator('#editors').textContent()).includes('Dwarf'));
- assert(await page.locator('#demo').isHidden());assert.deepEqual(errors,[]);
+ assert(await page.locator('#demo').isHidden());
+ const pool=['The Art of CoreWar','Excalibur','Forgotten Lore II','Son of Vain','Sunset'];
+ await empty();assert(await page.getByRole('heading',{name:'Try a demo:'}).isVisible());
+ await page.locator('#randomDemo').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
+ let names=await page.locator('#editors label.warrior').allTextContents();names=names.map(n=>n.split(' / ')[1]);
+ assert.equal(names.length,2);assert.equal(new Set(names).size,2);assert(names.every(n=>pool.includes(n)));
+ await empty();await page.locator('#multiDemo').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
+ names=await page.locator('#editors label.warrior').allTextContents();assert.deepEqual(names.map(n=>n.split(' / ')[1]).sort(),pool.sort());
+ assert(await page.locator('#demos').isHidden());assert.deepEqual(errors,[]);
  console.log('PASS: deleting all warriors stops battle; empty controls, New, solo stepping, upload, mobile, and auto-starting Demo.');
 }finally{await browser.close();}

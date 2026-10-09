@@ -408,3 +408,11 @@ locked; `docs/dist/editor-LICENSES.txt` ships their license notices. The checked
 bundle allows ordinary Wasm builds and GitHub Pages deployment without npm.
 
 Eliminated warriors have a red multiplication-sign cross (a text glyph, not a third-party icon asset) beside their process count. Its space is reserved even while alive.
+
+### Demo choices
+
+With no warriors loaded, **Try a demo** offers Dwarf vs Imp, Random duel, and
+Multiwarrior. Each loads its sources and starts a standard match. Random duel
+chooses two distinct entries from `warriors/*.red`; Multiwarrior loads all entries.
+`validate.red` is excluded. `docs/build.py` regenerates `docs/demo-warriors.mjs`
+from that directory, so the demos also work on a static GitHub Pages deployment.

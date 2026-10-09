@@ -1,9 +1,10 @@
-import {createEditor} from './dist/editor.mjs?v=f7c2a1ad83c3b191';
+import {bundledWarriors} from './demo-warriors.mjs?v=c4232bcc5036cbcb';
+import {createEditor} from './dist/editor.mjs?v=c4232bcc5036cbcb';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=f7c2a1ad83c3b191';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=f7c2a1ad83c3b191';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=f7c2a1ad83c3b191';
-import {HistoryChart} from './charts.mjs?v=f7c2a1ad83c3b191';
+import {Engine, settings} from './engine.mjs?v=c4232bcc5036cbcb';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=c4232bcc5036cbcb';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=c4232bcc5036cbcb';
+import {HistoryChart} from './charts.mjs?v=c4232bcc5036cbcb';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -57,7 +58,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=f7c2a1ad83c3b191',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=c4232bcc5036cbcb',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -142,7 +143,7 @@ function editors() {
   editorVisibility();refreshCompileButtons();
   $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
   $('newWarrior').disabled = sources.length >= 36;
-  $('demo').hidden = sources.length !== 0;
+  $('demos').hidden = sources.length !== 0;
   $('toggleEditors').hidden = sources.length === 0;
   controls();
   legend();
@@ -236,7 +237,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=f7c2a1ad83c3b191', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=c4232bcc5036cbcb', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -681,15 +682,22 @@ $('newWarrior').onclick=()=>{
  sources.push(';redcode-94\n;name Warrior '+(sources.length+1)+'\n;assert 1\nmov.i 0, 1\nend\n');
  markDirty();editors();
 };
-$('demo').onclick=safe(async()=>{
+async function startDemo(selected){
  if(sources.length)return;
- sources=[...demoSources];collapsedEditors=[];
+ sources=[...selected];collapsedEditors=[];
  $('preset').value='standard';$('preset').onchange();
  $('rounds').value='1';$('debugStart').checked=false;$('debugEnabled').checked=false;
  $('speed').value='3';$('speed').oninput();
  markDirty();editors();
  if(await load())resume();
+}
+$('demo').onclick=safe(()=>startDemo(demoSources));
+$('randomDemo').onclick=safe(()=>{
+ const pool=[...bundledWarriors];
+ for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+ return startDemo(pool.slice(0,2).map(w=>w.source));
 });
+$('multiDemo').onclick=safe(()=>startDemo(bundledWarriors.map(w=>w.source)));
 $('dropZone').onclick=()=>$('warriorFiles').click();
 $('dropZone').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('warriorFiles').click();}};
 $('warriorFiles').onchange=()=>{importFiles($('warriorFiles').files).catch(e=>status(e.message));$('warriorFiles').value='';};

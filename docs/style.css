@@ -170,3 +170,5 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .command-workspace:has(#commandHistory:empty){grid-template-columns:1fr}
 
 .eliminated-marker{display:inline-block;width:1em;color:#ff7979;font-size:16px;font-weight:bold;text-align:center;vertical-align:middle}
+
+.demos{margin:16px 0}.demos h2{font-size:15px;margin:0 0 8px}.demo-buttons{display:flex;flex-wrap:wrap;gap:8px}
