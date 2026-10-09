@@ -407,7 +407,7 @@ then `python docs/build.py` with Emscripten configured. Dependency versions are
 locked; `docs/dist/editor-LICENSES.txt` ships their license notices. The checked-in
 bundle allows ordinary Wasm builds and GitHub Pages deployment without npm.
 
-Eliminated warriors have a red multiplication-sign cross (a text glyph, not a third-party icon asset) beside their process count. Its space is reserved even while alive.
+Eliminated warriors have a red multiplication-sign cross (a text glyph, not a third-party icon asset) overlaid on their colored legend square. This does not shift the name or process count.
 
 ### Demo choices
 

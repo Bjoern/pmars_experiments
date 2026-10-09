@@ -169,6 +169,7 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 
 .command-workspace:has(#commandHistory:empty){grid-template-columns:1fr}
 
-.eliminated-marker{display:inline-block;width:1em;color:#ff7979;font-size:16px;font-weight:bold;text-align:center;vertical-align:middle}
+.warrior-swatch{display:inline-block;position:relative;width:12px;height:12px;background:currentColor;vertical-align:-1px}
+.eliminated-marker{position:absolute;inset:0;color:#ff7979;font: bold 20px/12px Arial,sans-serif;text-align:center;text-shadow:1px 0 #08131d,-1px 0 #08131d,0 1px #08131d,0 -1px #08131d}
 
 .demos{margin:16px 0}.demos h2{font-size:15px;margin:0 0 8px}.demo-buttons{display:flex;flex-wrap:wrap;gap:8px}

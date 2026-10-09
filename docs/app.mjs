@@ -1,10 +1,10 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=de9312d20f0cedda';
-import {createEditor} from './dist/editor.mjs?v=de9312d20f0cedda';
+import {bundledWarriors} from './demo-warriors.mjs?v=4b9bcee5b6ba9a32';
+import {createEditor} from './dist/editor.mjs?v=4b9bcee5b6ba9a32';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=de9312d20f0cedda';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=de9312d20f0cedda';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=de9312d20f0cedda';
-import {HistoryChart} from './charts.mjs?v=de9312d20f0cedda';
+import {Engine, settings} from './engine.mjs?v=4b9bcee5b6ba9a32';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=4b9bcee5b6ba9a32';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=4b9bcee5b6ba9a32';
+import {HistoryChart} from './charts.mjs?v=4b9bcee5b6ba9a32';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -58,7 +58,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=de9312d20f0cedda',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=4b9bcee5b6ba9a32',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -106,9 +106,12 @@ function legend() {
   const names = engine && latest ? latest.warriors.map(w => w.name) : sources.map(draftName);
   $('legendNames').replaceChildren(...names.map((name,i) => {
     const span = document.createElement('span');
-    span.style.color = warriorColor(i); span.textContent = `■ ${name} `;
+    span.style.color = warriorColor(i);
+    const swatch=document.createElement('span');swatch.className='warrior-swatch';
+    const eliminated=document.createElement('span');eliminated.className='eliminated-marker';eliminated.dataset.eliminated=i;
+    swatch.append(eliminated);span.append(swatch,` ${name} `);
     const count=document.createElement('span');count.className='process-count';count.dataset.process=i;count.textContent=latest?.warriors[i]?.tasks.toLocaleString()??'—';count.title='Processes';count.setAttribute('aria-label','Processes for '+name);span.append(count);
-    const eliminated=document.createElement('span');eliminated.className='eliminated-marker';eliminated.dataset.eliminated=i;span.append(eliminated);return span;
+    return span;
   }));
   if(latest)processIndicators(latest);
 }
@@ -237,7 +240,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=de9312d20f0cedda', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=4b9bcee5b6ba9a32', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
