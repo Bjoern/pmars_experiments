@@ -11,10 +11,13 @@ try{
  await send('calc 6*7');await idle();assert((await page.locator('#instruction').textContent()).includes('42'));
  await send('fill 10,12');await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent.includes('instruction or expression'));
  await send('mov.i 0,1');await idle();await send('list 10,12');await idle();assert.equal(await page.locator('#instruction .listing-line').count(),3);assert((await page.locator('#instruction').textContent()).includes('MOV.I'));
+ const earlierOutput=await page.locator('#instruction').textContent();
  await send('macro f5');await idle();assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'2');
+ assert((await page.locator('#instruction').textContent()).startsWith(earlierOutput.trimEnd()),'Macro cls must preserve earlier command output');
+ assert((await page.locator('#instruction').textContent()).includes('(cdb) macro f5'));
  await send('step~!3');await idle();assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'5');
  await send('');await idle();assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'8');
- await send('trace 0~go~calc 99');await page.waitForFunction(()=>document.querySelector('#instruction').textContent.includes('99'));await idle();assert((await page.locator('#instruction').textContent()).includes('99'));
+ await send('trace 0~go~calc 99');await page.waitForFunction(()=>document.querySelector('#instruction').textContent.includes('\n99\n'));await idle();assert((await page.locator('#instruction').textContent()).includes('99'));
  await send('untrace 0');await idle();
  await page.evaluate(()=>{window.pulses=0;window.pulse=setInterval(()=>pulses++,10);});
  await send('calc 1~!');await page.waitForTimeout(180);assert((await page.locator('#run').textContent()).includes('Cancel'));assert(await page.evaluate(()=>pulses)>5);

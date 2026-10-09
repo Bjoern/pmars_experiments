@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=ab1443f216d53921';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=ab1443f216d53921';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=ab1443f216d53921';
-import {HistoryChart} from './charts.mjs?v=ab1443f216d53921';
+import {Engine, settings} from './engine.mjs?v=f79cd64ec77b5b16';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=f79cd64ec77b5b16';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=f79cd64ec77b5b16';
+import {HistoryChart} from './charts.mjs?v=f79cd64ec77b5b16';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -53,7 +53,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=ab1443f216d53921',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=f79cd64ec77b5b16',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -208,7 +208,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=ab1443f216d53921', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=f79cd64ec77b5b16', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -447,7 +447,6 @@ async function run() {
 }
 function appendNativeOutput(text) {
   if(text==='(cdb) ')return;
-  if(text.includes('\x1b[2J'))nativeOutput='';
   if(text.includes('\x1b['))text=text.replace(/\x1b\[[0-9;]*[A-Za-z]/g,'');
   nativeOutput=(nativeOutput+text).slice(-65536);
 }
@@ -467,13 +466,15 @@ function renderNativeOutput() {
 }
 async function nativeCommand(text) {
   if(nativeBusy){
-    if(nativeInput){const resolve=nativeInput;nativeInput=null;resolve(text);return;}
+    if(nativeInput){appendNativeOutput(text+'\n');const resolve=nativeInput;nativeInput=null;resolve(text);return;}
     return 'Debugger busy. Use Cancel to interrupt the command.';
   }
   pause();nativeResume=false;
   if(!engine && !(await load()))return;
   const instance=engine;instance.setDebugEvents(false);
+  if(typeof text==='string' && text.trim().toLowerCase()==='cls')nativeOutput='';
   if(nativeOutput && !nativeOutput.endsWith('\n'))appendNativeOutput('\n');
+  if(text!==undefined)appendNativeOutput('(cdb) '+(text || '[Enter: repeat]')+'\n');
   nativeBusy=true;nativeCancelled=false;coreView='native';$('commandOutput').textContent='Working…';controls();
   const timer=setInterval(renderNativeOutput,100);
   const io={output:appendNativeOutput,input:prompt=>{

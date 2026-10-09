@@ -62,10 +62,10 @@ try {
   assert.equal(await page.locator('#address').inputValue(),'2');
   await command('list 20,29');
   assert.equal(await page.locator('#instruction .listing-line').count(),10);
-  assert((await page.locator('#instruction').textContent()).startsWith('0020'));
+  assert((await page.locator('#instruction').textContent()).includes('0020'));
   await command('macro f5');
   assert.equal(await count(),2);
-  assert.equal(await page.locator('#instruction .listing-line').count(),13);
+  assert.equal(await page.locator('#instruction .listing-line').count(),36);
   assert((await page.locator('#instruction').textContent()).includes('MOV.I'));
   await command('alive'); await command('tproc');
   assert((await page.locator('#instruction').textContent()).includes('2'));
