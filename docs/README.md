@@ -396,8 +396,7 @@ and clickable breakpoints. Fast mode and the global pause still suppress live vi
 
 Warriors use a local CodeMirror 6 bundle with a reusable adapter in
 `docs/editor-source.mjs`. It includes Redcode syntax highlighting, line numbers,
-undo/redo, bracket matching, and Ctrl/Cmd-F search. Tab remains available to leave
-the editor. Existing delayed validation marks compiler errors and warnings in the
+undo/redo, bracket matching, and Ctrl/Cmd-F search. Tab indents and Shift+Tab unindents the current line or selection. Existing delayed validation marks compiler errors and warnings in the
 source gutter. Click a source diagnostic in the pMARS console to expand the warrior
 and select the reported line. Line numbers come from pMARS; macro-expansion
 locations are limited to what the compiler reports.

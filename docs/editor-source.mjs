@@ -2,7 +2,7 @@
 // Reusable editor adapter; Redcode support is optional for future document types.
 import {EditorState} from '@codemirror/state';
 import {EditorView,keymap,lineNumbers,highlightActiveLine,highlightActiveLineGutter,drawSelection} from '@codemirror/view';
-import {history,historyKeymap,defaultKeymap} from '@codemirror/commands';
+import {history,historyKeymap,defaultKeymap,indentWithTab} from '@codemirror/commands';
 import {StreamLanguage,syntaxHighlighting,HighlightStyle,bracketMatching} from '@codemirror/language';
 import {searchKeymap,highlightSelectionMatches} from '@codemirror/search';
 import {setDiagnostics,lintGutter} from '@codemirror/lint';
@@ -38,7 +38,7 @@ const theme=EditorView.theme({
 export function createEditor(parent,{value='',label='Source',id,language='redcode',onChange=()=>{}}={}){
  const view=new EditorView({parent,state:EditorState.create({doc:value,extensions:[
   lineNumbers(),history(),drawSelection(),highlightActiveLine(),highlightActiveLineGutter(),bracketMatching(),highlightSelectionMatches(),lintGutter(),
-  keymap.of([...defaultKeymap,...historyKeymap,...searchKeymap]),theme,syntaxHighlighting(colors),
+  keymap.of([indentWithTab,...defaultKeymap,...historyKeymap,...searchKeymap]),theme,syntaxHighlighting(colors),
   ...(language==='redcode'?[redcode]:[]),EditorView.contentAttributes.of({'aria-label':label,...(id?{id}:{})}),
   EditorView.updateListener.of(update=>{if(update.docChanged)onChange(update.state.doc.toString());})
  ]})});

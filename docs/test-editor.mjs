@@ -8,6 +8,9 @@ try{
  await page.goto('http://127.0.0.1:8765/docs/');await page.locator('#newWarrior').click();
  const source=';redcode\n;name Editor test\n;assert 1\nmov missing,0\n';
  await page.locator('#first').fill(source);
+ await page.locator('#first').press('Control+Home');await page.locator('#first').press('Tab');
+ assert(await page.locator('#first').evaluate(el=>el===document.activeElement));assert((await page.locator('#first').innerText()).startsWith('  ;redcode'));
+ await page.locator('#first').press('Shift+Tab');assert((await page.locator('#first').innerText()).startsWith(';redcode'));
  await page.waitForFunction(()=>document.querySelector('.compile-warrior').dataset.result==='failed');
  assert(await page.locator('.cm-lintRange-error').count()>0);
  await page.getByRole('button',{name:'Edit or collapse warrior 1',exact:true}).click();
