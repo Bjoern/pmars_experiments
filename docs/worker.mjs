@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine} from './engine.mjs?v=d6c75d86ede2a5bd';
+import {Engine} from './engine.mjs?v=963b0411b8bf0a28';
 let busy = false, paused = false, wake = null;
 self.onmessage = async ({data}) => {
   if(data.type==='pause'){paused=true;return;}
@@ -8,12 +8,12 @@ self.onmessage = async ({data}) => {
   busy = true;
   // Buffer native output so verbose assembly cannot flood the main thread.
   // Keep a bounded tail, and flush before progress/results so final scores survive.
-  let logBytes = 0, pendingLogs = [];
+  let logBytes = 0, pendingLogs = [], currentIndex = null;
   const log = (line,channel='stdout') => {
     const text = String(line).slice(-65536);
     const last = pendingLogs.at(-1);
-    if (last?.channel === channel) last.text += '\n' + text;
-    else pendingLogs.push({type:'log',text,channel});
+    if (last?.channel === channel && last.index === currentIndex) last.text += '\n' + text;
+    else pendingLogs.push({type:'log',text,channel,index:currentIndex});
     logBytes += text.length + 1;
     while (logBytes > 65536 && pendingLogs.length) {
       const first=pendingLogs[0], excess=logBytes-65536;
@@ -29,7 +29,7 @@ self.onmessage = async ({data}) => {
     const engine = await Engine.create(data.settings, {visual: false, log});
     const banks = engine.compile(data.sources, index=>{
       flush(); self.postMessage({type:'assembly',index,ok:true});
-    },data.type==='check'?data.index:null);
+    },data.type==='check'?data.index:null,index=>{flush();currentIndex=index;});
     flush();
     if (data.type === 'compile' || data.type === 'check') {
       self.postMessage({type: 'compiled', banks, rounds:engine.config.rounds}, banks.map(b => b.code.buffer));

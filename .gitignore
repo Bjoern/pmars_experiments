@@ -36,3 +36,5 @@ __pycache__/
 /web/test-output/
 
 /docs/test-output/
+
+node_modules/

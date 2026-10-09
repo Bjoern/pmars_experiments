@@ -186,7 +186,8 @@ individual instructions. This prototype does not animate the separate operand
 operations within one instruction across multiple frames.
 
 Process history and cumulative series-score charts retain at most 300 samples.
-Per-warrior process counts sit below the process chart and share its pause
+Per-warrior process counts sit beside the warrior names below the arena, use fixed-width
+fields with tabular digits, and share the process chart’s pause
 control, including the global pause. Pausing skips process-count DOM updates;
 score rows also avoid rebuilding when their values are unchanged.
 The process chart uses the current round’s cycle number, resets each round,
@@ -391,3 +392,19 @@ Multiple consoles may show the same source. Panels wrap into a single column on
 small screens. Executing a debugger command or inspecting the arena creates a cdb
 panel if all cdb panels have been removed. Execution views retain warrior colors
 and clickable breakpoints. Fast mode and the global pause still suppress live views.
+
+### Source editor
+
+Warriors use a local CodeMirror 6 bundle with a reusable adapter in
+`docs/editor-source.mjs`. It includes Redcode syntax highlighting, line numbers,
+undo/redo, bracket matching, and Ctrl/Cmd-F search. Tab remains available to leave
+the editor. Existing delayed validation marks compiler errors and warnings in the
+source gutter. Click a source diagnostic in the pMARS console to expand the warrior
+and select the reported line. Line numbers come from pMARS; macro-expansion
+locations are limited to what the compiler reports.
+
+The editor runs entirely from the static site, with no CDN requests. To rebuild
+it after changing the adapter or dependencies, run `npm ci`, `npm run build:editor`,
+then `python docs/build.py` with Emscripten configured. Dependency versions are
+locked; `docs/dist/editor-LICENSES.txt` ships their license notices. The checked-in
+bundle allows ordinary Wasm builds and GitHub Pages deployment without npm.

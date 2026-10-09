@@ -44,11 +44,11 @@ try{
  });
  assert.deepEqual(compact,{oneRow:true,themeRight:true,clearInline:true});
  await page.locator('#warriorFiles').setInputFiles(['Uploaded A','Uploaded B'].map(n=>({name:n+'.red',mimeType:'text/plain',buffer:Buffer.from(code(n))})));
- await page.waitForFunction(()=>document.querySelectorAll('#editors textarea').length===4);
+ await page.waitForFunction(()=>document.querySelectorAll('#editors .cm-content').length===4);
  assert((await page.locator('#editors').textContent()).includes('Uploaded A'));
  const dt=await page.evaluateHandle(text=>{const d=new DataTransfer();d.items.add(new File([text],'Dropped.red',{type:'text/plain'}));return d;},code('Dropped'));
  await page.locator('#dropZone').dispatchEvent('drop',{dataTransfer:dt});
- await page.waitForFunction(()=>document.querySelectorAll('#editors textarea').length===5);
+ await page.waitForFunction(()=>document.querySelectorAll('#editors .cm-content').length===5);
  const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'Download warrior 5',exact:true}).click();
  const download=await downloadPromise,stream=await download.createReadStream(),chunks=[];
  for await(const chunk of stream)chunks.push(chunk);

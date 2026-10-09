@@ -78,7 +78,7 @@ try {
   assert((await page.locator('label[for=first]').textContent()).includes('Beta'));
   assert((await page.locator('#changed').textContent()).includes('Reset applies'));
   await page.getByRole('button',{name:'Remove warrior 2',exact:true}).click();
-  assert.equal(await page.locator('#editors textarea').count(),1);
+  assert.equal(await page.locator('#editors .cm-content').count(),1);
   await page.locator('#reset').click(); await ready('Paused before');
   await page.locator('#step').click(); await ready('Paused after');
   const trace = await page.locator('#execution').textContent();

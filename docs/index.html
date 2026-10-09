@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=d6c75d86ede2a5bd">
+<link rel="stylesheet" href="style.css?v=963b0411b8bf0a28">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -15,7 +15,7 @@
 <section id="editors" class="editors" aria-label="Warrior source code"></section>
 <div class="warrior-import"><div id="dropZone" tabindex="0" role="button" aria-label="Drop warrior files or open file picker">Drop warrior files here, or click to upload</div><button id="newWarrior">New warrior</button><button id="demo" title="Load Imp and Dwarf and start a standard match">Demo</button></div>
 <input id="warriorFiles" type="file" multiple accept=".red,.rc,.txt" hidden>
-<details id="consoleWindow"><summary><span>pMARS console output</span><button id="clearConsole" type="button">Clear output</button></summary><pre id="consoleOutput" aria-label="Native pMARS console output">Validate a warrior or run a battle to see assembly output here.</pre></details>
+<details id="consoleWindow"><summary><span>pMARS console output</span><button id="clearConsole" type="button">Clear output</button></summary><div id="sourceDiagnostics" aria-label="Source diagnostics"></div><pre id="consoleOutput" aria-label="Native pMARS console output">Validate a warrior or run a battle to see assembly output here.</pre></details>
 <p id="changed" class="hint" role="status"></p>
 <section class="match-settings"><div class="settings-bar"><button id="editSettings" class="settings-disclosure" aria-expanded="false" aria-controls="settingsDetails" aria-label="Expand match settings"><span id="settingsArrow" aria-hidden="true">▸</span> <strong id="settingsSummary"></strong></button>
 <label>Preset <select id="preset"></select></label>
@@ -46,12 +46,12 @@
 <span class="glyph dec"></span> Decrement (top row)
 <span class="glyph inc"></span> Increment (left column) · White outline: last execution</span></div>
 <section class="debugger" tabindex="0" aria-label="Core debugger">
-<div class="console-heading"><h2>Consoles</h2><button id="addConsole" type="button">+ Add console</button></div><span id="coreViewTitle" class="hint"></span><div class="debug-options"><label><input id="debugEnabled" type="checkbox"> Stop at breakpoints and debug markers</label> <label><input id="debugStart" type="checkbox"> Start paused</label></div>
+<div class="console-heading"><h2>Consoles</h2></div><span id="coreViewTitle" class="hint"></span><div class="debug-options"><label><input id="debugEnabled" type="checkbox"> Stop at breakpoints and debug markers</label> <label><input id="debugStart" type="checkbox"> Start paused</label></div>
 <div class="inspect"><label>Start address <input id="address" type="number" min="0" max="7999" value="0"></label>
 <label>Lines <input id="lines" type="number" min="1" max="100" value="10"></label>
 <label>Follow <select id="follow"><option value="-1">Fixed address</option></select></label>
 <button id="prevPage" aria-label="Previous page">↑ Page</button><button id="nextPage" aria-label="Next page">↓ Page</button></div>
-<div id="execution" class="console-grid"></div>
+<div id="execution" class="console-grid"><button id="addConsole" class="add-console" type="button">+ Add console</button></div>
 <div class="command-workspace"><div id="commandHistory" aria-label="Command history"></div><form id="commandForm"><label for="command">Native cdb command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f7 · calc 2+3" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre></div>
 <details id="debugHelp"><summary>Native pMARS debugger help</summary>
 <p>The command line uses pMARS cdb, including expressions, command chains (<code>~</code>), loops, conditional commands, and macros. The original <code>pmars.mac</code> and <code>mw.mac</code> are preloaded. Enter <code>help</code> for native command help or <code>macro</code> to list macros.</p>
@@ -61,10 +61,10 @@
 </details>
 </section>
 <section class="analysis-controls"><label><input id="pauseViews" type="checkbox"> Pause all charts and execution logs</label>
-<div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over cycles"></canvas><div id="processCounts" aria-label="Processes per warrior">Load a battle to see process counts.</div></section>
+<div class="chart-grid"><section><label><input id="pauseProcesses" type="checkbox"> Pause process chart</label><canvas id="processChart" aria-label="Process count over cycles"></canvas></section>
 <section><label><input id="pauseScores" type="checkbox"> Pause score chart</label><canvas id="scoreChart" aria-label="Cumulative score over completed battles"></canvas></section></div></section>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <details id="diagnostics"><summary id="diagnosticsTitle">Show diagnostics</summary><p id="sliceTiming">Peak simulation slice: 0.0 ms</p><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></details></div>
-<footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=d6c75d86ede2a5bd"></script>
+<footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="dist/editor-LICENSES.txt">Editor licenses</a> · <a href="pmars-source.zip">Download source</a></footer>
+</main><script type="module" src="app.mjs?v=963b0411b8bf0a28"></script>
 </body></html>

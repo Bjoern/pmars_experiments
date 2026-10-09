@@ -36,7 +36,7 @@ digest = hashlib.sha256()
 for p, text in normalized.items():
     digest.update(p.name.encode())
     digest.update(text.encode())
-for p in [out / "pmars.mjs", out / "pmars.wasm"]:
+for p in [out / "pmars.mjs", out / "pmars.wasm", out / "editor.mjs"]:
     digest.update(p.read_bytes())
 version = digest.hexdigest()[:16]
 for p, text in normalized.items():
@@ -54,7 +54,7 @@ import zipfile
 shutil.copyfile(ROOT / "COPYING", ROOT / "docs" / "COPYING")
 (ROOT / "docs" / ".nojekyll").touch()
 with zipfile.ZipFile(ROOT / "docs" / "pmars-source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
-    paths = [ROOT / "COPYING", ROOT / "AUTHORS", ROOT / "README.md"]
+    paths = [ROOT / "COPYING", ROOT / "AUTHORS", ROOT / "README.md", ROOT / "package.json", ROOT / "package-lock.json"]
     paths += [ROOT / "config" / "pmars.mac", ROOT / "config" / "mw.mac"]
     paths += sorted((ROOT / "src").glob("*.c")) + sorted((ROOT / "src").glob("*.h"))
     paths += sorted(p for p in (ROOT / "docs").iterdir() if p.suffix in (".mjs", ".py", ".css", ".html", ".md"))

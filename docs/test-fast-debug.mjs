@@ -39,7 +39,7 @@ try {
  await page.locator('#rounds').fill('10000000');
  await page.locator('#reset').click();await ready('Paused before');
  await page.locator('#speed').fill('0');
- const snapshot=()=>page.evaluate(()=>[document.querySelector('#core').toDataURL(),document.querySelector('#execution').textContent,document.querySelector('#processCounts').textContent]);
+ const snapshot=()=>page.evaluate(()=>[document.querySelector('#core').toDataURL(),document.querySelector('#execution').textContent,document.querySelector('#legendNames').textContent]);
  const before=await snapshot();
  await page.evaluate(()=>{window.pulses=[];let prev=performance.now();window.pulse=setInterval(()=>{const now=performance.now();pulses.push(now-prev);prev=now;},20);});
  await page.locator('#fast').click();await page.waitForTimeout(400);

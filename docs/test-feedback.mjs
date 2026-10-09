@@ -78,13 +78,13 @@ try {
   await page.waitForFunction(()=>document.querySelector('#step').disabled===false);
   assert((await page.locator('#timing').textContent()).startsWith('Cycle '+cycle+' / 10'));
  }
- assert((await page.locator('#processCounts').textContent()).includes('processes'));
+ assert((await page.locator('#legendNames .process-count').first().textContent()).trim().length>0);
  assert(!(await page.locator('#scores').textContent()).includes('processes'));
  await page.locator('#pauseProcesses').check();
  await page.evaluate(()=>{
   window.processMutations=0;
   window.processObserver=new MutationObserver(list=>window.processMutations+=list.length);
-  window.processObserver.observe(document.querySelector('#processCounts'),{subtree:true,childList:true,characterData:true});
+  window.processObserver.observe(document.querySelector('#legendNames'),{subtree:true,childList:true,characterData:true});
  });
  await page.locator('#step').click();
  await page.waitForFunction(()=>document.querySelector('#step').disabled===false);

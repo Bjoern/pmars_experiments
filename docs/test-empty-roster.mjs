@@ -7,7 +7,7 @@ const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(
 const empty=async()=>{while(await page.locator('.remove-warrior').count())await page.locator('.remove-warrior').last().click();};
 try{
  await page.goto('http://127.0.0.1:8765/docs/');
- assert.equal(await page.locator('#editors textarea').count(),0);
+ assert.equal(await page.locator('#editors .cm-content').count(),0);
  assert(await page.locator('#demo').isVisible());
  assert(await page.locator('#run').isDisabled());
  await page.locator('#demo').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
@@ -23,7 +23,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#warriorCount').textContent==='1 warrior');assert(await page.locator('#run').isEnabled());
  await empty();await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.locator('#demo').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>5);
- assert.equal(await page.locator('#editors textarea').count(),2);
+ assert.equal(await page.locator('#editors .cm-content').count(),2);
  assert((await page.locator('#editors').textContent()).includes('Imp'));assert((await page.locator('#editors').textContent()).includes('Dwarf'));
  assert(await page.locator('#demo').isHidden());assert.deepEqual(errors,[]);
  console.log('PASS: deleting all warriors stops battle; empty controls, New, solo stepping, upload, mobile, and auto-starting Demo.');

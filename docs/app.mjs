@@ -1,8 +1,9 @@
+import {createEditor} from './dist/editor.mjs?v=963b0411b8bf0a28';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=d6c75d86ede2a5bd';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=d6c75d86ede2a5bd';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=d6c75d86ede2a5bd';
-import {HistoryChart} from './charts.mjs?v=d6c75d86ede2a5bd';
+import {Engine, settings} from './engine.mjs?v=963b0411b8bf0a28';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=963b0411b8bf0a28';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=963b0411b8bf0a28';
+import {HistoryChart} from './charts.mjs?v=963b0411b8bf0a28';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -14,6 +15,7 @@ let nativeBusy=false,nativeResume=false,nativeOutput='',nativeInput=null,nativeC
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let collapsedEditors=[], scoreViewKey=null;
+let sourceEditors=[], compileIssues=[];
 const demoSources = [";redcode-94\n;name Imp\n;author A. K. Dewdney\n;assert 1\nmov.i 0, 1\nend\n", ";redcode-94\n;name Dwarf\n;author A. K. Dewdney\n;assert 1\nadd.ab #4, bomb\nmov.i bomb, @bomb\njmp -2\nbomb dat.f #0, #0\nend\n"];
 let sources = [];
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
@@ -46,6 +48,7 @@ function cancelCompileCheck() {
  refreshCompileButtons();
 }
 function checkWarrior(index,automatic=false) {
+ compileIssues=compileIssues.filter(issue=>issue.index!==index);refreshDiagnostics();
  if(!automatic)cancelAutoValidation();
  cancelCompileCheck();if(!automatic)showConsole();
  let config;
@@ -54,7 +57,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=d6c75d86ede2a5bd',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=963b0411b8bf0a28',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -67,7 +70,7 @@ function checkWarrior(index,automatic=false) {
  w.onerror=e=>finish(false,e.message || 'Compiler worker failed.');
  w.onmessage=({data})=>{
   if(compileWorker!==w || ticket!==revision)return;
-  if(data.type==='log')log(data.text,data.channel);
+  if(data.type==='log')log(data.text,data.channel,data.index);
   else if(data.type==='error')finish(false,'Compilation failed: '+data.message);
   else if(data.type==='compiled')finish(true,'Compilation succeeded: '+draftName(sources[index],index));
  };
@@ -79,7 +82,11 @@ const addressText = n => String(n).padStart(String((engine?.config.coreSize || 8
 function status(text) {
   $('status').textContent = text;
 }
-function log(text,channel='stderr') {
+function log(text,channel='stderr',index=null) {
+ if(Number.isInteger(index)){
+  for(const match of text.matchAll(/(Error|Warning) in line (\d+):[^\n]*(?:\n[ \t]+[^\n]*)?/g))compileIssues.push({index,line:Number(match[2]),severity:match[1].toLowerCase(),message:match[0]});
+  compileIssues=compileIssues.slice(-100);refreshDiagnostics();
+ }
  if(nativeBusy)appendNativeOutput(text+'\n');
  consoleText=(consoleText+text+'\n').slice(-262144);
  if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;
@@ -89,6 +96,7 @@ function draftName(source, i) {
   return source.match(/^\s*;name\s+([^\r\n]*)/im)?.[1].trim() || `Warrior ${i + 1}`;
 }
 function markDirty() {
+ compileIssues=[];refreshDiagnostics();
   revision++;cancelCompileCheck();compileStates=[];refreshCompileButtons();scheduleValidation();
   dirty = !!engine || state === 'loading';
   $('changed').textContent = dirty ? 'Sources or settings changed. Run applies them before instruction 1; otherwise Reset applies them and Resume keeps the loaded battle.' : '';
@@ -97,10 +105,12 @@ function legend() {
   const names = engine && latest ? latest.warriors.map(w => w.name) : sources.map(draftName);
   $('legendNames').replaceChildren(...names.map((name,i) => {
     const span = document.createElement('span');
-    span.style.color = warriorColor(i); span.textContent = `■ ${name}`; return span;
+    span.style.color = warriorColor(i); span.textContent = `■ ${name} `;
+    const count=document.createElement('span');count.className='process-count';count.dataset.process=i;count.textContent=latest?.warriors[i]?.tasks.toLocaleString()??'—';count.title='Processes';count.setAttribute('aria-label','Processes for '+name);span.append(count);return span;
   }));
 }
 function editors() {
+ sourceEditors.forEach(e=>e.destroy());sourceEditors=[];
   $('editors').replaceChildren(...sources.map((source, i) => {
     const box = document.createElement('div'), top = document.createElement('div');
     top.className = 'editor-title';
@@ -117,16 +127,14 @@ function editors() {
     compile.title='Revalidate warrior and show assembly output';compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
     const edit=document.createElement('button');edit.className='edit-warrior';
     edit.setAttribute('aria-controls',label.htmlFor);edit.setAttribute('aria-label','Edit or collapse warrior '+(i+1));
-    edit.onclick=()=>{collapsedEditors[i]=collapsedEditors[i]===false;editorVisibility();if(!collapsedEditors[i])$(label.htmlFor).focus();};
+    edit.onclick=()=>{collapsedEditors[i]=collapsedEditors[i]===false;editorVisibility();if(!collapsedEditors[i])sourceEditors[i].focus();};
     top.append(edit,label,compile,save,remove);
-    const area = document.createElement('textarea');
-    area.id = label.htmlFor; area.value = source; area.spellcheck = false;
-    area.setAttribute('aria-label', `Warrior ${i+1} source`);
-    area.oninput = () => {
-      sources[i] = area.value;
-      label.textContent = `${String(i+1).padStart(2,'0')} / ${draftName(area.value,i)}`;
-      legend(); markDirty();
-    };
+    const area=document.createElement('div');area.className='source-editor';
+    const editor=createEditor(area,{value:source,id:label.htmlFor,label:`Warrior ${i+1} source`,onChange:value=>{
+      sources[i]=value;
+      label.textContent=`${String(i+1).padStart(2,'0')} / ${draftName(value,i)}`;
+      legend();markDirty();
+    }});sourceEditors.push(editor);
     box.append(top,area); return box;
   }));
   editorVisibility();refreshCompileButtons();
@@ -138,7 +146,7 @@ function editors() {
   legend();
 }
 function editorVisibility(){
- document.querySelectorAll('#editors textarea').forEach((area,i)=>{
+ document.querySelectorAll('#editors .source-editor').forEach((area,i)=>{
   area.hidden=collapsedEditors[i]!==false;
   const button=document.querySelectorAll('.edit-warrior')[i];
   button.textContent=area.hidden?'▸':'▾';
@@ -154,10 +162,18 @@ $('toggleEditors').onclick=()=>{
  collapsedEditors=sources.map(()=>collapse);editorVisibility();
 };
 function processIndicators(update){
- if($('pauseViews').checked || $('pauseProcesses').checked)return;
- $('processCounts').replaceChildren(...update.warriors.map((w,i)=>{
-  const row=document.createElement('div');row.style.color=warriorColor(i);
-  row.textContent=w.name+' · '+w.tasks.toLocaleString()+' processes';return row;
+ if(fastMode || $('pauseViews').checked || $('pauseProcesses').checked)return;
+ update.warriors.forEach((w,i)=>{
+  const counter=$('legendNames').querySelector('[data-process="'+i+'"]');
+  if(counter){const text=w.tasks.toLocaleString();if(counter.textContent!==text)counter.textContent=text;counter.title=w.tasks+' processes';}
+ });
+}
+function refreshDiagnostics(){
+ sourceEditors.forEach((editor,index)=>editor.diagnostics(compileIssues.filter(issue=>issue.index===index)));
+ $('sourceDiagnostics').replaceChildren(...compileIssues.map(issue=>{
+  const button=document.createElement('button');button.type='button';button.className='source-diagnostic';
+  button.textContent=draftName(sources[issue.index]||'',issue.index)+' · line '+issue.line+' · '+issue.message;
+  button.onclick=()=>{collapsedEditors[issue.index]=false;editorVisibility();sourceEditors[issue.index]?.jump(issue.line);document.querySelectorAll('.source-editor')[issue.index]?.scrollIntoView({block:'center'});};return button;
  }));
 }
 function seriesActive() { return state.startsWith("series"); }
@@ -192,13 +208,14 @@ function clearBattle() {
   $('timing').textContent='Cycle —';$('timing').dataset.instructions='0';
   $('scores').textContent='Add warriors or try the demo.';
   for(const panel of consoles)panel.output.textContent='Load a battle to inspect its core.';$('coreViewTitle').textContent='Core listing';
-  $('processCounts').textContent='Load a battle to see process counts.';
+
   $('follow').replaceChildren(new Option('Fixed address','-1'));
   $('battleTotals').textContent='Warriors · 0 battles this run';
   status('No warriors loaded. Add a warrior, upload files, or try Demo.');
 }
 function options() { return readSettings({warriors:sources.length}); }
 function work(type, config) {
+ compileIssues=[];refreshDiagnostics();
   cancelAutoValidation();cancelCompileCheck();
   compileStates=sources.map(()=> '');refreshCompileButtons();
   const ticket=revision;
@@ -208,7 +225,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=d6c75d86ede2a5bd', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=963b0411b8bf0a28', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -218,7 +235,7 @@ function work(type, config) {
     w.onerror = event => finish(new Error(event.message || 'Worker failed to load.'));
     w.onmessage = ({data}) => {
       if(worker!==w)return;
-      if (data.type === 'log') log(data.text,data.channel);
+      if (data.type === 'log') log(data.text,data.channel,data.index);
       else if (data.type === 'assembly') assemblyStatus(data.index,data.ok);
       else if (data.type === 'error') {assemblyStatus(data.index,false);showConsole();finish(new Error(data.message));}
       else if (data.type === 'compiled') finish(null,data.banks);
@@ -319,7 +336,7 @@ function addConsole(kind='cdb') {
   close.onclick=()=>{consoles.splice(consoles.indexOf(panel),1);panel.element.remove();syncTrace();};
   panel.output=document.createElement('pre');panel.output.className='console-output';panel.output.setAttribute('aria-label','Console '+id+' output');
   if(id===1)panel.output.id='instruction';
-  header.append(panel.select,pauseButton,close);panel.element.append(header,panel.output);consoles.push(panel);$('execution').append(panel.element);
+  header.append(panel.select,pauseButton,close);panel.element.append(header,panel.output);consoles.push(panel);$('execution').insertBefore(panel.element,$('addConsole'));
   consoleOptions(panel);panel.select.value=kind;
   panel.select.onchange=()=>{syncTrace();renderCoreView();renderTrace();};
   syncTrace();renderCoreView();renderTrace();return panel;
@@ -605,7 +622,7 @@ $('commandForm').onsubmit = event => {
 };
 
 document.addEventListener('keydown',event => {
-  if (event.target.closest('textarea,input,select,button') || event.ctrlKey || event.altKey || event.metaKey) return;
+  if (event.target.closest('textarea,input,select,button,[contenteditable]') || event.ctrlKey || event.altKey || event.metaKey) return;
   const key = {F1:'help',F5:'f5',F7:'f7',F8:'f8',F9:'go',ArrowUp:'up',ArrowDown:'down',PageUp:'pgup',PageDown:'pgdn',Escape:'pause'}[event.key];
   if (key) { event.preventDefault(); command(key).catch(error=>log(error.message)); }
 });
@@ -687,7 +704,7 @@ $('theme').onchange=()=>{
 };
 $('pauseProcesses').onchange=()=>{if(latest)processIndicators(latest);};
 $('pauseViews').onchange=()=>{syncTrace();if(latest)processIndicators(latest);};
-$('clearConsole').onclick=event=>{event.preventDefault();event.stopPropagation();consoleText='';$('consoleOutput').textContent='';};
+$('clearConsole').onclick=event=>{event.preventDefault();event.stopPropagation();consoleText='';$('consoleOutput').textContent='';compileIssues=[];refreshDiagnostics();};
 $('consoleWindow').ontoggle=()=>{if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;};
 setupSettings(markDirty);
 processChart.clear();scoreChart.clear();

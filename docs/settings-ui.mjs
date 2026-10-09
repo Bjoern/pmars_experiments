@@ -1,5 +1,5 @@
-import {defaults,settings} from './settings.mjs?v=d6c75d86ede2a5bd';
-import {presets} from './presets.mjs?v=d6c75d86ede2a5bd';
+import {defaults,settings} from './settings.mjs?v=963b0411b8bf0a28';
+import {presets} from './presets.mjs?v=963b0411b8bf0a28';
 const $ = id=>document.getElementById(id);
 const numbers = [['coreSize','-s Core size',80,65536],['cycles','-c Cycles per warrior',1,10000000],
  ['tasks','-p Processes',1,65536],['maxLength','-l Maximum length',1,1000],

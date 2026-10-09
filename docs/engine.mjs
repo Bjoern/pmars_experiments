@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import createModule from './dist/pmars.mjs?v=d6c75d86ede2a5bd';
+import createModule from './dist/pmars.mjs?v=963b0411b8bf0a28';
 
-import {settings, argumentsFor} from './settings.mjs?v=d6c75d86ede2a5bd';
-export {settings, defaults} from './settings.mjs?v=d6c75d86ede2a5bd';
+import {settings, argumentsFor} from './settings.mjs?v=963b0411b8bf0a28';
+export {settings, defaults} from './settings.mjs?v=963b0411b8bf0a28';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }
@@ -21,13 +21,14 @@ export class Engine {
     return new Engine(module, config);
   }
   constructor(module, config) { this.module = module; this.config = config; this.started = false; }
-  compile(sources, onCompiled = () => {}, only = null) {
+  compile(sources, onCompiled = () => {}, only = null, onStart = () => {}) {
     if (!Array.isArray(sources) || sources.length !== this.config.warriors) throw new Error('Source count must match settings.warriors.');
     if (only !== null && (!Number.isInteger(only) || only < 0 || only >= sources.length)) throw new Error('Invalid warrior index.');
     const m = this.module;
     const indices = sources.map((_,i)=>i).filter(i=>only===null || i===only);
     const banks = [];
     for (const i of indices) {
+      onStart(i);
       const source = sources[i];
       try {
         if (typeof source !== 'string' || new TextEncoder().encode(source).length > 65536)
