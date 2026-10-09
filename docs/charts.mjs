@@ -1,4 +1,4 @@
-import {warriorColor} from './display.mjs?v=c4232bcc5036cbcb';
+import {warriorColor} from './display.mjs?v=de9312d20f0cedda';
 export class HistoryChart {
  constructor(canvas,title){this.canvas=canvas;this.title=title;this.samples=[];}
  clear(){this.samples=[];this.draw();}
