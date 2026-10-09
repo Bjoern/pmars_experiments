@@ -177,3 +177,5 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .warrior-name-group{display:flex;align-items:center;gap:4px;flex:1;min-width:0}.editor-title .warrior-name-group .warrior{flex:0 1 auto}
 .edit-source{display:inline-flex;align-items:center;padding:3px;background:transparent;border:0;flex-shrink:0}
 .editor-theme-control{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:6px}.editor-theme-control select{font-size:12px;padding:4px}.roster{flex-wrap:wrap}
+
+.syntax-theme-control{display:flex;align-items:center;gap:6px;font-size:12px}.syntax-theme-control select{font-size:12px;padding:4px}

@@ -396,7 +396,7 @@ and clickable breakpoints. Fast mode and the global pause still suppress live vi
 
 Warriors use a local CodeMirror 6 bundle with a reusable adapter in
 `docs/editor-source.mjs`. It includes Redcode syntax highlighting, line numbers,
-undo/redo, bracket matching, and Ctrl/Cmd-F search. Tab indents and Shift+Tab unindents the current line or selection. Existing delayed validation marks compiler errors and warnings in the
+undo/redo, bracket matching, and Ctrl/Cmd-F search. Tab inserts a tab at the cursor, or indents selected lines; Shift+Tab unindents. Existing delayed validation marks compiler errors and warnings in the
 source gutter. Click a source diagnostic in the pMARS console to expand the warrior
 and select the reported line. Line numbers come from pMARS; macro-expansion
 locations are limited to what the compiler reports.
@@ -418,3 +418,5 @@ chooses two distinct entries from `warriors/*.red`; Multiwarrior loads all entri
 from that directory, so the demos also work on a static GitHub Pages deployment.
 
 The Editor theme selector above the warriors offers Dark, Light, and High contrast palettes, independently of arena colors. The choice persists in local browser storage; switching it preserves source, selections, and undo history. The pencil beside a warrior name opens and focuses its editor; the disclosure arrow still toggles it.
+
+Syntax colors (Ocean, Warm, Monochrome) are selected independently of the editor background. Palettes adapt to light/dark backgrounds, and both choices are remembered locally.

@@ -1,10 +1,10 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=3697771a90501484';
-import {createEditor} from './dist/editor.mjs?v=3697771a90501484';
+import {bundledWarriors} from './demo-warriors.mjs?v=4dc6829468d6d5e0';
+import {createEditor} from './dist/editor.mjs?v=4dc6829468d6d5e0';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=3697771a90501484';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=3697771a90501484';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=3697771a90501484';
-import {HistoryChart} from './charts.mjs?v=3697771a90501484';
+import {Engine, settings} from './engine.mjs?v=4dc6829468d6d5e0';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=4dc6829468d6d5e0';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=4dc6829468d6d5e0';
+import {HistoryChart} from './charts.mjs?v=4dc6829468d6d5e0';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -58,7 +58,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=3697771a90501484',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=4dc6829468d6d5e0',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -140,7 +140,7 @@ function editors() {
     const nameGroup=document.createElement('div');nameGroup.className='warrior-name-group';nameGroup.append(label,pencil);
     top.append(edit,nameGroup,compile,save,remove);
     const area=document.createElement('div');area.className='source-editor';
-    const editor=createEditor(area,{theme:$('editorTheme').value,value:source,id:label.htmlFor,label:`Warrior ${i+1} source`,onChange:value=>{
+    const editor=createEditor(area,{theme:$('editorTheme').value,syntax:$('editorSyntax').value,value:source,id:label.htmlFor,label:`Warrior ${i+1} source`,onChange:value=>{
       sources[i]=value;
       label.textContent=`${String(i+1).padStart(2,'0')} / ${draftName(value,i)}`;
       legend();markDirty();
@@ -244,7 +244,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=3697771a90501484', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=4dc6829468d6d5e0', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -727,9 +727,11 @@ setupSettings(markDirty);
 processChart.clear();scoreChart.clear();
 
 try{const saved=localStorage.getItem('pmars-editor-theme');if(['dark','light','contrast'].includes(saved))$('editorTheme').value=saved;}catch{}
-$('editorTheme').onchange=()=>{
- const name=$('editorTheme').value;sourceEditors.forEach(editor=>editor.setTheme(name));
- try{localStorage.setItem('pmars-editor-theme',name);}catch{}
+try{const saved=localStorage.getItem('pmars-editor-syntax');if(['ocean','warm','mono'].includes(saved))$('editorSyntax').value=saved;}catch{}
+$('editorTheme').onchange=$('editorSyntax').onchange=()=>{
+ const name=$('editorTheme').value,syntax=$('editorSyntax').value;
+ sourceEditors.forEach(editor=>editor.setTheme(name,syntax));
+ try{localStorage.setItem('pmars-editor-theme',name);localStorage.setItem('pmars-editor-syntax',syntax);}catch{}
 };
 editors(); clearBattle();
 
