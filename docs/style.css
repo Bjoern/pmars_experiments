@@ -170,6 +170,10 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .command-workspace:has(#commandHistory:empty){grid-template-columns:1fr}
 
 .warrior-swatch{display:inline-block;position:relative;width:12px;height:12px;background:currentColor;vertical-align:-1px}
-.eliminated-marker{position:absolute;inset:0;color:#ff7979;font: bold 20px/12px Arial,sans-serif;text-align:center;text-shadow:1px 0 #08131d,-1px 0 #08131d,0 1px #08131d,0 -1px #08131d}
+.eliminated-marker{position:absolute;inset:-3px;color:#ff7979;font:bold 24px/18px Arial,sans-serif;text-align:center;text-shadow:0 1px 1px #08131d}
 
 .demos{margin:16px 0}.demos h2{font-size:15px;margin:0 0 8px}.demo-buttons{display:flex;flex-wrap:wrap;gap:8px}
+
+.warrior-name-group{display:flex;align-items:center;gap:4px;flex:1;min-width:0}.editor-title .warrior-name-group .warrior{flex:0 1 auto}
+.edit-source{display:inline-flex;align-items:center;padding:3px;background:transparent;border:0;flex-shrink:0}
+.editor-theme-control{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:6px}.editor-theme-control select{font-size:12px;padding:4px}.roster{flex-wrap:wrap}

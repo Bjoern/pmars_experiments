@@ -17,6 +17,7 @@ try{
  const marker=page.locator('[data-eliminated="0"]'),before=await marker.boundingBox();assert.equal(await marker.textContent(),'');
  await page.locator('#step').click();assert.equal(await marker.textContent(),'×');assert.equal(await marker.getAttribute('aria-label'),'Doomed eliminated');assert.equal((await marker.boundingBox()).width,before.width);
  assert.equal(await marker.evaluate(el=>el.parentElement.className),'warrior-swatch');
+ assert(await marker.evaluate(el=>el.getBoundingClientRect().width>el.parentElement.getBoundingClientRect().width));
  assert.equal(await page.locator('[data-eliminated="1"]').textContent(),'');
  await page.locator('#reset').click();await ready();assert.equal(await marker.textContent(),'');
  assert.deepEqual(errors,[]);console.log('PASS: cdb output survives toolbar Step/Run, default consoles, eliminated marker, reserved width and reset.');
