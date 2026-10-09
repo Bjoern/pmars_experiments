@@ -70,7 +70,7 @@ try {
  assert(await page.locator('#consoleWindow').evaluate(e=>e.open));
  await page.locator('#second').fill(source);
  assert.equal(await page.locator('.compile-warrior').nth(1).textContent(),'↻ Validate');
- await page.locator('#debugStart').check();await page.locator('#run').click();
+ await page.locator('#reset').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Paused before'));
  assert((await page.locator('#timing').textContent()).startsWith('Cycle 0 / 10'));
  for(const cycle of [1,1,2]) {

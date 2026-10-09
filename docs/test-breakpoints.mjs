@@ -15,7 +15,7 @@ const command=async text=>{await page.locator('#command').fill(text);await page.
 try{
  await page.goto('http://127.0.0.1:8765/docs/');await loadTestWarriors(page);await page.locator('#toggleEditors').click();
  await page.locator('#first').fill(source.replace(';assert',';name One\n;assert'));await page.locator('#second').fill(source.replace(';assert',';name Two\n;assert'));
- await page.locator('#debugStart').check();await page.locator('#run').click();
+ await page.locator('#reset').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Paused before'));
  await page.locator('#step').click();await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#timing').dataset.instructions==='2');
  assert.equal(await page.locator('#coreViewTitle').textContent(),'Native pMARS debugger');

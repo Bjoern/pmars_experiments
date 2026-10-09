@@ -89,8 +89,7 @@ to 256 KiB; diagnostics retain 64 KiB.
   update from the source's `;name` directive while typing. An active battle's
   legend and traces retain the loaded names until Reset.
   Changes to loaded sources/settings are marked as pending until Reset.
-- Run battle: assemble in a worker and animate the configured number of rounds. With Start paused
-  checked, loading stops before instruction one, like the native `-e` option.
+- Run battle: assemble in a worker and animate the configured number of rounds. Use Reset to load paused before instruction one, like the native `-e` option.
   Before the first instruction (including after Reset), the button says Run
   battle and applies any edits made since loading. After execution begins it
   says Resume battle and preserves the loaded settings. The active cycle limit
@@ -420,3 +419,5 @@ from that directory, so the demos also work on a static GitHub Pages deployment.
 The Editor theme selector above the warriors offers Dark, Light, and High contrast palettes, independently of arena colors. The choice persists in local browser storage; switching it preserves source, selections, and undo history. Both the pencil beside a warrior name and the disclosure arrow toggle its editor. The ↔ control expands an open editor across the full roster width and restores it; drag its bottom-right resize handle to change its height.
 
 Syntax colors (Ocean, Warm, Monochrome) are selected independently of the editor background. Palettes adapt to light/dark backgrounds, and both choices are remembered locally.
+
+Completed battle results appear directly below the arena, with scores and win/tie/loss counts. Single battles name the outcome; completed series identify the highest-scoring warrior(s). Reset clears the results and pauses before instruction one; Run starts execution directly.

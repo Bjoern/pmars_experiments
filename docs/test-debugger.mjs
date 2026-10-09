@@ -18,8 +18,7 @@ try {
  await page.locator('#toggleEditors').click();
   await page.locator('#first').fill(';redcode-94\n;name Alpha\n;assert 1\nmov.i 0,1\n');
   assert((await page.locator('label[for=first]').textContent()).includes('Alpha'));
-  await page.locator('#debugStart').check();
-  await page.locator('#run').click(); await ready('Paused before');
+  await page.locator('#reset').click(); await ready('Paused before');
   assert.equal(await count(),0);
   assert.equal(await page.locator('#instruction .listing-line').count(),0);
   assert.equal(await page.locator('#execution section').count(),2);

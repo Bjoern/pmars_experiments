@@ -1,10 +1,10 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=4d31547863278efb';
-import {createEditor} from './dist/editor.mjs?v=4d31547863278efb';
+import {bundledWarriors} from './demo-warriors.mjs?v=80675ddc0fb6bd4e';
+import {createEditor} from './dist/editor.mjs?v=80675ddc0fb6bd4e';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=4d31547863278efb';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=4d31547863278efb';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=4d31547863278efb';
-import {HistoryChart} from './charts.mjs?v=4d31547863278efb';
+import {Engine, settings} from './engine.mjs?v=80675ddc0fb6bd4e';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=80675ddc0fb6bd4e';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=80675ddc0fb6bd4e';
+import {HistoryChart} from './charts.mjs?v=80675ddc0fb6bd4e';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -58,7 +58,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=4d31547863278efb',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=80675ddc0fb6bd4e',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -225,7 +225,7 @@ function stop() {
   pendingReject = null; engine = null; latest = null;
   history = []; combined = []; coreView='native'; renderTrace(); countedCompleted=0;lastScoreSample=-1;
   processChart.clear();scoreChart.clear();
-  state = 'idle'; dirty = false; $('changed').textContent = ''; $('activeSettings').textContent = ''; legend();
+  state = 'idle'; $('battleResults').hidden=true; dirty = false; $('changed').textContent = ''; $('activeSettings').textContent = ''; legend();
   $('progress').hidden = true; status('Stopped. Ready for another battle.'); controls();
 }
 function clearBattle() {
@@ -250,7 +250,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=4d31547863278efb', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=80675ddc0fb6bd4e', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -280,17 +280,23 @@ function work(type, config) {
 }
 function scores(update) {
   processIndicators(update);
+  $('battleResults').hidden=update.completed===0;
+  const best=Math.max(...update.warriors.map(w=>w.score));
+  const shared=update.warriors.filter(w=>w.score===best).length>1;
   const order=update.warriors.map((w,i)=>({w,i}));
   if($('sort').checked)order.sort((a,b)=>b.w.score-a.w.score);
-  const key=JSON.stringify(order.map(({w,i})=>[w.name,w.wins,w.ties,w.losses,w.score,warriorColor(i)]));
+  const key=JSON.stringify([update.completed,update.done,order.map(({w,i})=>[w.name,w.wins,w.ties,w.losses,w.score,warriorColor(i)])]);
   if(key===scoreViewKey)return;
   scoreViewKey=key;
   $('scores').replaceChildren(...order.map(({w,i}) => {
     const row = document.createElement('div'); row.className = 'score'; row.style.color = warriorColor(i);
     const outcome = update.warriors.length === 1
-      ? `${w.wins} survived / ${w.losses} terminated`
+      ? `${w.wins} survived / ${w.losses} terminated · score ${w.score}`
       : `${w.wins} wins / ${w.ties} ties / ${w.losses} losses · score ${w.score}`;
-    row.textContent = `${w.name} · ${outcome}`;
+    const result=update.warriors.length===1 ? (update.completed===1?(w.losses?'Terminated':'Survived'):'')
+      :update.completed===1 ? (w.wins?'Won':w.ties?'Tied':'Lost')
+      :update.done ? (w.score===best?(shared?'Tied for first':'Won series'):'Lost series') : '';
+    row.textContent = `${w.name}${result?' · '+result:''} · ${outcome}`;
     return row;
   }));
 }
@@ -493,7 +499,7 @@ async function run() {
     }
     return;
   }
-  if (await load()) { if (!$('debugStart').checked) resume(); }
+  if (await load()) resume();
 }
 function appendNativeOutput(text) {
   if(text==='(cdb) ')return;
@@ -658,7 +664,7 @@ function recordCommand(text){
 }
 function battleCount(update){
  sessionBattles += Math.max(0,update.completed-countedCompleted);countedCompleted=update.completed;
- $('battleTotals').textContent='Warriors · '+update.completed.toLocaleString()+' battles this run';
+ $('battleTotals').textContent='Results · '+update.completed.toLocaleString()+' battle'+(update.completed===1?'':'s')+(update.done?' · complete':' completed');
  $('diagnosticsTitle').textContent='Show diagnostics · '+sessionBattles.toLocaleString()+' battles this session';
 }
 function sampleScores(update){
@@ -692,7 +698,7 @@ async function startDemo(selected){
  if(sources.length)return;
  sources=[...selected];collapsedEditors=[];wideEditors=[];
  $('preset').value='standard';$('preset').onchange();
- $('rounds').value='1';$('debugStart').checked=false;$('debugEnabled').checked=false;
+ $('rounds').value='1';$('debugEnabled').checked=false;
  $('speed').value='3';$('speed').oninput();
  markDirty();editors();
  if(await load())resume();
