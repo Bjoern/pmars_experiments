@@ -1,16 +1,16 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=f66f135e4e412452';
-import {createEditor} from './dist/editor.mjs?v=f66f135e4e412452';
+import {bundledWarriors} from './demo-warriors.mjs?v=4d31547863278efb';
+import {createEditor} from './dist/editor.mjs?v=4d31547863278efb';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=f66f135e4e412452';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=f66f135e4e412452';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=f66f135e4e412452';
-import {HistoryChart} from './charts.mjs?v=f66f135e4e412452';
+import {Engine, settings} from './engine.mjs?v=4d31547863278efb';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=4d31547863278efb';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=4d31547863278efb';
+import {HistoryChart} from './charts.mjs?v=4d31547863278efb';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let fastMode = false;
-let coreView = 'native';
+let coreView = 'native', inspectionAddress = 0;
 const consoles=[];let consoleSerial=0;const commandHistory=[];
 let nativeBusy=false,nativeResume=false,nativeOutput='',nativeInput=null,nativeCancelled=false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
@@ -58,7 +58,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=f66f135e4e412452',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=4d31547863278efb',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -234,7 +234,7 @@ function clearBattle() {
   $('scores').textContent='Add warriors or try the demo.';
   for(const panel of consoles)panel.output.textContent='Load a battle to inspect its core.';$('coreViewTitle').textContent='Core listing';
 
-  $('follow').replaceChildren(new Option('Fixed address','-1'));
+
   $('battleTotals').textContent='Warriors · 0 battles this run';
   status('No warriors loaded. Add a warrior, upload files, or try Demo.');
 }
@@ -250,7 +250,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=f66f135e4e412452', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=4d31547863278efb', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -295,7 +295,7 @@ function scores(update) {
   }));
 }
 function wrap(n) { const size = engine?.config.coreSize || 8000; return ((n % size) + size) % size; }
-function lineCount() { return Math.max(1,Math.min(100,Number($('lines').value) || 10)); }
+function lineCount() { return 10; }
 function instructionRow(address, instruction, owner = null, suffix = '', listing = false) {
   const row=document.createElement('button');row.type='button';
   row.className='instruction-row'+(listing?' listing-line':'');row.dataset.address=String(address);
@@ -322,9 +322,7 @@ function traceRow(entry) {
 function renderListing(host) {
   if(!host){for(const panel of consoles.filter(p=>p.select.value==='cdb'))renderListing(panel.output);return;}
   if (!engine) {host.textContent='Load a battle to inspect its core.';return;}
-  const follow = Number($('follow').value);
-  if (follow >= 0 && latest?.warriors[follow]?.pc >= 0) $('address').value = wrap(latest.warriors[follow].pc - Math.floor(lineCount()/2));
-  const start = wrap(Number($('address').value) || 0);
+  const start = inspectionAddress;
   host.replaceChildren(...Array.from({length:lineCount()},(_,i) => {
     const addr=wrap(start+i),owners=latest.warriors.flatMap((w,j)=>w.pc===addr?[j]:[]);
     return instructionRow(addr,engine.inspect(addr),owners[0]??null,
@@ -336,7 +334,7 @@ function renderCoreView() {
   // Only explicit inspection or cdb commands change this console's contents.
   if(coreView==='native')renderNativeOutput();
 }
-function showAddress(n) { $('follow').value = '-1'; $('address').value = wrap(n); inspect();renderCoreView(); }
+function showAddress(n) { inspectionAddress=wrap(n); inspect();renderCoreView(); }
 function consoleOptions(panel) {
   const selected=panel.select.value || 'cdb';
   const names=latest?.warriors.map(w=>w.name) || sources.map((source,i)=>draftName(source,i));
@@ -393,7 +391,7 @@ function present(update) {
   if(!fastMode)sampleScores(update);
   $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round}`;
   if($('diagnostics').open && !fastMode)$('sliceTiming').textContent='Peak simulation slice: '+maxSlice.toFixed(1)+' ms';
-  if(update.debugHit>=0){if(nativeResume){nativeResume=false;setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}pause();$('follow').value=String(update.debugHit);status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
+  if(update.debugHit>=0){if(nativeResume){nativeResume=false;setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}pause();status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
   if(update.debugEvent && nativeResume){nativeResume=false;pause();setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}
   if (update.done) { setFast(false);sampleScores(update);state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
   if (!fastMode && (state !== 'running' || performance.now()-lastText >= 100)) {
@@ -417,8 +415,7 @@ async function load() {
   // Reserve the widest counter for this match so digit changes cannot reflow the toolbar.
   $('timing').style.width = (('Cycle '+config.cycles.toLocaleString()+' / '+config.cycles.toLocaleString()+' · round '+next.config.rounds.toLocaleString()).length)+'ch';
   engine = next; total = 0; maxSlice = 0; credit = 0; history = []; combined = [];
-  display.configure(config.coreSize);clearHover(); $('address').max = config.coreSize-1; $('address').value = 0;
-  $('follow').replaceChildren(new Option('Fixed address','-1'), ...banks.map((b,i) => new Option(b.name,String(i))));
+  display.configure(config.coreSize);clearHover(); inspectionAddress=0;
   traceControls(banks.map(b=>b.name));engine.setDebug($('debugEnabled').checked);
   const initial=engine.start();present(initial);legend();
   if(initial.done){state='done';status('Assembly complete. No battles run.');controls();return false;}
@@ -610,10 +607,6 @@ $('speed').oninput = () => {
  $('speed').setAttribute('aria-valuetext',unlimited?'Unlimited, with graphics':label+' instructions per second');
  credit=0;
 };
-$('address').oninput = () => { $('follow').value = '-1'; inspect(); };
-$('lines').oninput = inspect; $('follow').onchange = inspect;
-$('prevPage').onclick = () => showAddress(Number($('address').value)-lineCount());
-$('nextPage').onclick = () => showAddress(Number($('address').value)+lineCount());
 $('addConsole').onclick=()=>addConsole(latest?.warriors.length?'warrior:0':'cdb');
 $('arenaLayout').onchange=()=>{
  const layout=$('arenaLayout').value,viewport=document.querySelector('.arena-viewport');

@@ -121,7 +121,7 @@ to 256 KiB; diagnostics retain 64 KiB.
   selector. Leaving or scrolling clears the indicator.
 - Click the arena to pause and list from that address. Right-click lists up to
   the clicked address. Listings default to ten lines, with addresses, wraparound,
-  paging, and next-PC markers. Follow selects a warrior's next instruction.
+  and next-PC markers. Use cdb `list start,end` for other ranges.
 - Consoles: choose cdb, all warriors, or a named warrior in each panel. Add, pause,
   or remove panels independently. Execution entries show instructions before
   operand evaluation or writes.

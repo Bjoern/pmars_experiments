@@ -39,7 +39,7 @@ try {
     return {x:rect.left+2*24+12,y:rect.top+12*24+12,address:12*Number(canvas.dataset.columns)+2};
   });
   await page.mouse.click(point.x,point.y);
-  assert.equal(Number(await page.locator('#address').inputValue()),point.address);
+  assert.equal(Number(await page.locator('#instruction .listing-line').first().getAttribute('data-address')),point.address);
   await page.locator('#cellSize').selectOption('0');
   assert(await page.locator('#core').evaluate(c=>c.clientWidth<=c.parentElement.clientWidth && Number(c.dataset.cellSize)%2===0));
   await page.locator('#cellSize').selectOption('8');
@@ -54,12 +54,10 @@ try {
   assert.equal(await count(),0);
   assert.equal(await page.locator('#execution pre').nth(1).textContent(),'');
 
-  await page.locator('#lines').fill('4');
-  await page.locator('#address').fill('7998');
+  await command('list 7998,1');
   assert.deepEqual(await page.locator('#instruction .listing-line').allTextContents().then(a=>a.map(s=>s.slice(0,4))),
     ['7998','7999','0000','0001']);
-  await page.locator('#nextPage').click();
-  assert.equal(await page.locator('#address').inputValue(),'2');
+  await command('cls');
   await command('list 20,29');
   assert.equal(await page.locator('#instruction .listing-line').count(),10);
   assert((await page.locator('#instruction').textContent()).includes('0020'));
@@ -72,7 +70,7 @@ try {
   await page.locator('.output-console select').nth(1).selectOption('all');
   assert.equal(await page.locator('.output-console').nth(1).locator('.instruction-row').count(),2);
   await page.locator('#core').click({position:{x:40,y:30}});
-  assert.equal(await page.locator('#follow').inputValue(),'-1');
+  assert.equal(await page.locator('#instruction .listing-line').count(),10);
 
   await page.locator('#first').fill(';redcode-94\n;NAME Beta\n;assert 1\nadd.ab #1,0\njmp -1\n');
   assert((await page.locator('label[for=first]').textContent()).includes('Beta'));
