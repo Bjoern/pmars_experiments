@@ -39,7 +39,7 @@ import hashlib
 import re
 web = ROOT / "docs"
 modules = sorted(p for p in web.glob("*.mjs") if not p.name.startswith("test-"))
-text_paths = modules + [web / "index.html", web / "style.css"]
+text_paths = modules + [web / "index.html", web / "style.css", web / "favicon.svg"]
 normalized = {p: re.sub(r"\?v=[A-Za-z0-9_-]+", "", p.read_text(encoding="utf-8")) for p in text_paths}
 digest = hashlib.sha256()
 for p, text in normalized.items():
@@ -55,6 +55,7 @@ for p, text in normalized.items():
     elif p.name == "index.html":
         text = text.replace('style.css"', 'style.css?v=' + version + '"')
         text = text.replace('app.mjs"', 'app.mjs?v=' + version + '"')
+        text = text.replace('favicon.svg"', 'favicon.svg?v=' + version + '"')
     p.write_text(text, encoding="utf-8", newline="\n")
 print("Browser release:", version)
 
@@ -67,7 +68,7 @@ with zipfile.ZipFile(ROOT / "docs" / "pmars-source.zip", "w", zipfile.ZIP_DEFLAT
     paths += [ROOT / "config" / "pmars.mac", ROOT / "config" / "mw.mac"]
     paths += warrior_paths
     paths += sorted((ROOT / "src").glob("*.c")) + sorted((ROOT / "src").glob("*.h"))
-    paths += sorted(p for p in (ROOT / "docs").iterdir() if p.suffix in (".mjs", ".py", ".css", ".html", ".md"))
+    paths += sorted(p for p in (ROOT / "docs").iterdir() if p.suffix in (".mjs", ".py", ".css", ".html", ".md", ".svg"))
     for p in paths:
         entry = zipfile.ZipInfo(p.relative_to(ROOT).as_posix(), (1980,1,1,0,0,0))
         archive.writestr(entry, p.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
