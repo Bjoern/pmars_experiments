@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import createModule from './dist/pmars.mjs?v=31bc34883f3e10e8';
+import createModule from './dist/pmars.mjs?v=792acc8902d0f479';
 
-import {settings, argumentsFor} from './settings.mjs?v=31bc34883f3e10e8';
-export {settings, defaults} from './settings.mjs?v=31bc34883f3e10e8';
+import {settings, argumentsFor} from './settings.mjs?v=792acc8902d0f479';
+export {settings, defaults} from './settings.mjs?v=792acc8902d0f479';
 function check(code) {
   if (code) throw new Error(`pMARS returned error ${code}; see assembly diagnostics.`);
 }
@@ -84,8 +84,32 @@ export class Engine {
     if (done && !this.printedResults) { this.module._web_print_results(); this.printedResults = true; }
     return this.update(!!done);
   }
+  async debuggerCommand(text, {output=()=>{}, input=()=>Promise.resolve('')}={}) {
+    if(this.debugBusy)throw new Error('Debugger is already processing a command.');
+    if(!this.started)throw new Error('Load a battle before using cdb.');
+    if(text!==undefined && new TextEncoder().encode(text).length>8192)throw new Error('Debugger command is too long.');
+    const m=this.module,lines=text===undefined?[]:[text];
+    m.cdbCancelled=false;m.cdbOutput=output;
+    m.cdbReadLine=async prompt=>{
+      if(m.cdbCancelled)return null;
+      if(lines.length)return lines.shift();
+      if(prompt==='(cdb) ')return null;
+      return new Promise(resolve=>{
+        this.debugInputResolve=resolve;
+        Promise.resolve(input(prompt)).then(value=>{if(this.debugInputResolve===resolve){this.debugInputResolve=null;resolve(value);}});
+      });
+    };
+    if(text!==undefined)m._web_cdb_new_command();
+    this.debugBusy=true;
+    try {
+      const action=await m.ccall('web_cdb','number',[],[],{async:true});
+      return {action,steps:action===2?1+m._web_cdb_take_skip():0,cancelled:!!m.cdbCancelled};
+    } finally {this.debugBusy=false;this.debugInputResolve=null;}
+  }
+  cancelDebugger(){this.module.cdbCancelled=true;if(this.debugInputResolve){this.debugInputResolve(null);this.debugInputResolve=null;}}
   breakpoint(address) { return !!this.module._web_breakpoint(address); }
   setBreakpoint(address, enabled) { check(this.module._web_set_breakpoint(address,+enabled)); }
+  setDebugEvents(enabled) { this.module._web_set_cdb_events(+enabled); }
   setDebug(enabled) { this.module._web_set_debug(+enabled); }
   setTrace(enabled) { this.module._web_set_trace(+enabled); }
   update(done) {
@@ -100,7 +124,7 @@ export class Engine {
         instruction: decoder.decode(text.subarray(0, text.indexOf(0)))});
     }
     return {
-      trace, debugHit: m._web_debug_hit()-1, completed: m._web_completed(),
+      trace, debugEvent:m._web_cdb_event(), debugHit: m._web_debug_hit()-1, completed: m._web_completed(),
       // A copy remains valid across calls and Wasm memory growth.
       events: m.HEAPU32.slice(ptr, ptr + m._web_event_count() * 4),
       executed: m._web_steps(), cycle: m._web_cycle(), round: m._web_round(), done,

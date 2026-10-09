@@ -2,7 +2,7 @@
 
 This branch adds a client-side pMARS WebAssembly engine, an incremental canvas
 display, and a worker for assembly and headless match series. No server-side
-simulation, framework, SDL, Asyncify, SharedArrayBuffer, or cross-origin
+simulation, framework, SDL, SharedArrayBuffer, or cross-origin
 isolation headers are required.
 
 ## Build and preview
@@ -126,36 +126,41 @@ to 256 KiB; diagnostics retain 64 KiB.
   or Off. Entries contain the instruction before operand evaluation or writes.
   Histories retain 100 entries per warrior and 300 combined. Text refreshes
   at most 10 times per second while running; Pause/Step refresh immediately.
-- Run series is available from idle, paused, running, or completed visual battles.
-  It replaces the visual battle with a fresh series using current sources/settings,
-  with progress and cumulative scores about every 100 ms. P-space persists
-  between rounds within the series. Pause suspends the worker at a bounded
-  execution boundary; Resume series continues the same match, preserving
-  scores and P-space. Rounds sit beside the series button, with no demo cap
-  beyond native pMARS’s 2,147,483,647-round integer limit.
+- Run and Fast use the rounds field. Fast suppresses visual updates; Run/Pause
+  preserves the loaded match and P-space. The worker API remains available to
+  integrations, but there is no separate series button.
 
-### Classic display macros
+### Native cdb and macros
 
-The browser adapts useful display actions from `config/pmars.mac` and
-`config/mw.mac`. The original left-click macro is `cls~l ,+lines-4`: it
-lists from the selected cell with a console-height-dependent line count.
-The browser uses an explicit Lines control instead.
+The browser command line now runs `src/cdb.c`, with the real expression parser,
+command chains (`~`), repeat loops (`!`), conditionals, core editing, process queues,
+P-space inspection, tracing, and macro interpreter. Both `config/pmars.mac` and
+`config/mw.mac` are embedded in the WebAssembly filesystem and preloaded.
+`macro f7` and `macro alive` execute their original definitions. Native `macro , user`
+accepts custom macro definitions through the command field, ending with `.`.
+The bundled `tproc` macro also has a dangling multiplication operator corrected
+so that it reports the total process count.
 
-The command field supports `list/l address[,end]` (also `pc` and `.`),
-`step/s [count]`, `go/g`, `pause`, `reset`, `progress`, `registers`,
-`alive`, `tproc`, and `help`. Commands are interpreted directly, never
-passed to JavaScript eval or to a system shell.
+Native semantics apply: `step 10` executes at **address 10**, not ten instructions.
+Use `step~!10` or `skip 9` for ten instructions. Empty Enter recalls the last native
+command chain; leading whitespace retains cdb's no-recall behavior. `help` lists
+native commands; paged output, `edit`, and `fill` ask for their next input in the
+same field. Native `reset` resets the command chain; toolbar Reset (or the browser
+convenience command `reset battle`) reloads sources and clears the match.
 
-Adapted aliases: `macro/m f5`, `f7`, `f8` step once and show 13 lines
-following warrior one; `f9` continues; `mouse/mousel/mousem/mouser`
-refresh the listing; `up/down/pgup/pgdn` navigate. F5/F7/F8/F9, arrows,
-Page Up/Down, and Escape work outside editable controls. The adaptations do
-not duplicate native multi-panel switching semantics.
+The adapter uses Emscripten Asyncify to suspend interactive input and yield during
+macro loops and long listings. While a native operation is active the Run button
+becomes Cancel; simulation cannot reenter the same instance. Step/skip requests
+advance through the existing bounded simulation slices. Native `go` chains resume
+at breakpoints, warrior deaths, and round boundaries. Completed matches remain
+available for native inspection.
 
-This is a documented browser subset, not the full cdb macro interpreter:
-macro loops, operand-pointer expressions, shell/file operations,
-and arbitrary .mac loading are not implemented. On-page command help
-lists the supported behavior.
+Native files are temporary, per-match Emscripten files, not host files. The default
+macro files are available by name; `write filename` writes a virtual log file.
+Shell commands are explicitly unavailable. Native text-panel switching retains
+separate cursor positions but shares one browser output view. Platform graphics
+commands are handled by the browser controls, not by a native terminal display.
+These are browser adaptations, not a claim of byte-for-byte terminal UI equivalence.
 
 The display uses native pMARS quadrant markers in warrior colors: read marks
 the top-left quarter, write marks the top-right and bottom-left quarters,
@@ -367,6 +372,6 @@ them. Source `;break`/`;trace` markers can also be toggled for the loaded addres
 
 Run shows a combined, warrior-colored execution history in the core listing (latest
 300 snapshots). Core clicks, listing commands, and address/follow controls switch
-back to memory inspection. Step shows executions; the classic function-key macros
-still step and inspect the followed warrior. Fast and Pause all views suspend the
+back to memory inspection. The toolbar Step shows executions; debugger commands
+and function-key macros show the native cdb output. Fast and Pause all views suspend the
 live listing along with the other execution views.

@@ -84,7 +84,7 @@ try{
  await page.locator('#step').click();await ready('Paused after');
  assert.equal(await page.locator('#execution pre').first().textContent(),firstTrace);
  await page.locator('#command').fill('l0,3');await page.locator('#command').press('Enter');
- await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent.includes('Done.'));
+ await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent==='Ready.');
  assert.equal(await page.locator('#instruction .listing-line').count(),4);
  await page.locator('#theme').selectOption('accessible');
  assert.equal(await page.locator('body').getAttribute('data-theme'),'accessible');

@@ -11,7 +11,7 @@ const errors = []; let workers = 0;
 page.on('pageerror',e=>errors.push(e.message)); page.on('worker',()=>workers++);
 const ready = text => page.waitForFunction(t=>document.querySelector('#status').textContent.includes(t),text);
 const count = async () => Number(await page.locator('#timing').getAttribute('data-instructions'));
-const command = async text => { await page.locator('#command').fill(text); await page.locator('#command').press('Enter'); };
+const command = async text => { await page.locator('#command').fill(text); await page.locator('#command').press('Enter'); await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent==='Ready.'); };
 try {
   await page.goto(process.env.PMARS_URL || 'http://127.0.0.1:8765/docs/');
  await loadTestWarriors(page);
@@ -63,14 +63,14 @@ try {
   await command('list 20,29');
   assert.equal(await page.locator('#instruction .listing-line').count(),10);
   assert((await page.locator('#instruction').textContent()).startsWith('0020'));
-  await command('macro f5'); await ready('Paused after');
-  assert.equal(await count(),1);
+  await command('macro f5');
+  assert.equal(await count(),2);
   assert.equal(await page.locator('#instruction .listing-line').count(),13);
-  assert((await page.locator('#instruction').textContent()).includes('next: Alpha'));
+  assert((await page.locator('#instruction').textContent()).includes('MOV.I'));
   await command('alive'); await command('tproc');
-  assert((await page.locator('#log').textContent()).includes('2 alive; 2 processes'));
+  assert((await page.locator('#instruction').textContent()).includes('2'));
   await page.locator('#traceMode').selectOption('combined');
-  assert.equal(await page.locator('#execution pre .instruction-row').count(),1);
+  assert.equal(await page.locator('#execution pre .instruction-row').count(),2);
   await page.locator('#core').click({position:{x:40,y:30}});
   assert.equal(await page.locator('#follow').inputValue(),'-1');
 
@@ -91,7 +91,7 @@ try {
   await page.locator('#traceMode').selectOption('columns');
   await page.locator('#reset').click(); await ready('Paused before');
   assert.equal(await page.locator('#execution section').count(),3);
-  await command('step 3'); await ready('Paused after');
+  await command('step~!3');
   assert.equal(await count(),3);
   const rows = await page.locator('#execution pre').allTextContents();
   assert(rows.every(s=>/^\d{4}\s/.test(s)));

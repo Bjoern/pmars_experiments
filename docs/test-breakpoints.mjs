@@ -11,13 +11,13 @@ e.setBreakpoint(0,false);assert.equal(e.breakpoint(0),false);u=e.advance(100,4);
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(process.env.PLAYWRIGHT_MODULE).href:'playwright');
 const browser=await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL||'msedge'}),page=await browser.newPage(),errors=[];
 page.on('pageerror',e=>errors.push(e.message));
-const command=async text=>{await page.locator('#command').fill(text);await page.locator('#command').press('Enter');};
+const command=async text=>{await page.locator('#command').fill(text);await page.locator('#command').press('Enter');await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent==='Ready.');};
 try{
  await page.goto('http://127.0.0.1:8765/docs/');await loadTestWarriors(page);await page.locator('#toggleEditors').click();
  await page.locator('#first').fill(source.replace(';assert',';name One\n;assert'));await page.locator('#second').fill(source.replace(';assert',';name Two\n;assert'));
  await page.locator('#debugStart').check();await page.locator('#run').click();
  await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Paused before'));
- await command('step 2');await page.waitForFunction(()=>document.querySelector('#timing').dataset.instructions==='2');
+ await page.locator('#step').click();await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#timing').dataset.instructions==='2');
  assert((await page.locator('#coreViewTitle').textContent()).includes('all warriors'));
  assert.equal(await page.locator('#instruction .instruction-row').count(),2);
  const colors=await page.locator('#instruction .instruction-row').evaluateAll(es=>es.map(e=>e.style.color));assert.notEqual(colors[0],colors[1]);
@@ -29,8 +29,8 @@ try{
  assert.equal(await page.locator('#timing').getAttribute('data-instructions'),'2');assert.equal(await page.locator('#coreViewTitle').textContent(),'Core listing');
  await page.locator('#instruction [data-address="'+address+'"]').click();assert.equal(await page.locator('#instruction [data-address="'+address+'"]').getAttribute('aria-pressed'),'false');
  await page.locator('#run').click();await page.waitForFunction(()=>Number(document.querySelector('#timing').dataset.instructions)>10);
- await command('list 0,4');assert.equal(await page.locator('#coreViewTitle').textContent(),'Core listing');assert.equal(await page.locator('#instruction .listing-line').count(),5);
- await command('step');assert((await page.locator('#coreViewTitle').textContent()).includes('all warriors'));
+ await command('list 0,4');assert.equal(await page.locator('#coreViewTitle').textContent(),'Native pMARS debugger');assert.equal(await page.locator('#instruction .listing-line').count(),5);
+ await page.locator('#step').click();assert((await page.locator('#coreViewTitle').textContent()).includes('all warriors'));
  await page.locator('#execution .instruction-row').first().click();assert.equal(await page.locator('#execution .instruction-row').first().getAttribute('aria-pressed'),'true');
  await page.locator('#reset').click();await page.waitForFunction(()=>document.querySelector('#timing').dataset.instructions==='0');assert.equal(await page.locator('#instruction [aria-pressed=true]').count(),0);
  assert.deepEqual(errors,[]);console.log('PASS: execution colors and no numbering; clickable breakpoints in both views; stop before execution, removal, step/live/list transitions, reset; native address breakpoint API.');

@@ -15,6 +15,9 @@ subprocess.run([emcc, "-O2", "-std=gnu99", "-Wno-deprecated-non-prototype",
     "-DSERVER", "-DBROWSER", "-DEXT94", "-DPERMUTATE",
     *[str(ROOT / "src" / f"{s}.c") for s in sources],
     "-sMODULARIZE=1", "-sEXPORT_ES6=1", "-sENVIRONMENT=web,worker,node",
+    "-sASYNCIFY=1", "-sASYNCIFY_STACK_SIZE=131072",
+    "--embed-file", str(ROOT / "config" / "pmars.mac") + "@/pmars.mac",
+    "--embed-file", str(ROOT / "config" / "mw.mac") + "@/mw.mac",
     "-sALLOW_MEMORY_GROWTH=1", "-sMAXIMUM_MEMORY=134217728",
     "-sSTACK_SIZE=1048576", "-sINVOKE_RUN=0",
     "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
@@ -52,6 +55,7 @@ shutil.copyfile(ROOT / "COPYING", ROOT / "docs" / "COPYING")
 (ROOT / "docs" / ".nojekyll").touch()
 with zipfile.ZipFile(ROOT / "docs" / "pmars-source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
     paths = [ROOT / "COPYING", ROOT / "AUTHORS", ROOT / "README.md"]
+    paths += [ROOT / "config" / "pmars.mac", ROOT / "config" / "mw.mac"]
     paths += sorted((ROOT / "src").glob("*.c")) + sorted((ROOT / "src").glob("*.h"))
     paths += sorted(p for p in (ROOT / "docs").iterdir() if p.suffix in (".mjs", ".py", ".css", ".html", ".md"))
     for p in paths:

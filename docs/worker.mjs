@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine} from './engine.mjs?v=31bc34883f3e10e8';
+import {Engine} from './engine.mjs?v=792acc8902d0f479';
 let busy = false, paused = false, wake = null;
 self.onmessage = async ({data}) => {
   if(data.type==='pause'){paused=true;return;}

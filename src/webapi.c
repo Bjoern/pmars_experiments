@@ -16,13 +16,16 @@ unsigned int web_events[WEB_CAPACITY][4];
 int web_count, web_phase, web_budget, web_visual;
 unsigned int web_executed;
 static double deadline;
-static int configured, started, loaded[MAXWARRIOR];
+static int configured, started, loaded[MAXWARRIOR], cdb_running;
 static char inspection[128];
 static int completed, web_wins[MAXWARRIOR], web_ties[MAXWARRIOR], web_losses[MAXWARRIOR];
 #define TRACE_CAPACITY 512
 typedef struct { int owner, address; char text[96]; } web_trace_entry;
 static web_trace_entry trace_entries[TRACE_CAPACITY];
 static int trace_enabled, trace_count, current_cycle;
+static int cdb_events_enabled, cdb_event;
+API void web_set_cdb_events(int enabled) { cdb_events_enabled = !!enabled; }
+API int web_cdb_event(void) { return cdb_event; }
 static int debug_enabled, debug_hit, debug_skip_owner = -1, debug_skip_address;
 API void web_set_debug(int enabled) { debug_enabled = !!enabled; if (!enabled) debug_skip_owner = -1; }
 API int web_debug_hit(void) { return debug_hit; }
@@ -35,6 +38,7 @@ API int web_breakpoint(int address) {
   if (!started || address < 0 || address >= coreSize || address >= 65536) return 0;
   return address_breakpoints[address] ? address_breakpoints[address] == 1 : !!memory[address].debuginfo;
 }
+void web_clear_breakpoint_override(int address) { if (address >= 0 && address < 65536) address_breakpoints[address] = 0; }
 API int web_set_breakpoint(int address, int enabled) {
   if (!started || address < 0 || address >= coreSize || address >= 65536) return 2;
   address_breakpoints[address] = enabled ? 1 : 2;
@@ -44,6 +48,8 @@ static unsigned long long cycle_visits;
 API int web_cycle(void) { return current_cycle; }
 void web_record_instruction(int address)
 {
+  extern void web_cdb_executed(void);
+  web_cdb_executed();
   /* A repeated warrior begins the next scheduler sweep; deaths are skipped. */
   unsigned long long bit = 1ULL << (W - warrior);
   if (!cycle_visits || (cycle_visits & bit)) {
@@ -81,6 +87,7 @@ API int web_outcome(int index, int outcome) {
 void web_event(int kind, int address, int owner, int value)
 {
   if (kind == WEB_RESET) { current_cycle = 0; cycle_visits = 0; }
+  if (cdb_events_enabled && (kind == WEB_DEATH || kind == WEB_ROUND)) cdb_event = kind;
   if (!web_visual) return;
   /* advance reserves 64 slots before executing an instruction; initial
      load is limited to MAXWARRIOR 100-instruction warriors. Never drop events. */
@@ -93,6 +100,7 @@ void web_event(int kind, int address, int owner, int value)
 
 int web_should_yield(void)
 {
+  if (cdb_event) return 1;
   if ((trace_enabled && trace_count >= TRACE_CAPACITY) || web_budget <= 0 || web_count > WEB_CAPACITY - 64) return 1;
   if ((web_executed & 63) == 0 && emscripten_get_now() >= deadline) return 1;
   if (debug_enabled && web_breakpoint(*W->taskHead)) {
@@ -227,10 +235,11 @@ API int web_start(void)
 }
 API int web_advance(int instructions, double milliseconds)
 {
-  if (!started || instructions < 1 || instructions > 100000 ||
+  if (cdb_running || !started || instructions < 1 || instructions > 100000 ||
       !(milliseconds > 0 && milliseconds <= 8)) return -1;
   web_count = 0;
   debug_hit = 0;
+  cdb_event = 0;
   trace_count = 0;
   web_executed = 0;
   web_budget = instructions;
@@ -246,4 +255,21 @@ API const char *web_inspect(int address)
 {
   if (!started || address < 0 || address >= coreSize) return "";
   return cellview(memory + address, inspection, 1);
+}
+
+/* cdb expects the current task to have been popped, whereas browser slices
+   stop before popping it. Adapt that boundary, including execute/PC changes. */
+API int web_cdb(void) {
+  int result, popped;
+  static int macros_loaded;
+  extern void load_macros(char *);
+  if (!started) return 4;
+  if (!macros_loaded) { char a[] = "/pmars.mac", b[] = "/mw.mac"; load_macros(a); load_macros(b); macros_loaded = 1; }
+  popped = W->tasks > 0;
+  if (popped) { progCnt = *W->taskHead++; if (W->taskHead == endQueue) W->taskHead = taskQueue; }
+  cdb_running = 1;
+  result = cdb("");
+  cdb_running = 0;
+  if (popped) { if (W->taskHead == taskQueue) W->taskHead = endQueue; *--W->taskHead = progCnt; }
+  return result;
 }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>corewar.dev - based on pmars</title>
 <meta name="description" content="Play Core War in your browser with pMARS. Edit and validate warriors, watch battles, or run match series locally with WebAssembly.">
-<link rel="stylesheet" href="style.css?v=31bc34883f3e10e8">
+<link rel="stylesheet" href="style.css?v=792acc8902d0f479">
 </head>
 <body>
 <header><h1>corewar.dev</h1>
@@ -52,22 +52,12 @@
 <label>Follow <select id="follow"><option value="-1">Fixed address</option></select></label>
 <button id="prevPage" aria-label="Previous page">↑ Page</button><button id="nextPage" aria-label="Next page">↓ Page</button></div>
 <pre id="instruction" aria-label="Core instruction listing">Load a battle to inspect its core.</pre>
-<form id="commandForm"><label for="command">Debugger command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f5 · alive" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre>
-<details id="debugHelp"><summary>Browser debugger commands</summary>
-<p>Click an instruction row to toggle an address breakpoint and pause. Breakpoints stay at their addresses across writes and rounds; Reset clears them. Run shows a live combined execution log; listing commands and core clicks switch to inspection.</p>
-<p>Click a core cell to pause and list from that address; right-click lists up to it.
-Choose the line count, page through memory, or follow a warrior's next instruction.</p>
-<p><code>list / l address[,end]</code> (also <code>pc</code> and <code>.</code>),
-<code>step / s [count]</code>, <code>go / g</code>, <code>pause</code>,
-<code>reset</code>, <code>progress</code>, <code>registers</code>,
-<code>alive</code>, <code>tproc</code>, <code>help</code>.</p>
-<p>Adapted aliases from pmars.mac and mw.mac: <code>macro f5</code>, <code>f7</code>,
-<code>f8</code> step once and follow the first warrior with 13 lines;
-<code>f9</code> continues; <code>mousel / mousem / mouser</code> refresh the listing;
-<code>up / down / pgup / pgdn</code> navigate.
-F5/F7/F8/F9, arrows, Page Up/Down and Escape work outside editable controls.</p>
-<p>This is a browser subset, not the full cdb macro interpreter. Shell/file commands,
-macro loops and operand-pointer macros are not implemented.</p>
+<form id="commandForm"><label for="command">Native cdb command</label><input id="command" title="Enter a command; press Enter with an empty field to repeat the last command" placeholder="list 0,9 · step · macro f7 · calc 2+3" autocomplete="off"><button>Execute</button></form><pre id="commandOutput" role="status"></pre>
+<details id="debugHelp"><summary>Native pMARS debugger help</summary>
+<p>The command line uses pMARS cdb, including expressions, command chains (<code>~</code>), loops, conditional commands, and macros. The original <code>pmars.mac</code> and <code>mw.mac</code> are preloaded. Enter <code>help</code> for native command help or <code>macro</code> to list macros.</p>
+<p><code>step</code> executes one instruction; native <code>step 10</code> changes the current program counter to address 10 before executing. To execute ten instructions, use <code>skip 9</code> or <code>step~!10</code>. Enter on an empty field recalls the last native command chain.</p>
+<p><code>trace 100</code> and <code>untrace 100</code> set and clear source-style breakpoints. <code>edit</code>, <code>fill</code>, and paged listings request their next input in the same field. Use the toolbar's Cancel button to interrupt a macro or prompt. Native <code>reset</code> cancels a command chain; the toolbar Reset (or <code>reset battle</code>) reloads the battle.</p>
+<p>Files used by cdb live in this match's temporary browser filesystem. Shell commands are unavailable. Native text-panel macros share this browser output view. F5/F7/F8/F9 and navigation shortcuts invoke the real macros outside editable controls.</p>
 </details>
 </section>
 <section class="analysis-controls"><label><input id="pauseViews" type="checkbox"> Pause all charts and execution logs</label>
@@ -81,5 +71,5 @@ macro loops and operand-pointer macros are not implemented.</p>
 <div class="lower"><section><h2 id="battleTotals">Warriors · 0 battles completed</h2><div id="scores">Scores appear after assembly.</div></section>
 <details id="diagnostics"><summary id="diagnosticsTitle">Show diagnostics</summary><p id="sliceTiming">Peak simulation slice: 0.0 ms</p><pre id="log" aria-label="Assembly diagnostics">Ready.</pre></details></div>
 <footer>pMARS 0.9.6-dev · ICWS ’94 extensions · GPL-2.0-or-later · <a href="COPYING">License</a> · <a href="pmars-source.zip">Download source</a></footer>
-</main><script type="module" src="app.mjs?v=31bc34883f3e10e8"></script>
+</main><script type="module" src="app.mjs?v=792acc8902d0f479"></script>
 </body></html>

@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=31bc34883f3e10e8';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=31bc34883f3e10e8';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=31bc34883f3e10e8';
-import {HistoryChart} from './charts.mjs?v=31bc34883f3e10e8';
+import {Engine, settings} from './engine.mjs?v=792acc8902d0f479';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=792acc8902d0f479';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=792acc8902d0f479';
+import {HistoryChart} from './charts.mjs?v=792acc8902d0f479';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let fastMode = false;
 let coreView = 'inspect', coreHistory = [];
+let nativeBusy=false,nativeResume=false,nativeOutput='',nativeInput=null,nativeCancelled=false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
 let lastText = 0, dirty = false, stepping = false, stepEpoch = 0;
 let collapsedEditors=[], scoreViewKey=null;
@@ -52,7 +53,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=31bc34883f3e10e8',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=792acc8902d0f479',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -79,6 +80,7 @@ function status(text) {
   $('status').textContent = text;
 }
 function log(text,channel='stderr') {
+ if(nativeBusy)appendNativeOutput(text+'\n');
  consoleText=(consoleText+text+'\n').slice(-262144);
  if($('consoleWindow').open)$('consoleOutput').textContent=consoleText;
  if(channel==='stderr')$('log').textContent=($('log').textContent+text+'\n').slice(-65536);
@@ -109,7 +111,7 @@ function editors() {
     const remove = document.createElement('button');
     remove.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>';remove.title='Remove warrior'; remove.className = 'remove-warrior';
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
-    remove.onclick = () => { sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
+    remove.onclick = () => { if(nativeBusy)return; sources.splice(i,1);collapsedEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
     const save=document.createElement('button');save.textContent='Download';save.className='save-warrior';save.setAttribute('aria-label','Download warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.title='Revalidate warrior and show assembly output';compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
@@ -161,16 +163,18 @@ function processIndicators(update){
 function seriesActive() { return state.startsWith("series"); }
 function controls() {
   const empty = sources.length === 0;
-  const busy = state === 'loading' || seriesActive() || stepping;
-  $('run').disabled = empty || (busy && !['series','series-paused'].includes(state)) || state==='done';
+  const busy = nativeBusy || state === 'loading' || seriesActive() || stepping;
+  $('run').disabled = !nativeBusy && (empty || (busy && !['series','series-paused'].includes(state)) || state==='done');
   const running=['running','series'].includes(state), done=state==='done';
-  $('run').innerHTML='<span class="control-icon" aria-hidden="true">'+(running?'Ⅱ':done?'✓':'▶')+'</span> '+(running?'Pause':done?'Done':'Run');
+  $('run').innerHTML='<span class="control-icon" aria-hidden="true">'+(nativeBusy?'■':running?'Ⅱ':done?'✓':'▶')+'</span> '+(nativeBusy?'Cancel':running?'Pause':done?'Done':'Run');
   $('debugRun').disabled=empty || busy || state==='done';
   $('fast').disabled=empty || busy || state==='done';
   $('step').disabled = empty || busy || state === 'running' || state === 'done';
-  $('reset').disabled = empty || state === 'loading';
+  $('reset').disabled = nativeBusy || empty || state === 'loading';
+  document.querySelectorAll('.remove-warrior').forEach(b=>b.disabled=nativeBusy);
 }
 function stop() {
+  nativeResume=false;engine?.setDebugEvents(false);
   setFast(false);
   cancelAutoValidation();cancelCompileCheck();
   generation++; stepEpoch++; stepping = false; cancelAnimationFrame(animation);
@@ -204,7 +208,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=31bc34883f3e10e8', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=792acc8902d0f479', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -260,7 +264,7 @@ function instructionRow(address, instruction, owner = null, suffix = '', listing
   if(owner!==null)row.style.color=warriorColor(owner);
   row.textContent=addressText(address)+'  '+instruction+suffix+'\n';
   row.onclick=()=>{
-    if(!engine?.started)return;
+    if(nativeBusy || !engine?.started)return;
     const host=row.closest('#instruction') || row.closest('#execution');
     pause();
     const enabled=!engine.breakpoint(address);engine.setBreakpoint(address,enabled);
@@ -284,8 +288,9 @@ function renderListing() {
       owners.length?'  ← next: '+owners.map(j=>latest.warriors[j].name).join(', '):'',true);
   }));
 }
-function inspect() {coreView='inspect';$('coreViewTitle').textContent='Core listing';syncTrace();renderListing();}
+function inspect() {if(nativeBusy)return;coreView='inspect';$('coreViewTitle').textContent='Core listing';syncTrace();renderListing();}
 function renderCoreView() {
+  if(coreView==='native'){renderNativeOutput();return;}
   $('coreViewTitle').textContent=coreView==='live'?'Executed instructions · all warriors':'Core listing';
   if(coreView==='inspect')renderListing();
   else if(!$('pauseViews').checked){
@@ -312,6 +317,7 @@ function renderTrace() {
   for(const pre of host.querySelectorAll('pre'))pre.scrollTop=pre.scrollHeight;
 }
 function textViews() {
+  if(nativeBusy){renderNativeOutput();return;}
   if(latest){scores(latest);renderCoreView();}
   renderTrace();lastText=performance.now();
 }
@@ -334,7 +340,8 @@ function present(update) {
   if(!fastMode)sampleScores(update);
   $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round}`;
   if($('diagnostics').open && !fastMode)$('sliceTiming').textContent='Peak simulation slice: '+maxSlice.toFixed(1)+' ms';
-  if(update.debugHit>=0){pause();$('follow').value=String(update.debugHit);inspect();status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
+  if(update.debugHit>=0){if(nativeResume){nativeResume=false;setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}pause();$('follow').value=String(update.debugHit);inspect();status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
+  if(update.debugEvent && nativeResume){nativeResume=false;pause();setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}
   if (update.done) { setFast(false);sampleScores(update);state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
   if (!fastMode && (state !== 'running' || performance.now()-lastText >= 100)) {
     if(!$('pauseViews').checked && !$('pauseProcesses').checked){
@@ -367,6 +374,7 @@ async function load() {
   return true;
 }
 function pause() {
+  if(nativeBusy){nativeCancelled=true;engine?.cancelDebugger();if(nativeInput){nativeInput(null);nativeInput=null;}return;}
   if(state==='series'){state='series-pausing';worker?.postMessage({type:'pause'});status('Pausing series…');controls();return;}
   if (state !== 'running') return;
   cancelAnimationFrame(animation);setFast(false); state = 'paused'; status('Paused. Step or Resume battle.'); controls(); textViews();
@@ -423,6 +431,7 @@ async function step(n = 1) {
   }
 }
 async function run() {
+  if(nativeBusy){pause();return;}
   if(state==='running' || state==='series'){pause();return;}
   if(state==='series-paused'){state='series';worker?.postMessage({type:'resume'});status('Resuming series…');controls();return;}
   if (engine) {
@@ -436,40 +445,84 @@ async function run() {
   }
   if (await load()) { if (!$('debugStart').checked) resume(); }
 }
+function appendNativeOutput(text) {
+  if(text==='(cdb) ')return;
+  if(text.includes('\x1b[2J'))nativeOutput='';
+  if(text.includes('\x1b['))text=text.replace(/\x1b\[[0-9;]*[A-Za-z]/g,'');
+  nativeOutput=(nativeOutput+text).slice(-65536);
+}
+function renderNativeOutput() {
+  $('coreViewTitle').textContent='Native pMARS debugger';
+  if(nativeBusy)$('instruction').textContent=nativeOutput;
+  else $('instruction').replaceChildren(...nativeOutput.split('\n').map(line=>{
+    const match=line.match(/^(\d{5})\s+(.*)$/);
+    if(match){
+      const address=Number(match[1]);
+      const owner=latest?.warriors.findIndex(w=>w.pc===address)??-1;
+      return instructionRow(address,match[2],owner>=0?owner:null,'',true);
+    }
+    return document.createTextNode(line+'\n');
+  }));
+  $('instruction').scrollTop=$('instruction').scrollHeight;
+}
+async function nativeCommand(text) {
+  if(nativeBusy){
+    if(nativeInput){const resolve=nativeInput;nativeInput=null;resolve(text);return;}
+    return 'Debugger busy. Use Cancel to interrupt the command.';
+  }
+  pause();nativeResume=false;
+  if(!engine && !(await load()))return;
+  const instance=engine;instance.setDebugEvents(false);
+  nativeBusy=true;nativeCancelled=false;coreView='native';nativeOutput='';$('commandOutput').textContent='Working…';controls();
+  const timer=setInterval(renderNativeOutput,100);
+  const io={output:appendNativeOutput,input:prompt=>{
+    if(nativeCancelled)return Promise.resolve(null);
+    $('commandOutput').textContent=prompt || 'Enter the requested instruction or expression.';
+    $('command').focus();renderNativeOutput();
+    return new Promise(resolve=>{nativeInput=resolve;});
+  }};
+  try{
+    let next=text;
+    while(!nativeCancelled && engine===instance){
+      const result=await instance.debuggerCommand(next,io);next=undefined;
+      if(result.cancelled || nativeCancelled)break;
+      if(state==='done' && result.action!==3){appendNativeOutput('Battle complete. Reset to execute again.\n');break;}
+      if(result.action===2){
+        let remaining=result.steps;instance.setDebug(false);
+        while(remaining>0 && !nativeCancelled){
+          const update=instance.advance(Math.min(100000,remaining),4);remaining-=update.executed;present(update);
+          if(update.done){remaining=0;break;}
+          await new Promise(resolve=>setTimeout(resolve,0));
+        }
+        instance.setDebug($('debugEnabled').checked);
+        if(state==='done')break;
+        continue;
+      }
+      if(result.action===0 || result.action===1){
+        $('debugEnabled').checked=result.action===1;instance.setDebug(result.action===1);
+        nativeResume=result.action===1;instance.setDebugEvents(nativeResume);
+        nativeBusy=false;resume();return;
+      }
+      break;
+    }
+  }finally{
+    clearInterval(timer);nativeBusy=false;nativeInput=null;
+    if(engine===instance){
+      instance.setDebug($('debugEnabled').checked);
+      latest=instance.update(state==='done');latest.events=new Uint32Array();latest.trace=[];latest.executed=0;
+      if(state!=='running')coreView='native';
+      if(state!=='running')renderNativeOutput();renderTrace();controls();
+      $('commandOutput').textContent=nativeCancelled?'Debugger command cancelled.':'Ready.';
+    }
+  }
+}
 async function command(text) {
-  if (state === 'loading' || seriesActive()) return log('Stop the current operation before entering debugger commands.');
-  const reply = message => { log(message); return message; };
-  const parts = text.trim().toLowerCase().replace(/^(l|s)(?=[0-9.-])/,'$1 ').split(/\s+/), verb = parts.shift(), rest = parts.join(' ');
-  if (['m','macro'].includes(verb)) return command(rest);
-  if (['s','step','f5','f7','f8','alt-s'].includes(verb)) {
-    const count = rest ? Number(rest) : 1;
-    if (!Number.isInteger(count) || count < 1 || count > 100000) throw new Error('Step count must be 1–100000.');
-    await step(count);
-    if (verb.startsWith('f')) { $('follow').value = '0'; $('lines').value = 13; inspect(); }
-  } else if (['g','go','continue','alt-g','f9'].includes(verb)) {
-    if (!engine && !(await load())) return; resume();
-  } else if (['l','list'].includes(verb)) {
-    pause();
-    const [a,b] = rest.split(',').map(v => v?.trim());
-    const pc = latest?.warriors[Math.max(0,Number($('follow').value))]?.pc ?? 0;
-    const parse = v => v === 'pc' ? pc : v === '.' || !v ? Number($('address').value) : Number(v);
-    if (!Number.isInteger(parse(a)) || (b !== undefined && !Number.isInteger(parse(b)))) throw new Error('Use list address or list start,end (also pc and .).');
-    if (b !== undefined) $('lines').value = Math.min(100,wrap(parse(b)-parse(a))+1);
-    showAddress(parse(a));
-  } else if (['up','ctrl-u'].includes(verb)) showAddress(Number($('address').value)-1);
-  else if (['down','ctrl-d'].includes(verb)) showAddress(Number($('address').value)+1);
-  else if (['pgup','ctrl-k'].includes(verb)) showAddress(Number($('address').value)-lineCount());
-  else if (['pgdn','ctrl-l'].includes(verb)) showAddress(Number($('address').value)+lineCount());
-  else if (['mouse','mousel','mousem','mouser'].includes(verb)) { pause(); inspect(); }
-  else if (['progress','p','alive','tproc','registers','reg','key-p'].includes(verb)) {
-    if (!latest) return reply('Load a battle first.');
-    const output = [`Round ${latest.round}; cycle ${latest.cycle}; ${latest.warriors.filter(w=>w.tasks>0).length} alive; ${latest.warriors.reduce((n,w)=>n+w.tasks,0)} processes.`];
-    if (['registers','reg','key-p'].includes(verb)) latest.warriors.forEach((w,i)=>output.push(`${i+1} ${w.name}: next PC ${w.pc < 0 ? '—' : addressText(w.pc)}, ${w.tasks} processes`));
-    return reply(output.join('\n'));
-  } else if (verb === 'pause') pause();
-  else if (verb === 'reset') await load();
-  else if (['help','f1','?'].includes(verb)) $('debugHelp').open = true;
-  else return reply('Unsupported command. Open Browser debugger commands for the supported subset.');
+  if(nativeBusy)return nativeCommand(text);
+  const verb=text.trim().toLowerCase();
+  if(verb==='pause'){pause();return;}
+  if(verb==='reset battle'){await load();return;}
+  if(/^(f[1-9]|f10|up|down|pgup|pgdn|alive|tproc|mousel|mousem|mouser)$/.test(verb))text='macro '+verb;
+  return nativeCommand(text);
 }
 function setFast(enabled){
  const wasFast=fastMode;fastMode=enabled;$('fast').setAttribute('aria-pressed',String(enabled));
@@ -488,7 +541,7 @@ $('debugRun').onclick=safe(async()=>{
  if((!engine || (total===0 && dirty)) && !(await load()))return;
  engine.setDebug(true);resume();
 });
-$('debugEnabled').onchange=()=>engine?.setDebug($('debugEnabled').checked);
+$('debugEnabled').onchange=()=>{if(!nativeBusy)engine?.setDebug($('debugEnabled').checked);};
 $('diagnostics').ontoggle=()=>{if($('diagnostics').open)$('sliceTiming').textContent='Peak simulation slice: '+maxSlice.toFixed(1)+' ms';};
 $('run').onclick = safe(run);
 $('step').onclick = safe(() => step());
@@ -522,16 +575,9 @@ $('core').onpointerleave=clearHover;
 document.querySelector('.arena-viewport').addEventListener('scroll',clearHover);
 $('core').onclick = event => { const address=display.addressAt(event);if(address===null)return;pause();showAddress(address); };
 $('core').oncontextmenu = event => { event.preventDefault();const address=display.addressAt(event);if(address===null)return;pause();showAddress(address-lineCount()+1); };
-let lastCommand = '';
 $('commandForm').onsubmit = event => {
-  event.preventDefault();
-  const text = $('command').value.trim() || lastCommand;
-  $('command').value = '';
-  if (!text) return;
-  lastCommand = text;
-  // Invalid debugger commands must not destroy an active battle.
-  $('commandOutput').textContent='> '+text+'\n';
-  command(text).then(result=>{$('commandOutput').textContent += result || 'Done. '+$('status').textContent;}).catch(error=>{$('commandOutput').textContent += error.message;log(error.message);});
+  event.preventDefault();const text=$('command').value;$('command').value='';
+  command(text).catch(error=>{nativeBusy=false;controls();$('commandOutput').textContent=error.message;log(error.message);});
 };
 
 document.addEventListener('keydown',event => {
@@ -551,6 +597,7 @@ function traceControls(names) {
  syncTrace();
 }
 function syncTrace(){
+ if(nativeBusy)return;
  engine?.setTrace(!fastMode && !$('pauseViews').checked && (coreView==='live' || ($('traceMode').value!=='off' &&
    pausedWarriors.size < (engine?.config.warriors || sources.length))));
 }
