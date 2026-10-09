@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=792acc8902d0f479';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=792acc8902d0f479';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=792acc8902d0f479';
-import {HistoryChart} from './charts.mjs?v=792acc8902d0f479';
+import {Engine, settings} from './engine.mjs?v=ab1443f216d53921';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=ab1443f216d53921';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=ab1443f216d53921';
+import {HistoryChart} from './charts.mjs?v=ab1443f216d53921';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -53,7 +53,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=792acc8902d0f479',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=ab1443f216d53921',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -174,7 +174,7 @@ function controls() {
   document.querySelectorAll('.remove-warrior').forEach(b=>b.disabled=nativeBusy);
 }
 function stop() {
-  nativeResume=false;engine?.setDebugEvents(false);
+  nativeResume=false;nativeOutput='';engine?.setDebugEvents(false);
   setFast(false);
   cancelAutoValidation();cancelCompileCheck();
   generation++; stepEpoch++; stepping = false; cancelAnimationFrame(animation);
@@ -208,7 +208,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=792acc8902d0f479', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=ab1443f216d53921', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -473,7 +473,8 @@ async function nativeCommand(text) {
   pause();nativeResume=false;
   if(!engine && !(await load()))return;
   const instance=engine;instance.setDebugEvents(false);
-  nativeBusy=true;nativeCancelled=false;coreView='native';nativeOutput='';$('commandOutput').textContent='Working…';controls();
+  if(nativeOutput && !nativeOutput.endsWith('\n'))appendNativeOutput('\n');
+  nativeBusy=true;nativeCancelled=false;coreView='native';$('commandOutput').textContent='Working…';controls();
   const timer=setInterval(renderNativeOutput,100);
   const io={output:appendNativeOutput,input:prompt=>{
     if(nativeCancelled)return Promise.resolve(null);

@@ -23,5 +23,12 @@ try{
  await page.locator('#run').click();await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent.includes('cancelled'));
  await send('calc 1+2');await idle();assert((await page.locator('#instruction').textContent()).includes('3'));
  await send('help');await page.waitForFunction(()=>document.querySelector('#commandOutput').textContent.includes('RET'));await send('a');await idle();
+ await send('cls');await idle();await send('step');await idle();
+ const firstStep=await page.locator('#instruction').textContent();
+ await send('');await idle();assert((await page.locator('#instruction').textContent()).startsWith(firstStep.trimEnd()));
+ assert.equal(await page.locator('#instruction .listing-line').count(),2,'Repeated steps retain prior instructions');
+ await send('step~!80');await idle();assert.equal(await page.locator('#instruction .listing-line').count(),82);
+ assert(await page.locator('#instruction').evaluate(el=>el.scrollHeight>el.clientHeight && Math.abs(el.scrollHeight-el.clientHeight-el.scrollTop)<2),'History scrolls to the latest instruction');
+ await send('cls');await idle();assert.equal(await page.locator('#instruction .listing-line').count(),0);
  assert.deepEqual(errors,[]);console.log('PASS: native UI expressions, interactive fill, real f5, repeat loops/Enter, go-chain breakpoint continuation, responsive infinite loop cancellation, prompt cancellation, and paged help.');
 }finally{await browser.close();}

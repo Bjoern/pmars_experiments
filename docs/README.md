@@ -142,6 +142,8 @@ The bundled `tproc` macro also has a dangling multiplication operator corrected
 so that it reports the total process count.
 
 Native semantics apply: `step 10` executes at **address 10**, not ten instructions.
+Debugger output accumulates in a scrolling history, following the newest output.
+Use `cls` to clear it; loading/resetting a battle also clears the history.
 Use `step~!10` or `skip 9` for ten instructions. Empty Enter recalls the last native
 command chain; leading whitespace retains cdb's no-recall behavior. `help` lists
 native commands; paged output, `edit`, and `fill` ask for their next input in the
