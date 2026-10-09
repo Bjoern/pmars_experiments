@@ -1,15 +1,15 @@
-import {createEditor} from './dist/editor.mjs?v=963b0411b8bf0a28';
+import {createEditor} from './dist/editor.mjs?v=63259c3e108e8c36';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=963b0411b8bf0a28';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=963b0411b8bf0a28';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=963b0411b8bf0a28';
-import {HistoryChart} from './charts.mjs?v=963b0411b8bf0a28';
+import {Engine, settings} from './engine.mjs?v=63259c3e108e8c36';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=63259c3e108e8c36';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=63259c3e108e8c36';
+import {HistoryChart} from './charts.mjs?v=63259c3e108e8c36';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
 let state = 'idle', animation = 0, previous = 0, credit = 0, total = 0;
 let fastMode = false;
-let coreView = 'inspect', coreHistory = [];
+let coreView = 'native';
 const consoles=[];let consoleSerial=0;const commandHistory=[];
 let nativeBusy=false,nativeResume=false,nativeOutput='',nativeInput=null,nativeCancelled=false;
 let maxSlice = 0, pendingReject = null, latest = null, history = [], combined = [];
@@ -57,7 +57,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=963b0411b8bf0a28',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=63259c3e108e8c36',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -106,8 +106,10 @@ function legend() {
   $('legendNames').replaceChildren(...names.map((name,i) => {
     const span = document.createElement('span');
     span.style.color = warriorColor(i); span.textContent = `■ ${name} `;
-    const count=document.createElement('span');count.className='process-count';count.dataset.process=i;count.textContent=latest?.warriors[i]?.tasks.toLocaleString()??'—';count.title='Processes';count.setAttribute('aria-label','Processes for '+name);span.append(count);return span;
+    const count=document.createElement('span');count.className='process-count';count.dataset.process=i;count.textContent=latest?.warriors[i]?.tasks.toLocaleString()??'—';count.title='Processes';count.setAttribute('aria-label','Processes for '+name);span.append(count);
+    const eliminated=document.createElement('span');eliminated.className='eliminated-marker';eliminated.dataset.eliminated=i;span.append(eliminated);return span;
   }));
+  if(latest)processIndicators(latest);
 }
 function editors() {
  sourceEditors.forEach(e=>e.destroy());sourceEditors=[];
@@ -162,6 +164,15 @@ $('toggleEditors').onclick=()=>{
  collapsedEditors=sources.map(()=>collapse);editorVisibility();
 };
 function processIndicators(update){
+ update.warriors.forEach((w,i)=>{
+  const marker=$('legendNames').querySelector('[data-eliminated="'+i+'"]');
+  const eliminated=!!engine?.started && w.tasks===0;
+  if(marker && marker.dataset.state!==String(eliminated)){
+   marker.dataset.state=String(eliminated);marker.textContent=eliminated?'×':'';
+   marker.title=eliminated?'Eliminated (no processes)':'';
+   marker.setAttribute('aria-label',eliminated?w.name+' eliminated':'');
+  }
+ });
  if(fastMode || $('pauseViews').checked || $('pauseProcesses').checked)return;
  update.warriors.forEach((w,i)=>{
   const counter=$('legendNames').querySelector('[data-process="'+i+'"]');
@@ -198,7 +209,7 @@ function stop() {
   worker = null; clearTimeout(workerTimer);
   if (pendingReject) pendingReject(new DOMException('Stopped', 'AbortError'));
   pendingReject = null; engine = null; latest = null;
-  history = []; combined = []; coreHistory=[];coreView='inspect'; renderTrace(); countedCompleted=0;lastScoreSample=-1;
+  history = []; combined = []; coreView='native'; renderTrace(); countedCompleted=0;lastScoreSample=-1;
   processChart.clear();scoreChart.clear();
   state = 'idle'; dirty = false; $('changed').textContent = ''; $('activeSettings').textContent = ''; legend();
   $('progress').hidden = true; status('Stopped. Ready for another battle.'); controls();
@@ -225,7 +236,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=963b0411b8bf0a28', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=63259c3e108e8c36', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -308,15 +319,8 @@ function renderListing(host) {
 }
 function inspect() {if(nativeBusy)return;ensureCdbConsole();coreView='inspect';$('coreViewTitle').textContent='Core listing';syncTrace();renderListing();}
 function renderCoreView() {
-  if(coreView==='native'){renderNativeOutput();return;}
-  $('coreViewTitle').textContent=coreView==='live'?'Executed instructions · all warriors':'Core listing';
-  for(const panel of consoles.filter(p=>p.select.value==='cdb' && !p.paused)){
-    if(coreView==='inspect')renderListing(panel.output);
-    else if(!$('pauseViews').checked){
-      panel.output.replaceChildren(...coreHistory.map(traceRow));
-      panel.output.scrollTop=panel.output.scrollHeight;
-    }
-  }
+  // Only explicit inspection or cdb commands change this console's contents.
+  if(coreView==='native')renderNativeOutput();
 }
 function showAddress(n) { $('follow').value = '-1'; $('address').value = wrap(n); inspect();renderCoreView(); }
 function consoleOptions(panel) {
@@ -363,13 +367,11 @@ function present(update) {
   $('activeSettings').textContent = 'Loaded cycle limit: ' + engine.config.cycles.toLocaleString() +
     ' per warrior per round · ' + engine.config.warriors + ' warriors';
   for (const entry of update.trace) {
-    if(!$('pauseViews').checked)coreHistory.push(entry);
     if($('pauseViews').checked)continue;
     (history[entry.warrior] ||= []).push(entry);
     if (history[entry.warrior].length > 100) history[entry.warrior].shift();
     combined.push(entry);
   }
-  if(coreHistory.length>300)coreHistory.splice(0,coreHistory.length-300);
   if (combined.length > 300) combined.splice(0,combined.length-300);
   total += update.executed;
   $('timing').dataset.instructions=String(total);
@@ -377,7 +379,7 @@ function present(update) {
   if(!fastMode)sampleScores(update);
   $('timing').textContent = `Cycle ${update.cycle.toLocaleString()} / ${engine.config.cycles.toLocaleString()} · round ${update.round}`;
   if($('diagnostics').open && !fastMode)$('sliceTiming').textContent='Peak simulation slice: '+maxSlice.toFixed(1)+' ms';
-  if(update.debugHit>=0){if(nativeResume){nativeResume=false;setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}pause();$('follow').value=String(update.debugHit);inspect();status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
+  if(update.debugHit>=0){if(nativeResume){nativeResume=false;setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}pause();$('follow').value=String(update.debugHit);status('Debug marker: '+update.warriors[update.debugHit].name+' at '+addressText(update.warriors[update.debugHit].pc)+'. Paused before execution.');}
   if(update.debugEvent && nativeResume){nativeResume=false;pause();setTimeout(()=>nativeCommand(undefined).catch(e=>log(e.message)),0);}
   if (update.done) { setFast(false);sampleScores(update);state = 'done'; status('Battle complete. Inspect the core; Reset starts again.'); controls(); }
   if (!fastMode && (state !== 'running' || performance.now()-lastText >= 100)) {
@@ -433,7 +435,7 @@ function frame(now) {
 function resume() {
   if (!engine || state === 'done') return;
   stepEpoch++; stepping = false;
-  coreView='live';syncTrace();
+  syncTrace();
   state = 'running'; previous = performance.now(); controls();
   status('Battle running. Click the core to pause and list instructions.');
   animation = requestAnimationFrame(frame);
@@ -453,7 +455,7 @@ async function step(n = 1) {
   if (!engine && !(await load())) return;
   if (state === 'done') return;
   const token = generation, ticket = ++stepEpoch;
-  coreView='live';syncTrace();
+  syncTrace();
   stepping = true;engine.setDebug(false);controls();
   try {
     while (n > 0 && state === 'paused' && token === generation && ticket === stepEpoch) {
@@ -634,7 +636,7 @@ function traceControls() {
 }
 function syncTrace(){
  if(nativeBusy)return;
- engine?.setTrace(!fastMode && !$('pauseViews').checked && consoles.some(p=>!p.paused && (p.select.value!=='cdb' || coreView==='live')));
+ engine?.setTrace(!fastMode && !$('pauseViews').checked && consoles.some(p=>!p.paused && p.select.value!=='cdb'));
 }
 function recordCommand(text){
  if(!text)return;

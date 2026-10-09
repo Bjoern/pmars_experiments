@@ -168,3 +168,5 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .add-console{height:276px;border:1px dashed #375264;background:transparent;color:#91afbf;align-self:start}
 
 .command-workspace:has(#commandHistory:empty){grid-template-columns:1fr}
+
+.eliminated-marker{display:inline-block;width:1em;color:#ff7979;font-size:16px;font-weight:bold;text-align:center;vertical-align:middle}

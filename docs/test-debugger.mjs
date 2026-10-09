@@ -21,7 +21,7 @@ try {
   await page.locator('#debugStart').check();
   await page.locator('#run').click(); await ready('Paused before');
   assert.equal(await count(),0);
-  assert.equal(await page.locator('#instruction .listing-line').count(),10);
+  assert.equal(await page.locator('#instruction .listing-line').count(),0);
   assert.equal(await page.locator('#execution section').count(),2);
   assert.equal(await page.locator('#execution pre').nth(1).textContent(),'');
   await page.locator('#step').click(); await ready('Paused after');

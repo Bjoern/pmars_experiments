@@ -377,10 +377,9 @@ Run stops before execution; Step passes through the current breakpoint. Address
 breakpoints persist across writes and rounds in the loaded match, and Reset clears
 them. Source `;break`/`;trace` markers can also be toggled for the loaded address.
 
-Run shows a combined, warrior-colored execution history in the core listing (latest
-300 snapshots). Core clicks, listing commands, and address/follow controls switch
-back to memory inspection. The toolbar Step shows executions; debugger commands
-and function-key macros show the native cdb output. Fast and Pause all views suspend the
+The All warriors console shows a combined, warrior-colored execution history
+(latest 300 snapshots). The cdb console retains debugger output and explicit core
+inspections; Run and the toolbar Step do not replace it with execution history. Fast and Pause all views suspend the
 live listing along with the other execution views.
 
 ### Configurable consoles
@@ -408,3 +407,5 @@ it after changing the adapter or dependencies, run `npm ci`, `npm run build:edit
 then `python docs/build.py` with Emscripten configured. Dependency versions are
 locked; `docs/dist/editor-LICENSES.txt` ships their license notices. The checked-in
 bundle allows ordinary Wasm builds and GitHub Pages deployment without npm.
+
+Eliminated warriors have a red multiplication-sign cross (a text glyph, not a third-party icon asset) beside their process count. Its space is reserved even while alive.
