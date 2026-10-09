@@ -1,10 +1,10 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=80675ddc0fb6bd4e';
-import {createEditor} from './dist/editor.mjs?v=80675ddc0fb6bd4e';
+import {bundledWarriors} from './demo-warriors.mjs?v=bd68579c2c000dd9';
+import {createEditor} from './dist/editor.mjs?v=bd68579c2c000dd9';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=80675ddc0fb6bd4e';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=80675ddc0fb6bd4e';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=80675ddc0fb6bd4e';
-import {HistoryChart} from './charts.mjs?v=80675ddc0fb6bd4e';
+import {Engine, settings} from './engine.mjs?v=bd68579c2c000dd9';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=bd68579c2c000dd9';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=bd68579c2c000dd9';
+import {HistoryChart} from './charts.mjs?v=bd68579c2c000dd9';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -19,6 +19,12 @@ let collapsedEditors=[], wideEditors=[], scoreViewKey=null;
 let sourceEditors=[], compileIssues=[];
 const demoSources = [";redcode-94\n;name Imp\n;author A. K. Dewdney\n;assert 1\nmov.i 0, 1\nend\n", ";redcode-94\n;name Dwarf\n;author A. K. Dewdney\n;assert 1\nadd.ab #4, bomb\nmov.i bomb, @bomb\njmp -2\nbomb dat.f #0, #0\nend\n"];
 let sources = [];
+let excludedWarriors = [];
+const selectedIndices = () => sources.map((_,i)=>i).filter(i=>!excludedWarriors[i]);
+function rosterCount() {
+ const selected=selectedIndices().length;
+ $('warriorCount').textContent=`${sources.length} warrior${sources.length===1?'':'s'}`+(selected===sources.length?'':` · ${selected} selected`);
+}
 let consoleText='',sessionBattles=0,countedCompleted=0,lastScoreSample=-1;
 let compileStates=[], compileWorker=null, compileTimer=null, revision=0, chartRound=0;
 let validationTimer=null, validationQueue=[];
@@ -53,12 +59,12 @@ function checkWarrior(index,automatic=false) {
  if(!automatic)cancelAutoValidation();
  cancelCompileCheck();if(!automatic)showConsole();
  let config;
- try {config={...options(),brief:automatic,assembleOnly:true};}
+ try {config={...readSettings({warriors:sources.length}),brief:automatic,assembleOnly:true};}
  catch(error){compileStates[index]='failed';refreshCompileButtons();log(error.message);if(automatic)nextValidation();return;}
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=80675ddc0fb6bd4e',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=bd68579c2c000dd9',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -100,7 +106,7 @@ function markDirty() {
  compileIssues=[];refreshDiagnostics();
   revision++;cancelCompileCheck();compileStates=[];refreshCompileButtons();scheduleValidation();
   dirty = !!engine || state === 'loading';
-  $('changed').textContent = dirty ? 'Sources or settings changed. Run applies them before instruction 1; otherwise Reset applies them and Resume keeps the loaded battle.' : '';
+  $('changed').textContent = dirty ? 'Sources, selection or settings changed. Run applies them before instruction 1; otherwise Reset applies them and Resume keeps the loaded battle.' : '';
 }
 function legend() {
   const names = engine && latest ? latest.warriors.map(w => w.name) : sources.map(draftName);
@@ -127,7 +133,7 @@ function editors() {
     const remove = document.createElement('button');
     remove.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>';remove.title='Remove warrior'; remove.className = 'remove-warrior';
     remove.setAttribute('aria-label', `Remove warrior ${i+1}`);
-    remove.onclick = () => { if(nativeBusy)return; sources.splice(i,1);collapsedEditors.splice(i,1);wideEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
+    remove.onclick = () => { if(nativeBusy)return; sources.splice(i,1);excludedWarriors.splice(i,1);collapsedEditors.splice(i,1);wideEditors.splice(i,1); markDirty(); if(!sources.length)clearBattle(); editors(); };
     const save=document.createElement('button');save.textContent='Download';save.className='save-warrior';save.setAttribute('aria-label','Download warrior '+(i+1));save.onclick=()=>saveWarrior(i);
     const compile=document.createElement('button');compile.className='compile-warrior';
     compile.title='Revalidate warrior and show assembly output';compile.setAttribute('aria-label','Validate warrior '+(i+1));compile.onclick=()=>checkWarrior(i);
@@ -140,7 +146,10 @@ function editors() {
     const nameGroup=document.createElement('div');nameGroup.className='warrior-name-group';nameGroup.append(label,pencil);
     const widen=document.createElement('button');widen.className='widen-editor';widen.textContent='↔';
     widen.onclick=()=>{wideEditors[i]=!wideEditors[i];editorVisibility();sourceEditors[i].view.requestMeasure();};
-    top.append(edit,nameGroup,widen,compile,save,remove);
+    const include=document.createElement('input');include.type='checkbox';include.className='include-warrior';
+    include.checked=!excludedWarriors[i];include.title='Include in next run';include.setAttribute('aria-label','Include warrior '+(i+1)+' in next run');
+    include.onchange=()=>{excludedWarriors[i]=!include.checked;markDirty();rosterCount();controls();};
+    top.append(include,edit,nameGroup,widen,compile,save,remove);
     const area=document.createElement('div');area.className='source-editor';
     const editor=createEditor(area,{theme:$('editorTheme').value,syntax:$('editorSyntax').value,value:source,id:label.htmlFor,label:`Warrior ${i+1} source`,onChange:value=>{
       sources[i]=value;
@@ -150,7 +159,7 @@ function editors() {
     box.append(top,area); return box;
   }));
   editorVisibility();refreshCompileButtons();
-  $('warriorCount').textContent = `${sources.length} warrior${sources.length === 1 ? '' : 's'}`;
+  rosterCount();
   $('newWarrior').disabled = sources.length >= 36;
   $('demos').hidden = sources.length !== 0;
   $('toggleEditors').hidden = sources.length === 0;
@@ -203,7 +212,8 @@ function refreshDiagnostics(){
 }
 function seriesActive() { return state.startsWith("series"); }
 function controls() {
-  const empty = sources.length === 0;
+  const noSelection = selectedIndices().length === 0;
+  const empty = noSelection && (!engine || (total===0 && dirty));
   const busy = nativeBusy || state === 'loading' || seriesActive() || stepping;
   $('run').disabled = !nativeBusy && (empty || (busy && !['series','series-paused'].includes(state)) || state==='done');
   const running=['running','series'].includes(state), done=state==='done';
@@ -211,8 +221,8 @@ function controls() {
   $('debugRun').disabled=empty || busy || state==='done';
   $('fast').disabled=empty || busy || state==='done';
   $('step').disabled = empty || busy || state === 'running' || state === 'done';
-  $('reset').disabled = nativeBusy || empty || state === 'loading';
-  document.querySelectorAll('.remove-warrior').forEach(b=>b.disabled=nativeBusy);
+  $('reset').disabled = nativeBusy || noSelection || state === 'loading';
+  document.querySelectorAll('.remove-warrior,.include-warrior').forEach(b=>b.disabled=nativeBusy);
 }
 function stop() {
   nativeResume=false;nativeOutput='';engine?.setDebugEvents(false);
@@ -238,19 +248,20 @@ function clearBattle() {
   $('battleTotals').textContent='Warriors · 0 battles this run';
   status('No warriors loaded. Add a warrior, upload files, or try Demo.');
 }
-function options() { return readSettings({warriors:sources.length}); }
+function options() { return readSettings({warriors:selectedIndices().length}); }
 function work(type, config) {
+ const indices=selectedIndices();
  compileIssues=[];refreshDiagnostics();
   cancelAutoValidation();cancelCompileCheck();
   compileStates=sources.map(()=> '');refreshCompileButtons();
   const ticket=revision;
   const assemblyStatus=(index,ok)=>{
     if(ticket!==revision || !Number.isInteger(index))return;
-    compileStates[index]=ok?'ok':'failed';refreshCompileButtons();
+    compileStates[indices[index]]=ok?'ok':'failed';refreshCompileButtons();
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=80675ddc0fb6bd4e', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=bd68579c2c000dd9', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;
@@ -260,7 +271,7 @@ function work(type, config) {
     w.onerror = event => finish(new Error(event.message || 'Worker failed to load.'));
     w.onmessage = ({data}) => {
       if(worker!==w)return;
-      if (data.type === 'log') log(data.text,data.channel,data.index);
+      if (data.type === 'log') log(data.text,data.channel,Number.isInteger(data.index)?indices[data.index]:null);
       else if (data.type === 'assembly') assemblyStatus(data.index,data.ok);
       else if (data.type === 'error') {assemblyStatus(data.index,false);showConsole();finish(new Error(data.message));}
       else if (data.type === 'compiled') finish(null,data.banks);
@@ -275,7 +286,7 @@ function work(type, config) {
         latest=data.update;scores(data.update); sampleScores(data.update);
       } else if (data.type === 'done') finish(null,data.update);
     };
-    w.postMessage({type, settings:config, sources:[...sources]});
+    w.postMessage({type, settings:config, sources:indices.map(i=>sources[i])});
   });
 }
 function scores(update) {
@@ -409,7 +420,7 @@ function present(update) {
   }
 }
 async function load() {
-  if(!sources.length)return false;
+  if(!selectedIndices().length){status('Select at least one warrior for the next run.');return false;}
   stop(); const token = generation;
   state = 'loading'; controls(); $('log').textContent = ''; consoleText='';$('consoleOutput').textContent='';
   status('Assembling warriors in a background worker…');
@@ -696,7 +707,7 @@ $('newWarrior').onclick=()=>{
 };
 async function startDemo(selected){
  if(sources.length)return;
- sources=[...selected];collapsedEditors=[];wideEditors=[];
+ sources=[...selected];excludedWarriors=[];collapsedEditors=[];wideEditors=[];
  $('preset').value='standard';$('preset').onchange();
  $('rounds').value='1';$('debugEnabled').checked=false;
  $('speed').value='3';$('speed').oninput();

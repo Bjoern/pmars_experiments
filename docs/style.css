@@ -186,3 +186,5 @@ header h1,header p{margin:0}header p{white-space:nowrap;font-size:14px}
 .source-editor .cm-editor{height:100%}.source-editor .cm-scroller{height:100%;min-height:0;max-height:none}
 
 #battleResults{margin:16px 0;padding:12px;border:1px solid #2a3d4d;border-radius:6px}#battleResults h2{font-size:15px;margin:0 0 8px}
+
+.editor-title .include-warrior{flex:0 0 auto;margin:0;cursor:pointer}
