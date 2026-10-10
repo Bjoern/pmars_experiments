@@ -50,6 +50,12 @@ with tempfile.TemporaryDirectory(prefix='pmars-security-', dir=ROOT / 'security'
     warrior(b'dat ' + b'+' * 1000 + b'1,0\n', label='unary nesting')
     warrior(b'dat ' + b'(' * 1000 + b'1' + b')' * 1000 + b',0\n', label='parenthesis nesting')
     warrior(b'X equ X\ndat X,0\n', label='recursive equate')
+    warrior(b'value equ ' + b'+'.join([b'1'] * 150) + b'\ndat value,0\n', 0, 'long flat equate')
+    warrior((ROOT / 'security/fixtures/numb.red').read_bytes(), 0, 'Numb published warrior')
+    numb = run(['-r', '0', ROOT / 'security/fixtures/numb.red'])
+    expected = (ROOT / 'security/fixtures/numb.expected.txt').read_text()
+    assert [line.rstrip() for line in numb.stdout.decode().splitlines()] == expected.splitlines(), 'Numb upstream assembly parity'
+    checks += 1
     chain = b''.join(f'X{i} equ X{i+1}\n'.encode() for i in range(500))
     warrior(chain + b'X500 equ 1\ndat X0,0\n', label='deep equate chain')
     warrior(b'for 65536\nrof\ndat 0,0\n', label='FOR truncation')

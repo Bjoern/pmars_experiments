@@ -15,7 +15,7 @@ The positive FOR-count wraparound workaround is replaced by explicit rejection
 above 65,535 and a nonwrapping loop counter.
 
 Limits: 1 MiB of input per warrior; 65,535 logical source lines; 7,999 bytes per
-physical/continued logical line; 128 nested assembler calls; 1,000,000 assembly
+physical/continued logical line; 128 nested assembler calls (flat token scans are iterative); 1,000,000 assembly
 work steps; 65,535 FOR iterations; configured warrior instruction limit;
 128 expression call depth and 100,000 expression work steps; 7,999-byte option
 tokens and 16 nested option files. NUL input is rejected. Failed expressions
@@ -33,3 +33,9 @@ patches/VALIDATION.md. Linux/AddressSanitizer and production service integration
 were not tested. Keep untrusted workers isolated and enforce external time,
 memory and output limits. This source port does not update a deployed worker.
 PORT-REVIEW.md (with the display patch) details applicability and SDL differences.
+
+Compatibility regression (2026-10-10): ordinary token traversal no longer
+consumes nesting depth. Numb and a long flat EQU expression are regression
+fixtures; recursive EQU, deep expansion and work-exhaustion tests still apply.
+Numb's expected listing was generated with the preserved unhardened 0.9.6-dev
+baseline; the regression test checks exact assembly parity (normalized line endings and trailing spaces).

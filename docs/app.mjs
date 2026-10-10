@@ -1,10 +1,10 @@
-import {bundledWarriors} from './demo-warriors.mjs?v=bd68579c2c000dd9';
-import {createEditor} from './dist/editor.mjs?v=bd68579c2c000dd9';
+import {bundledWarriors} from './demo-warriors.mjs?v=b1c18ee2eb7d00ea';
+import {createEditor} from './dist/editor.mjs?v=b1c18ee2eb7d00ea';
 // SPDX-License-Identifier: GPL-2.0-or-later
-import {Engine, settings} from './engine.mjs?v=bd68579c2c000dd9';
-import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=bd68579c2c000dd9';
-import {readSettings,setupSettings} from './settings-ui.mjs?v=bd68579c2c000dd9';
-import {HistoryChart} from './charts.mjs?v=bd68579c2c000dd9';
+import {Engine, settings} from './engine.mjs?v=b1c18ee2eb7d00ea';
+import {CoreDisplay, warriorColor, setTheme} from './display.mjs?v=b1c18ee2eb7d00ea';
+import {readSettings,setupSettings} from './settings-ui.mjs?v=b1c18ee2eb7d00ea';
+import {HistoryChart} from './charts.mjs?v=b1c18ee2eb7d00ea';
 const $ = id => document.getElementById(id);
 const display = new CoreDisplay($('core'));
 let engine = null, worker = null, workerTimer = null, generation = 0;
@@ -64,7 +64,7 @@ function checkWarrior(index,automatic=false) {
  const ticket=revision;
  if(!automatic)log('Compiling '+draftName(sources[index],index)+'…','stdout');
  compileStates[index]='busy';refreshCompileButtons();
- const w=compileWorker=new Worker(new URL('./worker.mjs?v=bd68579c2c000dd9',import.meta.url),{type:'module'});
+ const w=compileWorker=new Worker(new URL('./worker.mjs?v=b1c18ee2eb7d00ea',import.meta.url),{type:'module'});
  const finish=(ok,message)=>{
   if(compileWorker!==w)return;
   w.terminate();compileWorker=null;clearTimeout(compileTimer);
@@ -261,7 +261,7 @@ function work(type, config) {
   };
   return new Promise((resolve, reject) => {
     pendingReject = reject;
-    const w = worker = new Worker(new URL('./worker.mjs?v=bd68579c2c000dd9', import.meta.url), {type:'module'});
+    const w = worker = new Worker(new URL('./worker.mjs?v=b1c18ee2eb7d00ea', import.meta.url), {type:'module'});
     const finish = (error, value) => {
       clearTimeout(workerTimer); w.terminate();
       if (worker === w) worker = null;

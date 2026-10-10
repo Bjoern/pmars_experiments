@@ -1030,6 +1030,9 @@ automaton_impl(expr, state, cell)
   char   *tmp;
   ref_st *atbl;
 
+  /* Flat token transitions consume work, but not nesting depth. */
+next_state:
+  idx = 0;
   switch (laststate = state) {
 
   case S_OP:
@@ -1037,9 +1040,9 @@ automaton_impl(expr, state, cell)
     if (get_token(expr, &idx, token) == CHARTOKEN) {
       to_upper(token);
       if ((opcode = str_in_set(token, opname)) < OPNUM)
-        automaton((char *) expr + idx, S_MOD_ADDR_EXP, cell);
+        { expr += idx; state = S_MOD_ADDR_EXP; goto advance_state; }
       else if (opcode < EQUOP)
-        automaton((char *) expr + idx, S_EXPR, cell);
+        { expr += idx; state = S_EXPR; goto advance_state; }
       else
 /* This should be toggled as error. No label should appear at this point */
         LOGICERROR;
@@ -1051,7 +1054,7 @@ automaton_impl(expr, state, cell)
     statefine = FALSE;
     switch (get_token(expr, &idx, token)) {
     case MODFTOKEN:
-      automaton((char *) expr + idx, S_MODF, cell);
+      { expr += idx; state = S_MODF; goto advance_state; }
       break;
     case ADDRTOKEN:
       cell->A_mode = (FIELD_T) ch_in_set(*token, addr_sym);
@@ -1063,11 +1066,11 @@ automaton_impl(expr, state, cell)
           cell->A_mode = SYM_TO_INDIR_A(cell->A_mode);
       }
 #endif
-      automaton((char *) expr + idx, S_EXP_FS, cell);
+      { expr += idx; state = S_EXP_FS; goto advance_state; }
       break;
     case NUMBTOKEN:
     case EXPRTOKEN:
-      automaton(expr, S_EXP_FS, cell);
+      { state = S_EXP_FS; goto advance_state; }
       break;
     case CHARTOKEN:
       if ((atbl = lookup(token)) != NULL)
@@ -1078,7 +1081,7 @@ automaton_impl(expr, state, cell)
             atbl->visit = TRUE;
             automaton(atbl->sline->vline, S_MOD_ADDR_EXP, cell);
             atbl->visit = FALSE;
-            automaton((char *) expr + idx, laststate, cell);
+            { expr += idx; state = laststate; goto advance_state; }
           } else
 /* all slines should've been filled */
             LOGICERROR;
@@ -1088,11 +1091,11 @@ automaton_impl(expr, state, cell)
           automaton(tmp, S_MOD_ADDR_EXP, cell);
           FREE(tmp);
           atbl->visit = FALSE;
-          automaton((char *) expr + idx, laststate, cell);
+          { expr += idx; state = laststate; goto advance_state; }
         } else
           MEMORYERROR;
       else if (!token[1])
-        automaton(expr, S_EXP_FS, cell);
+        { state = S_EXP_FS; goto advance_state; }
       else
         errprn(SNFERR, aline, token);
       break;
@@ -1109,7 +1112,7 @@ automaton_impl(expr, state, cell)
     case CHARTOKEN:
       to_upper(token);
       if ((modifier = str_in_set(token, modname)) < MODNUM)
-        automaton((char *) expr + idx, S_ADDR_EXP_A, cell);
+        { expr += idx; state = S_ADDR_EXP_A; goto advance_state; }
       else
         errprn(EXPERR, aline, modifierMsg);
       break;
@@ -1133,11 +1136,11 @@ automaton_impl(expr, state, cell)
           cell->A_mode = SYM_TO_INDIR_A(cell->A_mode);
       }
 #endif
-      automaton((char *) expr + idx, S_EXP_FS, cell);
+      { expr += idx; state = S_EXP_FS; goto advance_state; }
       break;
     case NUMBTOKEN:
     case EXPRTOKEN:
-      automaton(expr, S_EXP_FS, cell);
+      { state = S_EXP_FS; goto advance_state; }
       break;
     case CHARTOKEN:
       if ((atbl = lookup(token)) != NULL)
@@ -1148,7 +1151,7 @@ automaton_impl(expr, state, cell)
             atbl->visit = TRUE;
             automaton(atbl->sline->vline, S_ADDR_EXP_A, cell);
             atbl->visit = FALSE;
-            automaton((char *) expr + idx, laststate, cell);
+            { expr += idx; state = laststate; goto advance_state; }
           } else
 /* all slines should've been filled */
             LOGICERROR;
@@ -1158,11 +1161,11 @@ automaton_impl(expr, state, cell)
           automaton(tmp, S_ADDR_EXP_A, cell);
           FREE(tmp);
           atbl->visit = FALSE;
-          automaton((char *) expr + idx, laststate, cell);
+          { expr += idx; state = laststate; goto advance_state; }
         } else
           MEMORYERROR;
       else if (!token[1])
-        automaton(expr, S_EXP_FS, cell);
+        { state = S_EXP_FS; goto advance_state; }
       else
         errprn(SNFERR, aline, token);
       break;
@@ -1176,7 +1179,7 @@ automaton_impl(expr, state, cell)
   case S_EXP_FS:
     switch (get_token(expr, &idx, token)) {
     case FSEPTOKEN:
-      automaton((char *) expr + idx, S_ADDR_EXP_B, cell);
+      { expr += idx; state = S_ADDR_EXP_B; goto advance_state; }
       break;
     case ADDRTOKEN:
       if ((token[0] != '>') && (token[0] != '<') && (token[0] != '*'))
@@ -1185,7 +1188,7 @@ automaton_impl(expr, state, cell)
         if (!concat(A_expr, token))
           errprn(BUFERR, aline, "");
         statefine = TRUE;
-        automaton((char *) expr + idx, S_EXP_FS, cell);
+        { expr += idx; state = S_EXP_FS; goto advance_state; }
       }
       break;
     case NUMBTOKEN:
@@ -1196,7 +1199,7 @@ automaton_impl(expr, state, cell)
       if (!concat(A_expr, token))
         errprn(BUFERR, aline, "");
       statefine = TRUE;
-      automaton((char *) expr + idx, S_EXP_FS, cell);
+      { expr += idx; state = S_EXP_FS; goto advance_state; }
       break;
     case CHARTOKEN:
       if ((atbl = lookup(token)) != NULL)
@@ -1207,7 +1210,7 @@ automaton_impl(expr, state, cell)
             atbl->visit = TRUE;
             automaton(atbl->sline->vline, S_EXP_FS, cell);
             atbl->visit = FALSE;
-            automaton((char *) expr + idx, laststate, cell);
+            { expr += idx; state = laststate; goto advance_state; }
           } else
 /* all slines should've been filled */
             LOGICERROR;
@@ -1217,13 +1220,13 @@ automaton_impl(expr, state, cell)
           automaton(tmp, S_EXP_FS, cell);
           FREE(tmp);
           atbl->visit = FALSE;
-          automaton((char *) expr + idx, laststate, cell);
+          { expr += idx; state = laststate; goto advance_state; }
         } else
           MEMORYERROR;
       else if (!token[1])        /* check if it's a register. */
         if (concat(A_expr, token)) {
           statefine = TRUE;
-          automaton((char *) expr + idx, S_EXP_FS, cell);
+          { expr += idx; state = S_EXP_FS; goto advance_state; }
         } else
           errprn(BUFERR, aline, "");
       else
@@ -1249,11 +1252,11 @@ automaton_impl(expr, state, cell)
           cell->B_mode = SYM_TO_INDIR_A(cell->B_mode);
       }
 #endif
-      automaton((char *) expr + idx, S_EXPR, cell);
+      { expr += idx; state = S_EXPR; goto advance_state; }
       break;
     case NUMBTOKEN:
     case EXPRTOKEN:
-      automaton(expr, S_EXPR, cell);
+      { state = S_EXPR; goto advance_state; }
       break;
     case CHARTOKEN:
       if ((atbl = lookup(token)) != NULL)
@@ -1264,7 +1267,7 @@ automaton_impl(expr, state, cell)
             atbl->visit = TRUE;
             automaton(atbl->sline->vline, S_ADDR_EXP_B, cell);
             atbl->visit = FALSE;
-            automaton((char *) expr + idx, laststate, cell);
+            { expr += idx; state = laststate; goto advance_state; }
           } else
 /* all slines should've been filled */
             LOGICERROR;
@@ -1274,11 +1277,11 @@ automaton_impl(expr, state, cell)
           automaton(tmp, S_ADDR_EXP_B, cell);
           FREE(tmp);
           atbl->visit = FALSE;
-          automaton((char *) expr + idx, laststate, cell);
+          { expr += idx; state = laststate; goto advance_state; }
         } else
           MEMORYERROR;
       else if (!token[1])
-        automaton(expr, S_EXPR, cell);
+        { state = S_EXPR; goto advance_state; }
       else
         errprn(SNFERR, aline, token);
       break;
@@ -1298,7 +1301,7 @@ automaton_impl(expr, state, cell)
         if (!concat(B_expr, token))
           errprn(BUFERR, aline, "");
         statefine = TRUE;
-        automaton((char *) expr + idx, S_EXPR, cell);
+        { expr += idx; state = S_EXPR; goto advance_state; }
       }
       break;
     case NUMBTOKEN:
@@ -1309,7 +1312,7 @@ automaton_impl(expr, state, cell)
       if (!concat(B_expr, token))
         errprn(BUFERR, aline, "");
       statefine = TRUE;
-      automaton((char *) expr + idx, S_EXPR, cell);
+      { expr += idx; state = S_EXPR; goto advance_state; }
       break;
     case CHARTOKEN:
       if ((atbl = lookup(token)) != NULL)
@@ -1320,7 +1323,7 @@ automaton_impl(expr, state, cell)
             atbl->visit = TRUE;
             automaton(atbl->sline->vline, S_EXPR, cell);
             atbl->visit = FALSE;
-            automaton((char *) expr + idx, S_EXPR, cell);
+            { expr += idx; state = S_EXPR; goto advance_state; }
           } else
 /* all slines should've been filled */
             LOGICERROR;
@@ -1333,13 +1336,13 @@ automaton_impl(expr, state, cell)
           automaton(tmp, S_EXPR, cell);
           FREE(tmp);
           atbl->visit = FALSE;
-          automaton((char *) expr + idx, S_EXPR, cell);
+          { expr += idx; state = S_EXPR; goto advance_state; }
         } else
           MEMORYERROR;
       else if (!token[1])        /* check for register use */
         if (concat(B_expr, token)) {
           statefine = TRUE;
-          automaton((char *) expr + idx, S_EXPR, cell);
+          { expr += idx; state = S_EXPR; goto advance_state; }
         } else
           errprn(BUFERR, aline, "");
       else
@@ -1352,6 +1355,12 @@ automaton_impl(expr, state, cell)
     }
     break;
   }
+  return;
+
+advance_state:
+  if (!asm_budget())
+    return;
+  goto next_state;
 }
 
 /* ******************************************************************* */
@@ -1783,12 +1792,13 @@ equsub(expr, dest, wdecl, tbl)
     concat(dest, " ");
 
   tbl->visit = 0;
-  return trav2(expr, dest, wdecl);
+  /* The caller resumes the remaining tokens without retaining this frame. */
+  return wdecl;
 }
 
 /* ******************************************************************* */
 
-/* recursively traverse the buffer */
+/* Traverse ordinary tokens iteratively; recurse only for nested constructs. */
 /* buf[] has to be "" */
 static int
 trav2(char *buffer, char *dest, int wdecl)
@@ -1810,6 +1820,8 @@ trav2_impl(buffer, dest, wdecl)
   unsigned int idxp = 0;
   ref_st *tbl;
 
+next_token:
+  idxp = 0;
   switch (get_token(buffer, &idxp, token)) {
 
   case NONE:
@@ -1849,7 +1861,7 @@ trav2_impl(buffer, dest, wdecl)
         if (isspace((unsigned char)(buffer[idxp])))
           concat(buf, " ");
         if (concat(dest, buf))
-          return (trav2((char *) buffer + idxp, dest, wdecl));
+          goto advance_token;
         else
           errprn(BUFERR, aline, "");
       } else
@@ -1937,7 +1949,10 @@ trav2_impl(buffer, dest, wdecl)
           if (tbl->visit)
             errprn(RECERR, aline, token);
           else
-            return equsub((char *) buffer + idxp, dest, wdecl, tbl);
+            {
+              wdecl = equsub((char *) buffer + idxp, dest, wdecl, tbl);
+              goto advance_token;
+            }
 
         else if (wdecl > SLBL) {
           if (tbl->reftype == RSTACK)
@@ -1951,7 +1966,7 @@ trav2_impl(buffer, dest, wdecl)
             concat(buf, " ");
 
           if (concat(dest, buf))
-            return (trav2((char *) buffer + idxp, dest, wdecl));
+            goto advance_token;
           else
             errprn(BUFERR, aline, "");
         } else
@@ -1968,17 +1983,17 @@ trav2_impl(buffer, dest, wdecl)
           idxp++;
 
         /* traverse the rest of buffer */
-        return trav2((char *) buffer + idxp, dest, SLBL);
+        { wdecl = SLBL; goto advance_token; }
       } else {
         if (isspace((unsigned char)(buffer[idxp])))
           concat(token, " ");
         if (concat(dest, token))
-          return (trav2((char *) buffer + idxp, dest, wdecl));
+          goto advance_token;
         else
           errprn(BUFERR, aline, "");
       }
     } else
-      return trav2((char *) buffer + idxp, dest, SNIL);
+      { wdecl = SNIL; goto advance_token; }
     break;
   default:
     if (statefine)
@@ -1987,12 +2002,17 @@ trav2_impl(buffer, dest, wdecl)
       errprn(TOKERR, aline, token);
     else {
       if (concat(dest, token))
-        return trav2((char *) buffer + idxp, dest, wdecl);
+        goto advance_token;
       else
         errprn(BUFERR, aline, "");
     }
   }
   return SERR;
+
+advance_token:
+  buffer += idxp;
+  if (!asm_budget()) return SERR;
+  goto next_token;
 }
 
 /* ******************************************************************* */
