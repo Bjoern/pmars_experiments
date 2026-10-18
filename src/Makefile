@@ -86,7 +86,7 @@ JOBS ?= 8
 CMAKE_ARGS ?=
 SDL_CONFIGURE = "$(CMAKE)" -S .. -B "$(SDL_BUILD_DIR)" -G "$(CMAKE_GENERATOR)" -DCMAKE_MAKE_PROGRAM="$(MAKE)" -DCMAKE_C_COMPILER="$(strip $(CC))" -DCMAKE_CXX_COMPILER="$(strip $(CXX))" -DCMAKE_BUILD_TYPE="$(SDL_BUILD_TYPE)" -DPMARS_STATIC=ON -DPMARS_BUILD_EVENT_TESTS=ON -DSDL3_SOURCE_DIR="$(if $(SDL_DIR),$(abspath $(SDL_DIR)))" -DCMAKE_C_FLAGS="$(CPPFLAGS) $(CFLAGS) $(SDL_EXTRA_CFLAGS)" -DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS)" $(CMAKE_ARGS)
 
-.PHONY: help check graphics check-graphics gdi check-gdi sdl3 check-sdl3 all curses default sdl check-sdl check-sdl-native server xwin clean
+.PHONY: help check check-rc5 graphics check-graphics gdi check-gdi sdl3 check-sdl3 all curses default sdl check-sdl check-sdl-native server xwin clean
 
 graphics: $(GRAPHICS)
 check-graphics: check-$(GRAPHICS)
@@ -110,7 +110,13 @@ check-gdi: gdi
 
 all: $(TARGET)
 
-check: check-graphics
+check: check-graphics check-rc5
+
+# Placement RNG for non-numeric -F seeds; needs no display backend.
+check-rc5:
+	$(PYTHON) -c "from pathlib import Path; Path('../security/build').mkdir(parents=True, exist_ok=True)"
+	$(CC) -O2 -I. ../security/test_rc5.c global.c -o ../security/build/test-rc5$(EXEEXT)
+	$(PYTHON) -c "import subprocess; subprocess.run(['../security/build/test-rc5$(EXEEXT)'], check=True)"
 
 help:
 	@echo "-------------------------------"
